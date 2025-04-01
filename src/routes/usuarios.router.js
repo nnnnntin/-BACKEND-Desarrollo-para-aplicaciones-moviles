@@ -8,7 +8,7 @@ const {
   putUsuarioController,
   deleteUsuarioController,
 } = require("../controllers/usuarios.controller");
-const payloadMiddleWare = require("../middlewares/paylod.middleware");
+const payloadMiddleWare = require("../middlewares/payload.middleware");
 const usuarioSchema = require("../models/schemas/usuarioSchema");
 
 // Private Routes

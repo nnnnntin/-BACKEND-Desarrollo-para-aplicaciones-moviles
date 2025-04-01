@@ -8,7 +8,7 @@ const {
   putPagoController,
   deletePagoController,
 } = require("../controllers/pagos.controller");
-const payloadMiddleWare = require("../middlewares/paylod.middleware");
+const payloadMiddleWare = require("../middlewares/payload.middleware");
 const pagoSchema = require("../models/schemas/pagoSchema");
 
 // Private Routes

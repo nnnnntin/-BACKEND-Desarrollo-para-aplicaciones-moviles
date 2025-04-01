@@ -8,7 +8,7 @@ const {
   putOficinaController,
   deleteOficinaController,
 } = require("../controllers/oficinas.controller");
-const payloadMiddleWare = require("../middlewares/paylod.middleware");
+const payloadMiddleWare = require("../middlewares/payload.middleware");
 const oficinaSchema = require("../models/schemas/oficinaSchema");
 
 // Private Routes

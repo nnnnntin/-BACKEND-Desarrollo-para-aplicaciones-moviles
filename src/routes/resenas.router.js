@@ -8,7 +8,7 @@ const {
   putResenaController,
   deleteResenaController,
 } = require("../controllers/resenas.controller");
-const payloadMiddleWare = require("../middlewares/paylod.middleware");
+const payloadMiddleWare = require("../middlewares/payload.middleware");
 const resenaSchema = require("../models/schemas/resenaSchema");
 
 // Private Routes

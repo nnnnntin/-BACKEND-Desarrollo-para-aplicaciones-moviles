@@ -8,7 +8,7 @@ const {
   putReservaController,
   deleteReservaController,
 } = require("../controllers/reservas.controller");
-const payloadMiddleWare = require("../middlewares/paylod.middleware");
+const payloadMiddleWare = require("../middlewares/payload.middleware");
 const reservaSchema = require("../models/schemas/reservaSchema");
 
 // Private Routes

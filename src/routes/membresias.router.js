@@ -8,7 +8,7 @@ const {
   putMembresiaController,
   deleteMembresiaController,
 } = require("../controllers/membresias.controller");
-const payloadMiddleWare = require("../middlewares/paylod.middleware");
+const payloadMiddleWare = require("../middlewares/payload.middleware");
 const membresiaSchema = require("../models/schemas/membresiaSchema");
 
 // Private Routes

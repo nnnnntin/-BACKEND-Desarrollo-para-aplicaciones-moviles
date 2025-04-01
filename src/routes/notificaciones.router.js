@@ -8,7 +8,7 @@ const {
   putNotificacionController,
   deleteNotificacionController,
 } = require("../controllers/notificaciones.controller");
-const payloadMiddleWare = require("../middlewares/paylod.middleware");
+const payloadMiddleWare = require("../middlewares/payload.middleware");
 const notificacionSchema = require("../models/schemas/notificacionSchema");
 
 // Private Routes

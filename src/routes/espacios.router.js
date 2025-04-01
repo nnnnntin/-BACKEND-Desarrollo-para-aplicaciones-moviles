@@ -8,7 +8,7 @@ const {
   putEspacioController,
   deleteEspacioController,
 } = require("../controllers/espacios.controller");
-const payloadMiddleWare = require("../middlewares/paylod.middleware");
+const payloadMiddleWare = require("../middlewares/payload.middleware");
 const espacioSchema = require("../models/schemas/espacioSchema");
 
 // Private Routes

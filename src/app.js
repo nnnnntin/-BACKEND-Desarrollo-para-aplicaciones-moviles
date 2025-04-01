@@ -1,11 +1,14 @@
-require('dotenv').config();
 const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
 const app = express();
 
+require('dotenv').config();
+
 const loggerMiddleWare = require("./middlewares/logger.middleware");
 const authMiddleWare = require("./middlewares/auth.middleware");
+const sanitizeMiddleware = require("./middlewares/sanitizeMiddleware");
+
 const espaciosRoutes = require('./routes/espacios.router');
 const membresiasRoutes = require('./routes/membresias.router');
 const notificacionesRoutes = require('./routes/notificaciones.router');
@@ -17,11 +20,17 @@ const usuariosRoutes = require('./routes/usuarios.router');
 const publicRoutes = require("./routes/public.router");
 
 app.use(express.json());
+
 app.use(loggerMiddleWare);
+
 app.use(morgan('dev'));
+
 app.use(cors());
 
+app.use(sanitizeMiddleware);
+
 app.use("/public", publicRoutes);
+
 app.use(authMiddleWare);
 
 app.use('/v1', espaciosRoutes);

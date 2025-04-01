@@ -22,7 +22,7 @@ Como el directorio `node_modules` está en el `.gitignore`, deberás instalar la
 4. Para iniciar el proyecto en modo desarrollo, ejecuta:
     npm run dev
 
-Para subir los archivos al no estar trabajando con ramas lo que hago es:
+Para subir los archivos al no estar trabajando con ramas lo que hago para subir es:
     git add .
     git commit -m "MENSAJE"
     git push -u origin main

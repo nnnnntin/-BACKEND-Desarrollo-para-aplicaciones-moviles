@@ -5,7 +5,7 @@ const {
   findMembresia,
   updateMembresia,
   deleteMembresia,
-} = require("../models/storage/membresiaStorage.js");
+} = require("../models/membresia.models.js");
 const sendEmail = require("../services/mailjet.service.js");
 
 const getMembresiasController = (req, res) => {

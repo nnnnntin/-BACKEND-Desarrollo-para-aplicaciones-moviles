@@ -5,7 +5,7 @@ const {
   findResena,
   updateResena,
   deleteResena,
-} = require("../models/storage/resenaStorage.js");
+} = require("../models/resena.models.js");
 const sendEmail = require("../services/mailjet.service.js");
 
 const getResenasController = (req, res) => {

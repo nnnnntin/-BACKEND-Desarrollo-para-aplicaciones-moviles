@@ -18,18 +18,16 @@ const resenasRoutes = require('./routes/resenas.router');
 const reservasRoutes = require('./routes/reservas.router');
 const usuariosRoutes = require('./routes/usuarios.router');
 const publicRoutes = require("./routes/public.router");
+const authRouter = require("./routes/auth.router");
 
 app.use(express.json());
-
 app.use(loggerMiddleWare);
-
 app.use(morgan('dev'));
-
 app.use(cors());
-
 app.use(sanitizeMiddleware);
 
 app.use("/public", publicRoutes);
+app.use("/v1/auth", authRouter); 
 
 app.use(authMiddleWare);
 
@@ -42,7 +40,7 @@ app.use('/v1', resenasRoutes);
 app.use('/v1', reservasRoutes);
 app.use('/v1', usuariosRoutes);
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Listen & serve PORT: ${PORT}`);
 });

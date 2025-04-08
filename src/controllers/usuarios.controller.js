@@ -5,7 +5,7 @@ const {
   findUsuario,
   updateUsuario,
   deleteUsuario,
-} = require("../models/storage/usuarioStorage.js");
+} = require("../models/usuario.models.js");
 const sendEmail = require("../services/mailjet.service.js");
 
 const getUsuariosController = (req, res) => {
@@ -25,8 +25,8 @@ const getUsuarioController = (req, res) => {
 };
 
 const postUsuarioController = async (req, res) => {
-  const { nombre, email, rol } = req.body;
-  createUsuario(nombre, email, rol);
+  const { nombre, password, email, rol } = req.body;
+  createUsuario(nombre, password, email, rol);
   // const response = await sendEmail(email);
   res.status(201).json({
     message: "Usuario creado correctamente",

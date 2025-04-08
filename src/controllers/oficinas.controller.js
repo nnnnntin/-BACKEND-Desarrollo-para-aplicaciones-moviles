@@ -5,7 +5,7 @@ const {
   findOficina,
   updateOficina,
   deleteOficina,
-} = require("../models/storage/oficinaStorage.js");
+} = require("../models/oficina.models.js");
 const sendEmail = require("../services/mailjet.service.js");
 
 const getOficinasController = (req, res) => {

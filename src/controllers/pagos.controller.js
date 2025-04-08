@@ -5,7 +5,7 @@ const {
   findPago,
   updatePago,
   deletePago,
-} = require("../models/storage/pagoStorage.js");
+} = require("../models/pago.models.js");
 const sendEmail = require("../services/mailjet.service.js");
 
 const getPagosController = (req, res) => {

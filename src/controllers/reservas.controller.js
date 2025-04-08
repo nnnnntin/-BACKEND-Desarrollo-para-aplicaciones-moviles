@@ -5,7 +5,7 @@ const {
   findReserva,
   updateReserva,
   deleteReserva,
-} = require("../models/storage/reservaStorage.js");
+} = require("../models/reserva.models.js");
 const sendEmail = require("../services/mailjet.service.js");
 
 const getReservasController = (req, res) => {

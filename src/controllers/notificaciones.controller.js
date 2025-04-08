@@ -5,7 +5,7 @@ const {
   findNotificacion,
   updateNotificacion,
   deleteNotificacion,
-} = require("../models/storage/notificacionStorage.js");
+} = require("../models/notificacion.models.js");
 const sendEmail = require("../services/mailjet.service.js");
 
 const getNotificacionesController = (req, res) => {

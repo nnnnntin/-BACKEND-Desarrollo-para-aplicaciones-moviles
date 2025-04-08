@@ -5,7 +5,7 @@ const {
   findEspacio,
   updateEspacio,
   deleteEspacio,
-} = require("../models/storage/espacioStorage.js");
+} = require("../models/espacio.models.js");
 const sendEmail = require("../services/mailjet.service.js");
 
 const getEspaciosController = (req, res) => {

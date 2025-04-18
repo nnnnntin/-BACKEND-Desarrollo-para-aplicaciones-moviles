@@ -1,21 +1,30 @@
 const express = require("express");
 const router = express.Router();
-
 const {
   getReservasController,
   getReservaController,
   postReservaController,
   putReservaController,
   deleteReservaController,
-} = require("../controllers/reservas.controller");
+} = require("../controllers/reserva.controller");
 const payloadMiddleWare = require("../middlewares/payload.middleware");
-const reservaSchema = require("../models/schemas/reservaSchema");
+const {
+  createReservaSchema,
+  updateReservaSchema
+} = require("../routes/validations/reserva.validation");
 
-// Private Routes
 router.get("/reservas", getReservasController);
 router.get("/reservas/:id", getReservaController);
-router.post("/reservas", payloadMiddleWare(reservaSchema), postReservaController);
+router.post(
+  "/reservas",
+  payloadMiddleWare(createReservaSchema),
+  postReservaController
+);
+router.put(
+  "/reservas/:id",
+  payloadMiddleWare(updateReservaSchema),
+  putReservaController
+);
 router.delete("/reservas/:id", deleteReservaController);
-router.put("/reservas/:id", putReservaController);
 
 module.exports = router;

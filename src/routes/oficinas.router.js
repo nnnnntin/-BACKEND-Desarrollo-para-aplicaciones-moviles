@@ -1,21 +1,30 @@
 const express = require("express");
 const router = express.Router();
-
 const {
   getOficinasController,
   getOficinaController,
   postOficinaController,
   putOficinaController,
   deleteOficinaController,
-} = require("../controllers/oficinas.controller");
+} = require("../controllers/oficina.controller");
 const payloadMiddleWare = require("../middlewares/payload.middleware");
-const oficinaSchema = require("../models/schemas/oficinaSchema");
+const {
+  createOficinaSchema,
+  updateOficinaSchema
+} = require("../routes/validations/oficina.validation");
 
-// Private Routes
 router.get("/oficinas", getOficinasController);
 router.get("/oficinas/:id", getOficinaController);
-router.post("/oficinas", payloadMiddleWare(oficinaSchema), postOficinaController);
+router.post(
+  "/oficinas",
+  payloadMiddleWare(createOficinaSchema),
+  postOficinaController
+);
+router.put(
+  "/oficinas/:id",
+  payloadMiddleWare(updateOficinaSchema),
+  putOficinaController
+);
 router.delete("/oficinas/:id", deleteOficinaController);
-router.put("/oficinas/:id", putOficinaController);
 
 module.exports = router;

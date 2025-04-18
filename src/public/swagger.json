@@ -1,1118 +1,941 @@
 {
-    "openapi": "3.0.0",
-    "info": {
-      "title": "API de Reservas, Oficinas y Servicios",
-      "version": "1.0.0",
-      "description": "API REST para gestionar usuarios, espacios, membresías, pagos, notificaciones, reseñas y reservas, protegida con JWT."
-    },
-    "servers": [
-      {
-        "url": "http://localhost:3001/v1",
-        "description": "Servidor de desarrollo"
-      }
-    ],
-    "components": {
-      "securitySchemes": {
-        "BearerAuth": {
-          "type": "http",
-          "scheme": "bearer",
-          "bearerFormat": "JWT"
-        }
-      },
-      "schemas": {
-        "Usuario": {
-          "type": "object",
-          "properties": {
-            "name": { "type": "string", "example": "Valentin" },
-            "username": { "type": "string", "example": "valentin" },
-            "password": { "type": "string", "example": "123456" }
-          },
-          "required": ["name", "username", "password"]
-        },
-        "Espacio": {
-          "type": "object",
-          "properties": {
-            "nombre": { "type": "string", "example": "Sala de Reuniones" },
-            "ubicacion": { "type": "string", "example": "Piso 2" },
-            "capacidad": { "type": "number", "example": 10 }
-          },
-          "required": ["nombre", "ubicacion", "capacidad"]
-        },
-        "Membresia": {
-          "type": "object",
-          "properties": {
-            "tipo": { "type": "string", "example": "Premium" },
-            "beneficios": { "type": "string", "example": "Acceso prioritario a reservas" },
-            "precio": { "type": "number", "example": 100 }
-          },
-          "required": ["tipo", "beneficios", "precio"]
-        },
-        "Notificacion": {
-          "type": "object",
-          "properties": {
-            "mensaje": { "type": "string", "example": "Nueva reserva solicitada" },
-            "leido": { "type": "boolean", "example": false }
-          },
-          "required": ["mensaje"]
-        },
-        "Oficina": {
-          "type": "object",
-          "properties": {
-            "nombre": { "type": "string", "example": "Oficina Central" },
-            "ubicacion": { "type": "string", "example": "Av. Principal 123" },
-            "capacidad": { "type": "number", "example": 20 }
-          },
-          "required": ["nombre", "ubicacion", "capacidad"]
-        },
-        "Pago": {
-          "type": "object",
-          "properties": {
-            "idUsuario": { "type": "string", "example": "abc123" },
-            "monto": { "type": "number", "example": 150 },
-            "fecha": { "type": "string", "format": "date", "example": "2025-04-01" },
-            "metodo": { "type": "string", "example": "Tarjeta" }
-          },
-          "required": ["idUsuario", "monto", "fecha", "metodo"]
-        },
-        "Resena": {
-          "type": "object",
-          "properties": {
-            "idUsuario": { "type": "string", "example": "abc123" },
-            "comentario": { "type": "string", "example": "Excelente servicio" },
-            "calificacion": { "type": "number", "minimum": 1, "maximum": 5, "example": 5 }
-          },
-          "required": ["idUsuario", "comentario", "calificacion"]
-        },
-        "Reserva": {
-          "type": "object",
-          "properties": {
-            "idUsuario": { "type": "string", "example": "abc123" },
-            "idOficina": { "type": "string", "example": "oficina456" },
-            "fecha": { "type": "string", "format": "date", "example": "2025-04-01" },
-            "estado": { 
-              "type": "string", 
-              "enum": ["pendiente", "aprobada", "rechazada"],
-              "example": "pendiente"
-            }
-          },
-          "required": ["idUsuario", "idOficina", "fecha", "estado"]
-        },
-        "AuthCredentials": {
-          "type": "object",
-          "properties": {
-            "username": { "type": "string", "example": "valentin" },
-            "password": { "type": "string", "example": "password123" }
-          },
-          "required": ["username", "password"]
-        },
-        "AuthResponse": {
-          "type": "object",
-          "properties": {
-            "token": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }
-          }
-        },
-        "MessageResponse": {
-          "type": "object",
-          "properties": {
-            "message": { "type": "string", "example": "Operación realizada exitosamente" }
-          }
-        },
-        "CreateUsuarioResponse": {
-          "type": "object",
-          "properties": {
-            "message": { "type": "string", "example": "Usuario creado exitosamente" },
-            "id": { "type": "number", "example": 2 }
-          }
-        }
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API de Usuarios, Reservas y Servicios",
+    "version": "1.0.0",
+    "description": "API REST para gestionar usuarios, espacios, membresías, pagos, notificaciones, reseñas y reservas, protegida con JWT."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3001/v1",
+      "description": "Servidor de desarrollo"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
       }
     },
-    "security": [
-      {
-        "BearerAuth": []
-      }
-    ],
-    "paths": {
-      "/auth/login": {
-        "post": {
-          "summary": "Iniciar sesión",
-          "description": "Autentica un usuario y devuelve un token JWT.",
-          "requestBody": {
-            "description": "Credenciales de usuario para iniciar sesión",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthCredentials" }
-              }
-            }
+    "schemas": {
+      "Usuario": {
+        "type": "object",
+        "properties": {
+          "name":     { "type": "string", "example": "Romina" },
+          "username": { "type": "string", "example": "romina123" },
+          "password": { "type": "string", "example": "p4ssw0rd" },
+          "active":   { "type": "boolean", "example": true }
+        },
+        "required": ["name","username","password"]
+      },
+      "Reserva": {
+        "type": "object",
+        "properties": {
+          "idUsuario": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{24}$",
+            "example": "6802b348e1da0236add0ddcf"
           },
-          "responses": {
-            "200": {
-              "description": "Login exitoso, token devuelto",
-              "content": {
-                "application/json": {
-                  "schema": { "$ref": "#/components/schemas/AuthResponse" }
-                }
-              }
-            },
-            "400": { "description": "Credenciales inválidas" },
-            "401": { "description": "Credenciales inválidas" }
-          }
-        }
-      },
-      "/auth/signup": {
-        "post": {
-          "summary": "Registrar un nuevo usuario",
-          "description": "Crea un nuevo usuario en el sistema.",
-          "requestBody": {
-            "description": "Datos para crear el usuario",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Usuario" }
-              }
-            }
+          "idOficina": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{24}$",
+            "example": "6802b348e1da0236add0ddcf"
           },
-          "responses": {
-            "201": {
-              "description": "Usuario creado exitosamente",
-              "content": {
-                "application/json": {
-                  "schema": { "$ref": "#/components/schemas/CreateUsuarioResponse" }
-                }
-              }
-            },
-            "400": { "description": "Nombre de usuario ya en uso o error en la validación" }
-          }
-        }
-      },
-      "/espacios": {
-        "get": {
-          "summary": "Obtener todos los espacios",
-          "description": "Retorna la lista de espacios. Se puede filtrar por nombre mediante query parameter.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "nombre",
-              "in": "query",
-              "description": "Filtrar por nombre del espacio",
-              "schema": { "type": "string" }
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "Lista de espacios obtenida con éxito",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "array",
-                    "items": { "$ref": "#/components/schemas/Espacio" }
-                  }
-                }
-              }
-            }
-          }
+          "fecha":     { "type": "string", "format": "date-time", "example": "2025-04-20T14:00:00Z" },
+          "estado":    { "type": "string", "enum": ["pendiente","aprobada","rechazada"], "example": "pendiente" }
         },
-        "post": {
-          "summary": "Crear un nuevo espacio",
-          "description": "Crea un espacio nuevo en el sistema.",
-          "security": [{ "BearerAuth": [] }],
-          "requestBody": {
-            "description": "Datos del espacio a crear",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Espacio" }
-              }
-            }
+        "required": ["idUsuario","idOficina","fecha","estado"]
+      },
+      "Espacio": {
+        "type": "object",
+        "properties": {
+          "nombre":    { "type": "string", "example": "Sala de Reuniones" },
+          "ubicacion": { "type": "string", "example": "Piso 2" },
+          "capacidad": { "type": "integer", "example": 10 },
+          "completed": { "type": "boolean", "example": false }
+        },
+        "required": ["nombre","ubicacion","capacidad"]
+      },
+      "Membresia": {
+        "type": "object",
+        "properties": {
+          "tipo":       { "type": "string", "example": "Premium" },
+          "beneficios": { "type": "string", "example": "Acceso prioritario" },
+          "precio":     { "type": "number", "example": 100 }
+        },
+        "required": ["tipo","beneficios","precio"]
+      },
+      "Pago": {
+        "type": "object",
+        "properties": {
+          "idUsuario": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{24}$",
+            "example": "6802b348e1da0236add0ddcf"
           },
-          "responses": {
-            "201": { "description": "Espacio creado correctamente" },
-            "400": { "description": "Error en la validación de datos" }
-          }
-        }
-      },
-      "/espacios/{id}": {
-        "get": {
-          "summary": "Obtener un espacio por ID",
-          "description": "Devuelve la información de un espacio dado su ID.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID del espacio a consultar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "Detalles del espacio",
-              "content": {
-                "application/json": {
-                  "schema": { "$ref": "#/components/schemas/Espacio" }
-                }
-              }
-            },
-            "404": { "description": "Espacio no encontrado" }
-          }
+          "monto":     { "type": "number", "example": 150 },
+          "fecha":     { "type": "string", "format": "date", "example": "2025-04-01" },
+          "metodo":    { "type": "string", "example": "Tarjeta" }
         },
-        "put": {
-          "summary": "Actualizar un espacio",
-          "description": "Actualiza la información de un espacio existente.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID del espacio a actualizar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "requestBody": {
-            "description": "Datos actualizados del espacio",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Espacio" }
-              }
-            }
+        "required": ["idUsuario","monto","fecha","metodo"]
+      },
+      "Resena": {
+        "type": "object",
+        "properties": {
+          "idUsuario": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{24}$",
+            "example": "6802b348e1da0236add0ddcf"
           },
-          "responses": {
-            "200": { "description": "Espacio actualizado correctamente" },
-            "404": { "description": "Espacio no encontrado" }
-          }
+          "comentario":  { "type": "string", "example": "Excelente servicio" },
+          "calificacion":{ "type": "integer", "minimum":1, "maximum":5, "example":5 }
         },
-        "delete": {
-          "summary": "Eliminar un espacio",
-          "description": "Elimina un espacio existente mediante su ID.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID del espacio a eliminar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "responses": {
-            "200": { "description": "Espacio eliminado correctamente" },
-            "404": { "description": "Espacio no encontrado" }
-          }
+        "required": ["idUsuario","comentario","calificacion"]
+      },
+      "Notificacion": {
+        "type": "object",
+        "properties": {
+          "mensaje": { "type": "string", "example": "Nueva reserva solicitada" },
+          "leido":   { "type": "boolean", "example": false }
+        },
+        "required": ["mensaje"]
+      },
+      "Oficina": {
+        "type": "object",
+        "properties": {
+          "nombre":    { "type": "string", "example": "Oficina Central" },
+          "ubicacion": { "type": "string", "example": "Av. Principal 123" },
+          "capacidad": { "type": "integer", "example": 20 }
+        },
+        "required": ["nombre","ubicacion","capacidad"]
+      },
+      "AuthCredentials": {
+        "type": "object",
+        "properties": {
+          "username": { "type": "string", "example": "romina123" },
+          "password": { "type": "string", "example": "p4ssw0rd" }
+        },
+        "required": ["username","password"]
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string", "example": "eyJhbGciOiJIUzI1Ni..." }
         }
       },
-      "/membresias": {
-        "get": {
-          "summary": "Obtener todas las membresías",
-          "description": "Retorna la lista de membresías.",
-          "security": [{ "BearerAuth": [] }],
-          "responses": {
-            "200": {
-              "description": "Lista de membresías obtenida con éxito",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "array",
-                    "items": { "$ref": "#/components/schemas/Membresia" }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "post": {
-          "summary": "Crear una nueva membresía",
-          "description": "Crea una membresía en el sistema.",
-          "security": [{ "BearerAuth": [] }],
-          "requestBody": {
-            "description": "Datos de la membresía a crear",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Membresia" }
-              }
-            }
-          },
-          "responses": {
-            "201": { "description": "Membresía creada correctamente" },
-            "400": { "description": "Error en la validación" }
-          }
-        }
-      },
-      "/membresias/{id}": {
-        "get": {
-          "summary": "Obtener una membresía por ID",
-          "description": "Retorna los detalles de una membresía dada su ID.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID de la membresía a consultar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "Detalles de la membresía",
-              "content": {
-                "application/json": {
-                  "schema": { "$ref": "#/components/schemas/Membresia" }
-                }
-              }
-            },
-            "404": { "description": "Membresía no encontrada" }
-          }
-        },
-        "put": {
-          "summary": "Actualizar una membresía",
-          "description": "Actualiza la información de una membresía existente.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID de la membresía a actualizar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "requestBody": {
-            "description": "Datos actualizados de la membresía",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Membresia" }
-              }
-            }
-          },
-          "responses": {
-            "200": { "description": "Membresía actualizada correctamente" },
-            "404": { "description": "Membresía no encontrada" }
-          }
-        },
-        "delete": {
-          "summary": "Eliminar una membresía",
-          "description": "Elimina una membresía existente mediante su ID.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID de la membresía a eliminar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "responses": {
-            "200": { "description": "Membresía eliminada correctamente" },
-            "404": { "description": "Membresía no encontrada" }
-          }
-        }
-      },
-      "/notificaciones": {
-        "get": {
-          "summary": "Obtener todas las notificaciones",
-          "description": "Retorna la lista de notificaciones.",
-          "security": [{ "BearerAuth": [] }],
-          "responses": {
-            "200": {
-              "description": "Lista de notificaciones obtenida con éxito",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "array",
-                    "items": { "$ref": "#/components/schemas/Notificacion" }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "post": {
-          "summary": "Crear una notificación",
-          "description": "Crea una notificación en el sistema.",
-          "security": [{ "BearerAuth": [] }],
-          "requestBody": {
-            "description": "Datos de la notificación a crear",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Notificacion" }
-              }
-            }
-          },
-          "responses": {
-            "201": { "description": "Notificación creada correctamente" },
-            "400": { "description": "Error en la validación" }
-          }
-        }
-      },
-      "/notificaciones/{id}": {
-        "get": {
-          "summary": "Obtener una notificación por ID",
-          "description": "Devuelve el detalle de una notificación.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID de la notificación a consultar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "Detalles de la notificación",
-              "content": {
-                "application/json": {
-                  "schema": { "$ref": "#/components/schemas/Notificacion" }
-                }
-              }
-            },
-            "404": { "description": "Notificación no encontrada" }
-          }
-        },
-        "put": {
-          "summary": "Actualizar una notificación",
-          "description": "Actualiza los datos de una notificación existente.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID de la notificación a actualizar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "requestBody": {
-            "description": "Datos actualizados de la notificación",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Notificacion" }
-              }
-            }
-          },
-          "responses": {
-            "200": { "description": "Notificación actualizada correctamente" },
-            "404": { "description": "Notificación no encontrada" }
-          }
-        },
-        "delete": {
-          "summary": "Eliminar una notificación",
-          "description": "Elimina una notificación por ID.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID de la notificación a eliminar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "responses": {
-            "200": { "description": "Notificación eliminada correctamente" },
-            "404": { "description": "Notificación no encontrada" }
-          }
-        }
-      },
-      "/oficinas": {
-        "get": {
-          "summary": "Obtener todas las oficinas",
-          "description": "Retorna la lista de oficinas. Se puede filtrar por nombre mediante query parameter.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "nombre",
-              "in": "query",
-              "description": "Filtrar por nombre de la oficina",
-              "schema": { "type": "string" }
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "Lista de oficinas obtenida con éxito",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "array",
-                    "items": { "$ref": "#/components/schemas/Oficina" }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "post": {
-          "summary": "Crear una nueva oficina",
-          "description": "Crea una oficina en el sistema.",
-          "security": [{ "BearerAuth": [] }],
-          "requestBody": {
-            "description": "Datos de la oficina a crear",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Oficina" }
-              }
-            }
-          },
-          "responses": {
-            "201": { "description": "Oficina creada correctamente" },
-            "400": { "description": "Error en la validación" }
-          }
-        }
-      },
-      "/oficinas/{id}": {
-        "get": {
-          "summary": "Obtener una oficina por ID",
-          "description": "Devuelve los detalles de una oficina.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID de la oficina a consultar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "Detalles de la oficina",
-              "content": {
-                "application/json": {
-                  "schema": { "$ref": "#/components/schemas/Oficina" }
-                }
-              }
-            },
-            "404": { "description": "Oficina no encontrada" }
-          }
-        },
-        "put": {
-          "summary": "Actualizar una oficina",
-          "description": "Actualiza la información de una oficina existente.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID de la oficina a actualizar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "requestBody": {
-            "description": "Datos actualizados de la oficina",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Oficina" }
-              }
-            }
-          },
-          "responses": {
-            "200": { "description": "Oficina actualizada correctamente" },
-            "404": { "description": "Oficina no encontrada" }
-          }
-        },
-        "delete": {
-          "summary": "Eliminar una oficina",
-          "description": "Elimina una oficina existente mediante su ID.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID de la oficina a eliminar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "responses": {
-            "200": { "description": "Oficina eliminada correctamente" },
-            "404": { "description": "Oficina no encontrada" }
-          }
-        }
-      },
-      "/pagos": {
-        "get": {
-          "summary": "Obtener todos los pagos",
-          "description": "Retorna la lista de pagos.",
-          "security": [{ "BearerAuth": [] }],
-          "responses": {
-            "200": {
-              "description": "Lista de pagos obtenida con éxito",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "array",
-                    "items": { "$ref": "#/components/schemas/Pago" }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "post": {
-          "summary": "Crear un nuevo pago",
-          "description": "Crea un pago en el sistema.",
-          "security": [{ "BearerAuth": [] }],
-          "requestBody": {
-            "description": "Datos del pago a crear",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Pago" }
-              }
-            }
-          },
-          "responses": {
-            "201": { "description": "Pago creado correctamente" },
-            "400": { "description": "Error en la validación" }
-          }
-        }
-      },
-      "/pagos/{id}": {
-        "get": {
-          "summary": "Obtener un pago por ID",
-          "description": "Devuelve los detalles de un pago.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID del pago a consultar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "Detalles del pago",
-              "content": {
-                "application/json": {
-                  "schema": { "$ref": "#/components/schemas/Pago" }
-                }
-              }
-            },
-            "404": { "description": "Pago no encontrado" }
-          }
-        },
-        "put": {
-          "summary": "Actualizar un pago",
-          "description": "Actualiza la información de un pago existente.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID del pago a actualizar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "requestBody": {
-            "description": "Datos actualizados del pago",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Pago" }
-              }
-            }
-          },
-          "responses": {
-            "200": { "description": "Pago actualizado correctamente" },
-            "404": { "description": "Pago no encontrado" }
-          }
-        },
-        "delete": {
-          "summary": "Eliminar un pago",
-          "description": "Elimina un pago existente mediante su ID.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID del pago a eliminar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "responses": {
-            "200": { "description": "Pago eliminado correctamente" },
-            "404": { "description": "Pago no encontrado" }
-          }
-        }
-      },
-      "/resenas": {
-        "get": {
-          "summary": "Obtener todas las reseñas",
-          "description": "Retorna la lista de reseñas.",
-          "security": [{ "BearerAuth": [] }],
-          "responses": {
-            "200": {
-              "description": "Lista de reseñas obtenida con éxito",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "array",
-                    "items": { "$ref": "#/components/schemas/Resena" }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "post": {
-          "summary": "Crear una nueva reseña",
-          "description": "Crea una reseña en el sistema.",
-          "security": [{ "BearerAuth": [] }],
-          "requestBody": {
-            "description": "Datos de la reseña a crear",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Resena" }
-              }
-            }
-          },
-          "responses": {
-            "201": { "description": "Reseña creada correctamente" },
-            "400": { "description": "Error en la validación" }
-          }
-        }
-      },
-      "/resenas/{id}": {
-        "get": {
-          "summary": "Obtener una reseña por ID",
-          "description": "Devuelve los detalles de una reseña.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID de la reseña a consultar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "Detalles de la reseña",
-              "content": {
-                "application/json": {
-                  "schema": { "$ref": "#/components/schemas/Resena" }
-                }
-              }
-            },
-            "404": { "description": "Reseña no encontrada" }
-          }
-        },
-        "put": {
-          "summary": "Actualizar una reseña",
-          "description": "Actualiza la información de una reseña existente.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID de la reseña a actualizar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "requestBody": {
-            "description": "Datos actualizados de la reseña",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Resena" }
-              }
-            }
-          },
-          "responses": {
-            "200": { "description": "Reseña actualizada correctamente" },
-            "404": { "description": "Reseña no encontrada" }
-          }
-        },
-        "delete": {
-          "summary": "Eliminar una reseña",
-          "description": "Elimina una reseña existente mediante su ID.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID de la reseña a eliminar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "responses": {
-            "200": { "description": "Reseña eliminada correctamente" },
-            "404": { "description": "Reseña no encontrada" }
-          }
-        }
-      },
-      "/reservas": {
-        "get": {
-          "summary": "Obtener todas las reservas",
-          "description": "Retorna la lista de reservas. Se pueden filtrar por 'estado' y 'fecha' como query parameters.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "estado",
-              "in": "query",
-              "description": "Filtrar reservas por estado",
-              "schema": { "type": "string" }
-            },
-            {
-              "name": "fecha",
-              "in": "query",
-              "description": "Filtrar reservas por fecha (YYYY-MM-DD)",
-              "schema": { "type": "string", "format": "date" }
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "Lista de reservas obtenida con éxito",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "array",
-                    "items": { "$ref": "#/components/schemas/Reserva" }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "post": {
-          "summary": "Crear una nueva reserva",
-          "description": "Crea una reserva en el sistema.",
-          "security": [{ "BearerAuth": [] }],
-          "requestBody": {
-            "description": "Datos de la reserva a crear",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Reserva" }
-              }
-            }
-          },
-          "responses": {
-            "201": { "description": "Reserva creada correctamente" },
-            "400": { "description": "Error en la validación" }
-          }
-        }
-      },
-      "/reservas/{id}": {
-        "get": {
-          "summary": "Obtener una reserva por ID",
-          "description": "Devuelve los detalles de una reserva.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID de la reserva a consultar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "Detalles de la reserva",
-              "content": {
-                "application/json": {
-                  "schema": { "$ref": "#/components/schemas/Reserva" }
-                }
-              }
-            },
-            "404": { "description": "Reserva no encontrada" }
-          }
-        },
-        "put": {
-          "summary": "Actualizar una reserva",
-          "description": "Actualiza la información de una reserva existente.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID de la reserva a actualizar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "requestBody": {
-            "description": "Datos actualizados de la reserva",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Reserva" }
-              }
-            }
-          },
-          "responses": {
-            "200": { "description": "Reserva actualizada correctamente" },
-            "404": { "description": "Reserva no encontrada" }
-          }
-        },
-        "delete": {
-          "summary": "Eliminar una reserva",
-          "description": "Elimina una reserva existente mediante su ID.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID de la reserva a eliminar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "responses": {
-            "200": { "description": "Reserva eliminada correctamente" },
-            "404": { "description": "Reserva no encontrada" }
-          }
-        }
-      },
-      "/usuarios": {
-        "get": {
-          "summary": "Obtener todos los usuarios",
-          "description": "Retorna la lista de usuarios.",
-          "security": [{ "BearerAuth": [] }],
-          "responses": {
-            "200": {
-              "description": "Lista de usuarios obtenida con éxito",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "array",
-                    "items": { "$ref": "#/components/schemas/Usuario" }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "post": {
-          "summary": "Crear un nuevo usuario",
-          "description": "Crea un usuario en el sistema.",
-          "security": [{ "BearerAuth": [] }],
-          "requestBody": {
-            "description": "Datos del usuario a crear",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Usuario" }
-              }
-            }
-          },
-          "responses": {
-            "201": { "description": "Usuario creado exitosamente" },
-            "400": { "description": "Error en la validación o usuario ya existe" }
-          }
-        }
-      },
-      "/usuarios/{id}": {
-        "get": {
-          "summary": "Obtener un usuario por ID",
-          "description": "Devuelve los detalles de un usuario.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID del usuario a consultar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "Detalles del usuario",
-              "content": {
-                "application/json": {
-                  "schema": { "$ref": "#/components/schemas/Usuario" }
-                }
-              }
-            },
-            "404": { "description": "Usuario no encontrado" }
-          }
-        },
-        "put": {
-          "summary": "Actualizar un usuario",
-          "description": "Actualiza la información de un usuario existente.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID del usuario a actualizar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "requestBody": {
-            "description": "Datos actualizados del usuario",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Usuario" }
-              }
-            }
-          },
-          "responses": {
-            "200": { "description": "Usuario actualizado correctamente" },
-            "404": { "description": "Usuario no encontrado" }
-          }
-        },
-        "delete": {
-          "summary": "Eliminar un usuario",
-          "description": "Elimina un usuario existente mediante su ID.",
-          "security": [{ "BearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "description": "ID del usuario a eliminar",
-              "schema": { "type": "number" }
-            }
-          ],
-          "responses": {
-            "200": { "description": "Usuario eliminado correctamente" },
-            "404": { "description": "Usuario no encontrado" }
-          }
-        }
-      },
-      "/health": {
-        "get": {
-          "summary": "Health Check",
-          "description": "Verifica el estado del servicio.",
-          "responses": {
-            "200": { "description": "OK" }
-          }
-        }
-      },
-      "/ping": {
-        "get": {
-          "summary": "Ping",
-          "description": "Devuelve pong para verificar conectividad.",
-          "responses": {
-            "200": { "description": "pong" }
-          }
+      "MessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string", "example": "Operación exitosa" }
         }
       }
     }
+  },
+  "security": [
+    { "BearerAuth": [] }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "summary": "Iniciar sesión",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AuthCredentials" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login exitoso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthResponse" }
+              }
+            }
+          },
+          "401": { "description": "Credenciales inválidas" }
+        }
+      }
+    },
+    "/auth/signup": {
+      "post": {
+        "summary": "Registrar usuario",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Usuario" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Usuario creado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MessageResponse" }
+              }
+            }
+          },
+          "400": { "description": "Error de validación" }
+        }
+      }
+    },
+    "/usuarios": {
+      "get": {
+        "summary": "Listar usuarios",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Usuario" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear usuario",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Usuario" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Usuario creado" },
+          "400": { "description": "Error de validación" }
+        }
+      }
+    },
+    "/usuarios/{id}": {
+      "get": {
+        "summary": "Obtener usuario",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "404": { "description": "No encontrado" }
+        }
+      },
+      "put": {
+        "summary": "Actualizar usuario",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Usuario" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Actualizado" },
+          "400": { "description": "Error de validación" },
+          "404": { "description": "No encontrado" }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar usuario",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Eliminado" },
+          "404": { "description": "No encontrado" }
+        }
+      }
+    },
+    "/reservas": {
+      "get": {
+        "summary": "Listar reservas",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "summary": "Crear reserva",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Reserva" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Creada" },
+          "400": { "description": "Error validación" }
+        }
+      }
+    },
+    "/reservas/{id}": {
+      "get": {
+        "summary": "Obtener reserva",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "404": { "description": "No encontrado" }
+        }
+      },
+      "put": {
+        "summary": "Actualizar reserva",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Reserva" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Actualizada" },
+          "400": { "description": "Error validación" },
+          "404": { "description": "No encontrado" }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar reserva",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Eliminada" },
+          "404": { "description": "No encontrado" }
+        }
+      }
+    },
+    "/espacios": {
+      "get": {
+        "summary": "Listar espacios",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "summary": "Crear espacio",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Espacio" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Creado" },
+          "400": { "description": "Error validación" }
+        }
+      }
+    },
+    "/espacios/{id}": {
+      "get": {
+        "summary": "Obtener espacio",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "404": { "description": "No encontrado" }
+        }
+      },
+      "put": {
+        "summary": "Actualizar espacio",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Espacio" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Actualizado" },
+          "400": { "description": "Error validación" },
+          "404": { "description": "No encontrado" }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar espacio",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Eliminado" },
+          "404": { "description": "No encontrado" }
+        }
+      }
+    },
+    "/membresias": {
+      "get": {
+        "summary": "Listar membresías",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "summary": "Crear membresía",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Membresia" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Creada" },
+          "400": { "description": "Error validación" }
+        }
+      }
+    },
+    "/membresias/{id}": {
+      "get": {
+        "summary": "Obtener membresía",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "404": { "description": "No encontrado" }
+        }
+      },
+      "put": {
+        "summary": "Actualizar membresía",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Membresia" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Actualizada" },
+          "400": { "description": "Error validación" },
+          "404": { "description": "No encontrado" }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar membresía",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Eliminada" },
+          "404": { "description": "No encontrado" }
+        }
+      }
+    },
+    "/notificaciones": {
+      "get": {
+        "summary": "Listar notificaciones",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "summary": "Crear notificación",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Notificacion" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Creada" },
+          "400": { "description": "Error validación" }
+        }
+      }
+    },
+    "/notificaciones/{id}": {
+      "get": {
+        "summary": "Obtener notificación",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "404": { "description": "No encontrado" }
+        }
+      },
+      "put": {
+        "summary": "Actualizar notificación",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Notificacion" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Actualizada" },
+          "400": { "description": "Error validación" },
+          "404": { "description": "No encontrado" }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar notificación",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Eliminada" },
+          "404": { "description": "No encontrado" }
+        }
+      }
+    },
+    "/oficinas": {
+      "get": {
+        "summary": "Listar oficinas",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "summary": "Crear oficina",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Oficina" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Creada" },
+          "400": { "description": "Error validación" }
+        }
+      }
+    },
+    "/oficinas/{id}": {
+      "get": {
+        "summary": "Obtener oficina",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "404": { "description": "No encontrado" }
+        }
+      },
+      "put": {
+        "summary": "Actualizar oficina",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Oficina" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Actualizada" },
+          "400": { "description": "Error validación" },
+          "404": { "description": "No encontrado" }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar oficina",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Eliminada" },
+          "404": { "description": "No encontrado" }
+        }
+      }
+    },
+    "/pagos": {
+      "get": {
+        "summary": "Listar pagos",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "summary": "Crear pago",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Pago" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Creado" },
+          "400": { "description": "Error validación" }
+        }
+      }
+    },
+    "/pagos/{id}": {
+      "get": {
+        "summary": "Obtener pago",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "404": { "description": "No encontrado" }
+        }
+      },
+      "put": {
+        "summary": "Actualizar pago",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Pago" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Actualizado" },
+          "400": { "description": "Error validación" },
+          "404": { "description": "No encontrado" }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar pago",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Eliminado" },
+          "404": { "description": "No encontrado" }
+        }
+      }
+    },
+    "/resenas": {
+      "get": {
+        "summary": "Listar reseñas",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "summary": "Crear reseña",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Resena" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Creada" },
+          "400": { "description": "Error validación" }
+        }
+      }
+    },
+    "/resenas/{id}": {
+      "get": {
+        "summary": "Obtener reseña",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "404": { "description": "No encontrado" }
+        }
+      },
+      "put": {
+        "summary": "Actualizar reseña",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Resena" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Actualizada" },
+          "400": { "description": "Error validación" },
+          "404": { "description": "No encontrado" }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar reseña",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Eliminada" },
+          "404": { "description": "No encontrado" }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/ping": {
+      "get": {
+        "summary": "Ping",
+        "responses": { "200": { "description": "pong" } }
+      }
+    }
   }
-  
+}

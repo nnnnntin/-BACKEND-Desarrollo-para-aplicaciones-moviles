@@ -1,21 +1,30 @@
 const express = require("express");
 const router = express.Router();
-
 const {
   getMembresiasController,
   getMembresiaController,
   postMembresiaController,
   putMembresiaController,
   deleteMembresiaController,
-} = require("../controllers/membresias.controller");
+} = require("../controllers/membresia.controller");
 const payloadMiddleWare = require("../middlewares/payload.middleware");
-const membresiaSchema = require("../models/schemas/membresiaSchema");
+const {
+  createMembresiaSchema,
+  updateMembresiaSchema
+} = require("../routes/validations/membresia.validation");
 
-// Private Routes
 router.get("/membresias", getMembresiasController);
 router.get("/membresias/:id", getMembresiaController);
-router.post("/membresias", payloadMiddleWare(membresiaSchema), postMembresiaController);
+router.post(
+  "/membresias",
+  payloadMiddleWare(createMembresiaSchema),
+  postMembresiaController
+);
+router.put(
+  "/membresias/:id",
+  payloadMiddleWare(updateMembresiaSchema),
+  putMembresiaController
+);
 router.delete("/membresias/:id", deleteMembresiaController);
-router.put("/membresias/:id", putMembresiaController);
 
 module.exports = router;

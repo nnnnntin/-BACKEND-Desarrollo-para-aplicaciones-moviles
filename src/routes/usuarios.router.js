@@ -1,21 +1,30 @@
 const express = require("express");
 const router = express.Router();
-
 const {
   getUsuariosController,
   getUsuarioController,
   postUsuarioController,
   putUsuarioController,
   deleteUsuarioController,
-} = require("../controllers/usuarios.controller");
+} = require("../controllers/usuario.controller");
 const payloadMiddleWare = require("../middlewares/payload.middleware");
-const usuarioSchema = require("../models/schemas/usuarioSchema");
+const {
+  signupSchema,
+  updateUserSchema
+} = require("../routes/validations/usuario.validation");
 
-// Private Routes
 router.get("/usuarios", getUsuariosController);
 router.get("/usuarios/:id", getUsuarioController);
-router.post("/usuarios", payloadMiddleWare(usuarioSchema), postUsuarioController);
+router.post(
+  "/usuarios",
+  payloadMiddleWare(signupSchema),
+  postUsuarioController
+);
+router.put(
+  "/usuarios/:id",
+  payloadMiddleWare(updateUserSchema),
+  putUsuarioController
+);
 router.delete("/usuarios/:id", deleteUsuarioController);
-router.put("/usuarios/:id", putUsuarioController);
 
 module.exports = router;

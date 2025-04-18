@@ -1,21 +1,30 @@
 const express = require("express");
 const router = express.Router();
-
 const {
   getNotificacionesController,
   getNotificacionController,
   postNotificacionController,
   putNotificacionController,
   deleteNotificacionController,
-} = require("../controllers/notificaciones.controller");
+} = require("../controllers/notificacion.controller");
 const payloadMiddleWare = require("../middlewares/payload.middleware");
-const notificacionSchema = require("../models/schemas/notificacionSchema");
+const {
+  createNotificacionSchema,
+  updateNotificacionSchema
+} = require("../routes/validations/notificacion.validation");
 
-// Private Routes
 router.get("/notificaciones", getNotificacionesController);
 router.get("/notificaciones/:id", getNotificacionController);
-router.post("/notificaciones", payloadMiddleWare(notificacionSchema), postNotificacionController);
+router.post(
+  "/notificaciones",
+  payloadMiddleWare(createNotificacionSchema),
+  postNotificacionController
+);
+router.put(
+  "/notificaciones/:id",
+  payloadMiddleWare(updateNotificacionSchema),
+  putNotificacionController
+);
 router.delete("/notificaciones/:id", deleteNotificacionController);
-router.put("/notificaciones/:id", putNotificacionController);
 
 module.exports = router;

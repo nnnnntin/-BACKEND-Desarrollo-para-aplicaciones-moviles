@@ -1,21 +1,30 @@
 const express = require("express");
 const router = express.Router();
-
 const {
   getPagosController,
   getPagoController,
   postPagoController,
   putPagoController,
   deletePagoController,
-} = require("../controllers/pagos.controller");
+} = require("../controllers/pago.controller");
 const payloadMiddleWare = require("../middlewares/payload.middleware");
-const pagoSchema = require("../models/schemas/pagoSchema");
+const {
+  createPagoSchema,
+  updatePagoSchema
+} = require("../routes/validations/pago.validation");
 
-// Private Routes
 router.get("/pagos", getPagosController);
 router.get("/pagos/:id", getPagoController);
-router.post("/pagos", payloadMiddleWare(pagoSchema), postPagoController);
+router.post(
+  "/pagos",
+  payloadMiddleWare(createPagoSchema),
+  postPagoController
+);
+router.put(
+  "/pagos/:id",
+  payloadMiddleWare(updatePagoSchema),
+  putPagoController
+);
 router.delete("/pagos/:id", deletePagoController);
-router.put("/pagos/:id", putPagoController);
 
 module.exports = router;

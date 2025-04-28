@@ -18,6 +18,16 @@ const pagosRoutes = require("./routes/pagos.router");
 const resenasRoutes = require("./routes/resenas.router");
 const reservasRoutes = require("./routes/reservas.router");
 const usuariosRoutes = require("./routes/usuarios.router");
+const edificiosRoutes = require("./routes/edificios.router");
+const empresasInmobiliariasRoutes = require("./routes/empresaInmobiliarias.router");
+const salasReunionRoutes = require("./routes/salaReuniones.router");
+const escritoriosFlexiblesRoutes = require("./routes/escritoriosFlexibles.router");
+const serviciosAdicionalesRoutes = require("./routes/serviciosAdicionales.router");
+const reservasServicioRoutes = require("./routes/reservasServicio.router");
+const proveedoresRoutes = require("./routes/proveedores.router");
+const facturasRoutes = require("./routes/facturas.router");
+const promocionesRoutes = require("./routes/promociones.router");
+const disponibilidadesRoutes = require("./routes/disponibilidades.router");
 
 const app = express();
 
@@ -40,7 +50,7 @@ app.use(sanitizeMiddleware);
 app.use("/public", publicRoutes);
 app.use("/v1/auth", authRouter);
 
-app.use(authMiddleWare);
+app.use("/v1", authMiddleWare);
 
 app.use("/v1",       espaciosRoutes);
 app.use("/v1",     membresiasRoutes);
@@ -50,9 +60,16 @@ app.use("/v1",          pagosRoutes);
 app.use("/v1",        resenasRoutes);
 app.use("/v1",       reservasRoutes);
 app.use("/v1",       usuariosRoutes);
-
-app.get("/health", (req, res) => res.sendStatus(200));
-app.get("/ping",   (req, res) => res.send("pong"));
+app.use("/v1",             edificiosRoutes);
+app.use("/v1", empresasInmobiliariasRoutes);
+app.use("/v1",          salasReunionRoutes);
+app.use("/v1",  escritoriosFlexiblesRoutes);
+app.use("/v1",  serviciosAdicionalesRoutes);
+app.use("/v1",     reservasServicioRoutes);
+app.use("/v1",         proveedoresRoutes);
+app.use("/v1",            facturasRoutes);
+app.use("/v1",         promocionesRoutes);
+app.use("/v1",    disponibilidadesRoutes);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

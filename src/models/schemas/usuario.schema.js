@@ -2,10 +2,54 @@ const mongoose = require("mongoose");
 
 const usuarioSchema = new mongoose.Schema(
   {
+    tipoUsuario: { type: String, enum: ['individual', 'freelancer', 'empresa', 'administrador', 'inmobiliaria'], required: true },
     username: { type: String, required: true, unique: true },
-    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    active: { type: Boolean, default: true },
+    nombre: { type: String, required: true },
+    apellidos: { type: String },
+    datosPersonales: {
+      telefono: { type: String },
+      documentoIdentidad: { type: String },
+      fotoUrl: { type: String } // URL de la foto de perfil
+    },
+    direccion: {
+      calle: { type: String },
+      ciudad: { type: String },
+      codigoPostal: { type: String },
+      pais: { type: String }
+    },
+    datosEmpresa: {
+      nombreEmpresa: { type: String },
+      cargo: { type: String },
+      nifCif: { type: String }, // Identificación fiscal de la empresa
+      sitioWeb: { type: String },
+      logoUrl: { type: String }
+    },
+    preferencias: {
+      idiomaPreferido: { type: String, default: 'es' },
+      monedaPreferida: { type: String, default: 'USD' },
+      notificaciones: {
+        email: { type: Boolean, default: true },
+        push: { type: Boolean, default: true },
+        sms: { type: Boolean, default: false }
+      }
+    },
+    membresia: {
+      tipoMembresiaId: { type: mongoose.Schema.Types.ObjectId, ref: 'Membresia' },
+      fechaInicio: { type: Date },
+      fechaVencimiento: { type: Date },
+      renovacionAutomatica: { type: Boolean, default: false }
+    },
+    metodoPago: [{
+      predeterminado: { type: Boolean, default: false },
+      tipo: { type: String, enum: ['tarjeta', 'paypal', 'cuenta_bancaria'] },
+      ultimosDigitos: { type: String },
+      fechaExpiracion: { type: String }
+    }],
+    activo: { type: Boolean, default: true },
+    verificado: { type: Boolean, default: false },
+    rol: { type: String, enum: ['usuario', 'editor', 'administrador', 'superadmin'], default: 'usuario' }
   },
   {
     timestamps: true,

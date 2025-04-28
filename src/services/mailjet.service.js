@@ -11,12 +11,12 @@ const sendEmail = async (toDoTitle) => {
       Messages: [
         {
           From: {
-            Email: "valentin.acosta512@gmail.com",
+            Email: "prueba@gmail.com",
             Name: "Valentín Acosta",
           },
           To: [
             {
-              Email: "valentin.acosta512@gmail.com",
+              Email: "prueba@gmail.com",
               Name: "Valentín Acosta",
             },
           ],

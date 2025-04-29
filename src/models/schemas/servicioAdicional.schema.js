@@ -12,7 +12,7 @@ const servicioAdicionalSchema = new mongoose.Schema(
       horaInicio: { type: String },
       horaFin: { type: String }
     },
-    tiempoAnticipacion: { type: Number }, // Horas de anticipación para solicitar
+    tiempoAnticipacion: { type: Number },
     requiereAprobacion: { type: Boolean, default: false },
     imagen: { type: String },
     proveedorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Proveedor' },

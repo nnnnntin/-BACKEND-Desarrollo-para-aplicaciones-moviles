@@ -8,7 +8,7 @@ const reservaServicioSchema = new mongoose.Schema(
     fecha: { type: Date, required: true },
     horaInicio: { type: String },
     horaFin: { type: String },
-    cantidad: { type: Number, default: 1 }, // Por ejemplo, número de personas para catering
+    cantidad: { type: Number, default: 1 },
     instrucciones: { type: String },
     estado: { type: String, enum: ['pendiente', 'confirmado', 'cancelado', 'completado'], default: 'pendiente' },
     precioTotal: { type: Number, required: true },

@@ -4,7 +4,7 @@ const espacioSchema = new mongoose.Schema(
   {
     nombre: { type: String, required: true },
     tipo: { type: String, required: true, enum: ['oficina', 'sala_reunion', 'escritorio_flexible', 'otro'] },
-    ubicacion: { 
+    ubicacion: {
       edificioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edificio' },
       piso: { type: Number },
       sector: { type: String },
@@ -14,10 +14,10 @@ const espacioSchema = new mongoose.Schema(
       }
     },
     capacidad: { type: Number, required: true },
-    amenidades: [{ type: String }], // Wi-Fi, proyector, pizarra, etc.
+    amenidades: [{ type: String }],
     disponibilidad: {
-      horarioApertura: { type: String }, // "09:00"
-      horarioCierre: { type: String },   // "18:00"
+      horarioApertura: { type: String },
+      horarioCierre: { type: String },
       diasDisponibles: [{ type: String, enum: ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'] }]
     },
     precios: {
@@ -25,7 +25,7 @@ const espacioSchema = new mongoose.Schema(
       porDia: { type: Number },
       porMes: { type: Number }
     },
-    imagenes: [{ type: String }], // URLs de imágenes
+    imagenes: [{ type: String }],
     estado: { type: String, enum: ['disponible', 'ocupado', 'mantenimiento', 'reservado'], default: 'disponible' },
     propietarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
     empresaInmobiliariaId: { type: mongoose.Schema.Types.ObjectId, ref: 'EmpresaInmobiliaria' },

@@ -25,19 +25,6 @@ const getFacturasByUsuario = async (usuarioId) => {
     .sort({ fechaEmision: -1 });
 };
 
-const getFacturasByEmisor = async (emisorId, tipoEmisor) => {
-  const filtros = { emisorId };
-  
-  if (tipoEmisor) {
-    filtros.tipoEmisor = tipoEmisor;
-  }
-  
-  return await Factura.find(filtros)
-    .populate('usuarioId', 'nombre email')
-    .populate('pagosIds')
-    .sort({ fechaEmision: -1 });
-};
-
 const getFacturasPorEstado = async (estado) => {
   return await Factura.find({ estado })
     .populate('usuarioId', 'nombre email')
@@ -79,30 +66,6 @@ const deleteFactura = async (id) => {
   return await Factura.findByIdAndDelete(id);
 };
 
-const cambiarEstadoFactura = async (id, nuevoEstado) => {
-  return await Factura.findByIdAndUpdate(
-    id,
-    { estado: nuevoEstado },
-    { new: true }
-  );
-};
-
-const marcarFacturaComoPagada = async (id) => {
-  return await Factura.findByIdAndUpdate(
-    id,
-    { estado: 'pagada' },
-    { new: true }
-  );
-};
-
-const marcarFacturaComoVencida = async (id) => {
-  return await Factura.findByIdAndUpdate(
-    id,
-    { estado: 'vencida' },
-    { new: true }
-  );
-};
-
 const marcarFacturaComoCancelada = async (id, motivo = '') => {
   return await Factura.findByIdAndUpdate(
     id,
@@ -139,42 +102,19 @@ const getFacturasPorRangoMonto = async (montoMin, montoMax) => {
     .sort({ total: -1 });
 };
 
-const getEstaditicasFacturacion = async (fechaInicio, fechaFin) => {
-  return await Factura.aggregate([
-    {
-      $match: {
-        fechaEmision: { $gte: fechaInicio, $lte: fechaFin }
-      }
-    },
-    {
-      $group: {
-        _id: "$estado",
-        total: { $sum: "$total" },
-        cantidad: { $sum: 1 },
-        promedioFactura: { $avg: "$total" }
-      }
-    }
-  ]);
-};
-
 module.exports = {
   getFacturas,
   findFacturaById,
   findFacturaByNumero,
   getFacturasByUsuario,
-  getFacturasByEmisor,
   getFacturasPorEstado,
   getFacturasVencidas,
   getFacturasPorRangoFechas,
   createFactura,
   updateFactura,
   deleteFactura,
-  cambiarEstadoFactura,
-  marcarFacturaComoPagada,
-  marcarFacturaComoVencida,
   marcarFacturaComoCancelada,
   agregarPagoFactura,
   actualizarPdfUrl,
-  getFacturasPorRangoMonto,
-  getEstaditicasFacturacion
+  getFacturasPorRangoMonto
 };

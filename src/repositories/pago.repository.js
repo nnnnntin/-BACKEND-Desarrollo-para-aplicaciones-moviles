@@ -95,15 +95,6 @@ const vincularFactura = async (id, facturaId) => {
   );
 };
 
-const getPagosPorRangoFechas = async (fechaInicio, fechaFin) => {
-  return await Pago.find({
-    fecha: { $gte: fechaInicio, $lte: fechaFin }
-  })
-    .populate('usuarioId', 'nombre email')
-    .populate('facturaId')
-    .sort({ fecha: -1 });
-};
-
 const getPagosPorRangoMontos = async (montoMin, montoMax) => {
   return await Pago.find({
     monto: { $gte: montoMin, $lte: montoMax }
@@ -127,6 +118,5 @@ module.exports = {
   completarPago,
   reembolsarPago,
   vincularFactura,
-  getPagosPorRangoFechas,
   getPagosPorRangoMontos
 };

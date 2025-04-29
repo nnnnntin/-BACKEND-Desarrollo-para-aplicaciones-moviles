@@ -50,7 +50,6 @@ const updateEdificio = async (id, payload) => {
 };
 
 const deleteEdificio = async (id) => {
-  // En lugar de eliminar, marcamos como inactivo
   return await Edificio.findByIdAndUpdate(
     id,
     { activo: false },
@@ -98,22 +97,6 @@ const actualizarHorario = async (id, horario) => {
   );
 };
 
-const buscarEdificiosCercanos = async (lat, lng, distanciaMaxKm) => {
-  // Esta función requiere un índice geoespacial en MongoDB
-  // y la conversión de distanciaMaxKm a radianes para la consulta $geoNear
-  return await Edificio.find({
-    'direccion.coordenadas': {
-      $near: {
-        $geometry: {
-          type: 'Point',
-          coordinates: [lng, lat]
-        },
-        $maxDistance: distanciaMaxKm * 1000 // Convertir km a metros
-      }
-    }
-  });
-};
-
 module.exports = {
   getEdificios,
   findEdificioById,
@@ -129,6 +112,5 @@ module.exports = {
   actualizarCalificacion,
   agregarAmenidad,
   eliminarAmenidad,
-  actualizarHorario,
-  buscarEdificiosCercanos
+  actualizarHorario
 };

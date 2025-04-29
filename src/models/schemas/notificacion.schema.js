@@ -13,9 +13,9 @@ const notificacionSchema = new mongoose.Schema(
       tipo: { type: String, enum: ['reserva', 'pago', 'oficina', 'usuario', 'membresia'] },
       id: { type: mongoose.Schema.Types.ObjectId }
     },
-    accion: { type: String }, // Acción a realizar: "aprobar", "rechazar", "pagar", etc.
+    accion: { type: String },
     prioridad: { type: String, enum: ['baja', 'media', 'alta'], default: 'media' },
-    expirar: { type: Date } // Fecha en que la notificación ya no es relevante
+    expirar: { type: Date }
   },
   {
     timestamps: true,

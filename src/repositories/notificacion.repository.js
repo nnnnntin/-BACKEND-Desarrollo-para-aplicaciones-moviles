@@ -38,16 +38,6 @@ const getNotificacionesPorTipo = async (tipoNotificacion, destinatarioId = null)
     .sort({ createdAt: -1 });
 };
 
-const getNotificacionesPendientes = async (destinatarioId) => {
-  return await Notificacion.find({
-    destinatarioId,
-    leido: false,
-    accion: { $exists: true, $ne: null }
-  })
-    .populate('remitenteId', 'nombre email')
-    .sort({ prioridad: 1, createdAt: -1 });
-};
-
 const createNotificacion = async (notificacionData) => {
   const newNotificacion = new Notificacion(notificacionData);
   return await newNotificacion.save();
@@ -82,13 +72,6 @@ const marcarTodasComoLeidas = async (destinatarioId) => {
   );
 };
 
-const eliminarNotificacionesExpiradas = async () => {
-  const fechaActual = new Date();
-  return await Notificacion.deleteMany({
-    expirar: { $lt: fechaActual }
-  });
-};
-
 const getNotificacionesPorEntidad = async (tipoEntidad, entidadId) => {
   return await Notificacion.find({
     'entidadRelacionada.tipo': tipoEntidad,
@@ -104,12 +87,10 @@ module.exports = {
   findNotificacionById,
   getNotificacionesByUsuario,
   getNotificacionesPorTipo,
-  getNotificacionesPendientes,
   createNotificacion,
   updateNotificacion,
   deleteNotificacion,
   marcarComoLeida,
   marcarTodasComoLeidas,
-  eliminarNotificacionesExpiradas,
   getNotificacionesPorEntidad
 };

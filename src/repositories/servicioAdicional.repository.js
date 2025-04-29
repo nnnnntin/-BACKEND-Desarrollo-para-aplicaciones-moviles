@@ -47,8 +47,7 @@ const getServiciosByUnidadPrecio = async (unidadPrecio) => {
 };
 
 const getServiciosDisponiblesEnFecha = async (fecha, diaDeSemanaNombre) => {
-  // diaDeSemanaNombre debería ser uno de: 'lunes', 'martes', etc.
-  return await ServicioAdicional.find({
+    return await ServicioAdicional.find({
     'disponibilidad.diasDisponibles': diaDeSemanaNombre,
     activo: true
   })
@@ -66,8 +65,7 @@ const updateServicioAdicional = async (id, payload) => {
 };
 
 const deleteServicioAdicional = async (id) => {
-  // En lugar de eliminar, marcamos como inactivo
-  return await ServicioAdicional.findByIdAndUpdate(
+    return await ServicioAdicional.findByIdAndUpdate(
     id,
     { activo: false },
     { new: true }
@@ -78,28 +76,6 @@ const activarServicioAdicional = async (id) => {
   return await ServicioAdicional.findByIdAndUpdate(
     id,
     { activo: true },
-    { new: true }
-  );
-};
-
-const actualizarPrecio = async (id, precio, unidadPrecio = null) => {
-  const actualizacion = { precio };
-  
-  if (unidadPrecio) {
-    actualizacion.unidadPrecio = unidadPrecio;
-  }
-  
-  return await ServicioAdicional.findByIdAndUpdate(
-    id,
-    actualizacion,
-    { new: true }
-  );
-};
-
-const actualizarDisponibilidad = async (id, disponibilidad) => {
-  return await ServicioAdicional.findByIdAndUpdate(
-    id,
-    { disponibilidad },
     { new: true }
   );
 };
@@ -142,8 +118,6 @@ module.exports = {
   updateServicioAdicional,
   deleteServicioAdicional,
   activarServicioAdicional,
-  actualizarPrecio,
-  actualizarDisponibilidad,
   asignarEspacio,
   eliminarEspacio,
   getServiciosConAprobacion

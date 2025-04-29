@@ -11,7 +11,7 @@ const usuarioSchema = new mongoose.Schema(
     datosPersonales: {
       telefono: { type: String },
       documentoIdentidad: { type: String },
-      fotoUrl: { type: String } // URL de la foto de perfil
+      fotoUrl: { type: String }
     },
     direccion: {
       calle: { type: String },
@@ -22,7 +22,7 @@ const usuarioSchema = new mongoose.Schema(
     datosEmpresa: {
       nombreEmpresa: { type: String },
       cargo: { type: String },
-      nifCif: { type: String }, // Identificación fiscal de la empresa
+      nifCif: { type: String },
       sitioWeb: { type: String },
       logoUrl: { type: String }
     },

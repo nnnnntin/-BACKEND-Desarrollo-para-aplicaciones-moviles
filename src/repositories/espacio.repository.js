@@ -61,14 +61,12 @@ const cambiarEstadoEspacio = async (id, nuevoEstado) => {
 };
 
 const getEspaciosDisponibles = async (tipo, fecha, horaInicio, horaFin) => {
-  // Esta función es más compleja, necesitaría integrarse con el repository de Disponibilidad
-  // para verificar las franjas horarias disponibles
-  const filtrosBase = { 
-    tipo, 
+  const filtrosBase = {
+    tipo,
     estado: 'disponible',
     activo: true
   };
-  
+
   return await Espacio.find(filtrosBase)
     .populate('ubicacion.edificioId')
     .populate('propietarioId', 'nombre email')

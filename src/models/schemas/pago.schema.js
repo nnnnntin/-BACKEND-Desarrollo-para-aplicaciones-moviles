@@ -11,12 +11,12 @@ const pagoSchema = new mongoose.Schema(
       id: { type: mongoose.Schema.Types.ObjectId, required: true }
     },
     fecha: { type: Date, required: true },
-    metodoPago: { 
+    metodoPago: {
       tipo: { type: String, enum: ['tarjeta', 'transferencia', 'efectivo', 'paypal', 'otro'], required: true },
-      detalles: { type: Object } // Para almacenar detalles específicos del método de pago
+      detalles: { type: Object }
     },
     estado: { type: String, enum: ['pendiente', 'completado', 'fallido', 'reembolsado'], default: 'pendiente' },
-    comprobante: { type: String }, // URL al comprobante digital
+    comprobante: { type: String },
     facturaId: { type: mongoose.Schema.Types.ObjectId, ref: 'Factura' }
   },
   {

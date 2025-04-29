@@ -4,7 +4,7 @@ const facturaSchema = new mongoose.Schema(
   {
     numeroFactura: { type: String, required: true, unique: true },
     usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
-    emisorId: { type: mongoose.Schema.Types.ObjectId, required: true }, // Plataforma o inmobiliaria
+    emisorId: { type: mongoose.Schema.Types.ObjectId, required: true },
     tipoEmisor: { type: String, enum: ['plataforma', 'inmobiliaria', 'proveedor'], required: true },
     fechaEmision: { type: Date, required: true },
     fechaVencimiento: { type: Date, required: true },
@@ -12,8 +12,8 @@ const facturaSchema = new mongoose.Schema(
       descripcion: { type: String, required: true },
       cantidad: { type: Number, required: true },
       precioUnitario: { type: Number, required: true },
-      impuesto: { type: Number, default: 0 }, // Porcentaje de impuesto
-      descuento: { type: Number, default: 0 }, // Porcentaje de descuento
+      impuesto: { type: Number, default: 0 },
+      descuento: { type: Number, default: 0 },
       subtotal: { type: Number, required: true }
     }],
     subtotal: { type: Number, required: true },
@@ -22,7 +22,7 @@ const facturaSchema = new mongoose.Schema(
     total: { type: Number, required: true },
     estado: { type: String, enum: ['pendiente', 'pagada', 'vencida', 'cancelada'], default: 'pendiente' },
     metodoPago: { type: String },
-    pdfUrl: { type: String }, // URL del PDF de la factura
+    pdfUrl: { type: String },
     pagosIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Pago' }]
   },
   {

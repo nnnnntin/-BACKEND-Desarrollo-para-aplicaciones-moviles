@@ -1,7 +1,6 @@
 const Joi = require("joi");
 const mongoose = require("mongoose");
 
-// Validador personalizado para cadenas de ObjectId
 const joiObjectIdString = Joi.string().custom((value, helpers) => {
   if (!mongoose.Types.ObjectId.isValid(value)) {
     return helpers.error('any.invalid', { message: 'ID debe ser un ObjectId válido de MongoDB' });

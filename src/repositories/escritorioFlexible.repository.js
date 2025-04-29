@@ -34,24 +34,6 @@ const getEscritoriosByTipo = async (tipo) => {
     .populate('empresaInmobiliariaId', 'nombre');
 };
 
-const getEscritoriosByZona = async (edificioId, piso, zona) => {
-  const filtros = {
-    'ubicacion.edificioId': edificioId
-  };
-  
-  if (piso !== undefined) {
-    filtros['ubicacion.piso'] = piso;
-  }
-  
-  if (zona) {
-    filtros['ubicacion.zona'] = zona;
-  }
-  
-  return await EscritorioFlexible.find(filtros)
-    .populate('propietarioId', 'nombre email')
-    .populate('empresaInmobiliariaId', 'nombre');
-};
-
 const getEscritoriosByAmenidades = async (tipoAmenidad) => {
   return await EscritorioFlexible.find({ 'amenidades.tipo': tipoAmenidad })
     .populate('ubicacion.edificioId')
@@ -68,7 +50,7 @@ const getEscritoriosByPropietario = async (propietarioId) => {
 const getEscritoriosByRangoPrecio = async (precioMin, precioMax, tipoPrecio = 'porDia') => {
   const query = {};
   query[`precios.${tipoPrecio}`] = { $gte: precioMin, $lte: precioMax };
-  
+
   return await EscritorioFlexible.find(query)
     .populate('ubicacion.edificioId')
     .populate('propietarioId', 'nombre email')
@@ -112,22 +94,12 @@ const eliminarAmenidad = async (id, amenidadId) => {
   );
 };
 
-const actualizarPrecios = async (id, precios) => {
-  return await EscritorioFlexible.findByIdAndUpdate(
-    id,
-    { precios },
-    { new: true }
-  );
-};
-
 const getEscritoriosDisponibles = async (fecha) => {
-  // Esta función es más compleja, necesitaría integrarse con el repository de Disponibilidad
-  // para verificar las franjas horarias disponibles
-  const filtrosBase = { 
+  const filtrosBase = {
     estado: 'disponible',
     activo: true
   };
-  
+
   return await EscritorioFlexible.find(filtrosBase)
     .populate('ubicacion.edificioId')
     .populate('propietarioId', 'nombre email')
@@ -140,7 +112,6 @@ module.exports = {
   findEscritorioFlexibleByCodigo,
   getEscritoriosByEdificio,
   getEscritoriosByTipo,
-  getEscritoriosByZona,
   getEscritoriosByAmenidades,
   getEscritoriosByPropietario,
   getEscritoriosByRangoPrecio,
@@ -150,6 +121,5 @@ module.exports = {
   cambiarEstadoEscritorio,
   agregarAmenidad,
   eliminarAmenidad,
-  actualizarPrecios,
   getEscritoriosDisponibles
 };

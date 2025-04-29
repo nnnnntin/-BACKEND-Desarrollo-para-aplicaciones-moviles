@@ -18,20 +18,6 @@ const getProveedoresVerificados = async () => {
   return await Proveedor.find({ verificado: true, activo: true });
 };
 
-const getProveedoresByServicio = async (tipoServicio) => {
-  const ServicioAdicional = require("../models/servicioAdicional.model");
-  
-  // Primero encuentra los servicios que coinciden con el tipo
-  const servicios = await ServicioAdicional.find({ tipo: tipoServicio });
-  const servicioIds = servicios.map(s => s._id);
-  
-  // Luego encuentra los proveedores que tienen estos servicios
-  return await Proveedor.find({
-    activo: true,
-    serviciosOfrecidos: { $in: servicioIds }
-  }).populate('serviciosOfrecidos');
-};
-
 const createProveedor = async (proveedorData) => {
   const newProveedor = new Proveedor(proveedorData);
   return await newProveedor.save();
@@ -42,8 +28,7 @@ const updateProveedor = async (id, payload) => {
 };
 
 const deleteProveedor = async (id) => {
-  // En lugar de eliminar, marcamos como inactivo
-  return await Proveedor.findByIdAndUpdate(
+    return await Proveedor.findByIdAndUpdate(
     id,
     { activo: false },
     { new: true }
@@ -129,7 +114,6 @@ module.exports = {
   findProveedorById,
   getProveedoresByTipo,
   getProveedoresVerificados,
-  getProveedoresByServicio,
   createProveedor,
   updateProveedor,
   deleteProveedor,

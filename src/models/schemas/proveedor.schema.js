@@ -23,7 +23,7 @@ const proveedorSchema = new mongoose.Schema(
       iban: { type: String },
       swift: { type: String }
     },
-    comision: { type: Number, default: 0 }, // Porcentaje que cobra la plataforma
+    comision: { type: Number, default: 0 },
     calificacionPromedio: { type: Number, default: 0 },
     activo: { type: Boolean, default: true },
     verificado: { type: Boolean, default: false }

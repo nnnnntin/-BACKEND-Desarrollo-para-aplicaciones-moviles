@@ -44,13 +44,6 @@ const getResenasPorCalificacion = async (calificacionMinima) => {
     .sort({ calificacion: -1 });
 };
 
-const getResenasPendientesModeracion = async () => {
-  return await Resena.find({ estado: 'pendiente' })
-    .populate('usuarioId', 'nombre email')
-    .populate('entidadResenada.id')
-    .sort({ createdAt: -1 });
-};
-
 const createResena = async (resenaData) => {
   const newResena = new Resena(resenaData);
   return await newResena.save();
@@ -130,7 +123,6 @@ module.exports = {
   getResenasByEntidad,
   getResenasByReserva,
   getResenasPorCalificacion,
-  getResenasPendientesModeracion,
   createResena,
   updateResena,
   deleteResena,

@@ -6,15 +6,15 @@ const promocionSchema = new mongoose.Schema(
     descripcion: { type: String, required: true },
     codigo: { type: String, required: true, unique: true },
     tipo: { type: String, enum: ['porcentaje', 'monto_fijo', 'gratuito'], required: true },
-    valor: { type: Number, required: true }, // Porcentaje de descuento o monto fijo
+    valor: { type: Number, required: true },
     fechaInicio: { type: Date, required: true },
     fechaFin: { type: Date, required: true },
-    limiteCupos: { type: Number }, // Número máximo de veces que se puede usar
+    limiteCupos: { type: Number },
     usosActuales: { type: Number, default: 0 },
-    limiteUsuario: { type: Number, default: 1 }, // Veces que un usuario puede usar la promoción
+    limiteUsuario: { type: Number, default: 1 },
     aplicableA: {
       entidad: { type: String, enum: ['oficina', 'sala_reunion', 'escritorio_flexible', 'membresia', 'servicio'] },
-      ids: [{ type: mongoose.Schema.Types.ObjectId }] // IDs específicos a los que aplica
+      ids: [{ type: mongoose.Schema.Types.ObjectId }]
     },
     activo: { type: Boolean, default: true }
   },

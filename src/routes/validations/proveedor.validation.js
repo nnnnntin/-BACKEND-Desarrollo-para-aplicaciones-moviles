@@ -67,7 +67,7 @@ const verificarProveedorSchema = Joi.object({
 
 const filtrarProveedoresSchema = Joi.object({
   tipo: Joi.string().valid('empresa', 'autonomo', 'interno'),
-  servicioOfrecido: Joi.string(),
+  servicioOfrecido: Joi.string().pattern(/^[0-9a-fA-F]{24}$/),
   verificado: Joi.boolean(),
   activo: Joi.boolean()
 });

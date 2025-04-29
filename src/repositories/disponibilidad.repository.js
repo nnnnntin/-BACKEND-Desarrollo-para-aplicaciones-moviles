@@ -16,13 +16,12 @@ const getDisponibilidadByEntidad = async (entidadId, tipoEntidad) => {
 };
 
 const getDisponibilidadByFecha = async (entidadId, tipoEntidad, fecha) => {
-  // Convertir fecha a objeto Date si es string
   const fechaBusqueda = new Date(fecha);
   fechaBusqueda.setHours(0, 0, 0, 0);
-  
+
   const fechaFin = new Date(fechaBusqueda);
   fechaFin.setHours(23, 59, 59, 999);
-  
+
   return await Disponibilidad.findOne({
     entidadId,
     tipoEntidad,
@@ -36,10 +35,10 @@ const getDisponibilidadByFecha = async (entidadId, tipoEntidad, fecha) => {
 const getDisponibilidadEnRango = async (entidadId, tipoEntidad, fechaInicio, fechaFin) => {
   const fechaInicioObj = new Date(fechaInicio);
   fechaInicioObj.setHours(0, 0, 0, 0);
-  
+
   const fechaFinObj = new Date(fechaFin);
   fechaFinObj.setHours(23, 59, 59, 999);
-  
+
   return await Disponibilidad.find({
     entidadId,
     tipoEntidad,
@@ -65,23 +64,21 @@ const deleteDisponibilidad = async (id) => {
 
 const getFranjasDisponibles = async (entidadId, tipoEntidad, fecha) => {
   const disponibilidad = await getDisponibilidadByFecha(entidadId, tipoEntidad, fecha);
-  
+
   if (!disponibilidad) {
     return [];
   }
-  
+
   return disponibilidad.franjas.filter(franja => franja.disponible && !franja.bloqueado);
 };
 
 const reservarFranja = async (entidadId, tipoEntidad, fecha, horaInicio, horaFin, reservaId) => {
   const fechaBusqueda = new Date(fecha);
   fechaBusqueda.setHours(0, 0, 0, 0);
-  
   const fechaFin = new Date(fechaBusqueda);
   fechaFin.setHours(23, 59, 59, 999);
-  
-  // Buscar la disponibilidad para esa fecha
-  const disponibilidad = await Disponibilidad.findOne({
+
+  let disponibilidad = await Disponibilidad.findOne({
     entidadId,
     tipoEntidad,
     fechaDisponibilidad: {
@@ -89,14 +86,19 @@ const reservarFranja = async (entidadId, tipoEntidad, fecha, horaInicio, horaFin
       $lte: fechaFin
     }
   });
-  
+
   if (!disponibilidad) {
-    return null;
+    disponibilidad = await createDisponibilidad({
+      entidadId,
+      tipoEntidad,
+      fechaDisponibilidad: fechaBusqueda,
+      franjas: [
+        { horaInicio, horaFin, disponible: true }
+      ]
+    });
   }
-  
-  // Actualizar las franjas afectadas
+
   const franjas = disponibilidad.franjas.map(franja => {
-    // Si la franja coincide exactamente con el horario solicitado
     if (franja.horaInicio === horaInicio && franja.horaFin === horaFin) {
       return {
         ...franja,
@@ -104,17 +106,16 @@ const reservarFranja = async (entidadId, tipoEntidad, fecha, horaInicio, horaFin
         reservaId
       };
     }
-    
-    // Si la franja está dentro del horario solicitado
-    const franjaInicio = convertirHoraAMinutos(franja.horaInicio);
-    const franjaFin = convertirHoraAMinutos(franja.horaFin);
-    const reservaInicio = convertirHoraAMinutos(horaInicio);
-    const reservaFin = convertirHoraAMinutos(horaFin);
-    
+
+    const inicioFranja = convertirHoraAMinutos(franja.horaInicio);
+    const finFranja = convertirHoraAMinutos(franja.horaFin);
+    const inicioRes = convertirHoraAMinutos(horaInicio);
+    const finRes = convertirHoraAMinutos(horaFin);
+
     if (
-      (franjaInicio >= reservaInicio && franjaFin <= reservaFin) ||
-      (franjaInicio <= reservaInicio && franjaFin >= reservaInicio) ||
-      (franjaInicio <= reservaFin && franjaFin >= reservaFin)
+      (inicioFranja >= inicioRes && finFranja <= finRes) ||
+      (inicioFranja <= inicioRes && finFranja >= inicioRes) ||
+      (inicioFranja <= finRes && finFranja >= finRes)
     ) {
       return {
         ...franja,
@@ -122,10 +123,10 @@ const reservarFranja = async (entidadId, tipoEntidad, fecha, horaInicio, horaFin
         reservaId
       };
     }
-    
+
     return franja;
   });
-  
+
   return await Disponibilidad.findByIdAndUpdate(
     disponibilidad._id,
     { franjas },
@@ -136,57 +137,9 @@ const reservarFranja = async (entidadId, tipoEntidad, fecha, horaInicio, horaFin
 const liberarFranja = async (entidadId, tipoEntidad, fecha, horaInicio, horaFin) => {
   const fechaBusqueda = new Date(fecha);
   fechaBusqueda.setHours(0, 0, 0, 0);
-  
   const fechaFin = new Date(fechaBusqueda);
   fechaFin.setHours(23, 59, 59, 999);
-  
-  // Buscar la disponibilidad para esa fecha
-  const disponibilidad = await Disponibilidad.findOne({
-    entidadId,
-    tipoEntidad,
-    fechaDisponibilidad: {
-      $gte: fechaBusqueda,
-      $lte: fechaFin
-    }
-  });
-  
-  if (!disponibilidad) {
-    return null;
-  }
-  
-  // Actualizar las franjas afectadas
-  const franjas = disponibilidad.franjas.map(franja => {
-    // Si la franja coincide con el horario a liberar y no está bloqueada por otros motivos
-    if (
-      franja.horaInicio === horaInicio && 
-      franja.horaFin === horaFin && 
-      !franja.bloqueado
-    ) {
-      return {
-        ...franja,
-        disponible: true,
-        reservaId: null
-      };
-    }
-    
-    return franja;
-  });
-  
-  return await Disponibilidad.findByIdAndUpdate(
-    disponibilidad._id,
-    { franjas },
-    { new: true }
-  );
-};
 
-const bloquearFranja = async (entidadId, tipoEntidad, fecha, horaInicio, horaFin, motivo) => {
-  const fechaBusqueda = new Date(fecha);
-  fechaBusqueda.setHours(0, 0, 0, 0);
-  
-  const fechaFin = new Date(fechaBusqueda);
-  fechaFin.setHours(23, 59, 59, 999);
-  
-  // Buscar la disponibilidad para esa fecha
   let disponibilidad = await Disponibilidad.findOne({
     entidadId,
     tipoEntidad,
@@ -195,8 +148,64 @@ const bloquearFranja = async (entidadId, tipoEntidad, fecha, horaInicio, horaFin
       $lte: fechaFin
     }
   });
-  
-  // Si no existe, crearla
+
+  if (!disponibilidad) {
+    disponibilidad = new Disponibilidad({
+      entidadId,
+      tipoEntidad,
+      fechaDisponibilidad: fechaBusqueda,
+      franjas: [
+        {
+          horaInicio,
+          horaFin,
+          disponible: true,
+          reservaId: null,
+          bloqueado: false
+        }
+      ]
+    });
+    return await disponibilidad.save();
+  }
+
+  const franjasActualizadas = disponibilidad.franjas.map(franja => {
+    if (
+      franja.horaInicio === horaInicio &&
+      franja.horaFin === horaFin &&
+      !franja.bloqueado
+    ) {
+      return {
+        ...franja._doc,
+        disponible: true,
+        reservaId: null
+      };
+    }
+    return franja;
+  });
+
+  return await Disponibilidad.findByIdAndUpdate(
+    disponibilidad._id,
+    { franjas: franjasActualizadas },
+    { new: true }
+  );
+};
+
+
+const bloquearFranja = async (entidadId, tipoEntidad, fecha, horaInicio, horaFin, motivo) => {
+  const fechaBusqueda = new Date(fecha);
+  fechaBusqueda.setHours(0, 0, 0, 0);
+
+  const fechaFin = new Date(fechaBusqueda);
+  fechaFin.setHours(23, 59, 59, 999);
+
+  let disponibilidad = await Disponibilidad.findOne({
+    entidadId,
+    tipoEntidad,
+    fechaDisponibilidad: {
+      $gte: fechaBusqueda,
+      $lte: fechaFin
+    }
+  });
+
   if (!disponibilidad) {
     disponibilidad = await createDisponibilidad({
       entidadId,
@@ -205,8 +214,7 @@ const bloquearFranja = async (entidadId, tipoEntidad, fecha, horaInicio, horaFin
       franjas: []
     });
   }
-  
-  // Actualizar las franjas afectadas o agregar nueva franja bloqueada
+
   let franjaEncontrada = false;
   const franjas = disponibilidad.franjas.map(franja => {
     if (franja.horaInicio === horaInicio && franja.horaFin === horaFin) {
@@ -220,7 +228,7 @@ const bloquearFranja = async (entidadId, tipoEntidad, fecha, horaInicio, horaFin
     }
     return franja;
   });
-  
+
   if (!franjaEncontrada) {
     franjas.push({
       horaInicio,
@@ -230,7 +238,7 @@ const bloquearFranja = async (entidadId, tipoEntidad, fecha, horaInicio, horaFin
       motivo
     });
   }
-  
+
   return await Disponibilidad.findByIdAndUpdate(
     disponibilidad._id,
     { franjas },
@@ -241,12 +249,10 @@ const bloquearFranja = async (entidadId, tipoEntidad, fecha, horaInicio, horaFin
 const desbloquearFranja = async (entidadId, tipoEntidad, fecha, horaInicio, horaFin) => {
   const fechaBusqueda = new Date(fecha);
   fechaBusqueda.setHours(0, 0, 0, 0);
-  
   const fechaFin = new Date(fechaBusqueda);
   fechaFin.setHours(23, 59, 59, 999);
-  
-  // Buscar la disponibilidad para esa fecha
-  const disponibilidad = await Disponibilidad.findOne({
+
+  let disponibilidad = await Disponibilidad.findOne({
     entidadId,
     tipoEntidad,
     fechaDisponibilidad: {
@@ -254,27 +260,40 @@ const desbloquearFranja = async (entidadId, tipoEntidad, fecha, horaInicio, hora
       $lte: fechaFin
     }
   });
-  
+
   if (!disponibilidad) {
-    return null;
+    return await createDisponibilidad({
+      entidadId,
+      tipoEntidad,
+      fechaDisponibilidad: fechaBusqueda,
+      franjas: [
+        {
+          horaInicio,
+          horaFin,
+          disponible: true,
+          reservaId: null,
+          bloqueado: false,
+          motivo: ""
+        }
+      ]
+    });
   }
-  
-  // Actualizar las franjas afectadas
-  const franjas = disponibilidad.franjas.map(franja => {
+
+  const franjasActualizadas = disponibilidad.franjas.map(franja => {
     if (franja.horaInicio === horaInicio && franja.horaFin === horaFin) {
       return {
-        ...franja,
+        ...franja._doc,
         disponible: true,
         bloqueado: false,
-        motivo: ''
+        motivo: ""
       };
     }
     return franja;
   });
-  
+
   return await Disponibilidad.findByIdAndUpdate(
     disponibilidad._id,
-    { franjas },
+    { franjas: franjasActualizadas },
     { new: true }
   );
 };
@@ -282,13 +301,13 @@ const desbloquearFranja = async (entidadId, tipoEntidad, fecha, horaInicio, hora
 const crearDisponibilidadDiaria = async (entidadId, tipoEntidad, fechaInicio, fechaFin, franjasBase) => {
   const fechaInicioObj = new Date(fechaInicio);
   fechaInicioObj.setHours(0, 0, 0, 0);
-  
+
   const fechaFinObj = new Date(fechaFin);
   fechaFinObj.setHours(23, 59, 59, 999);
-  
+
   let fechaActual = new Date(fechaInicioObj);
   const disponibilidadesCreadas = [];
-  
+
   while (fechaActual <= fechaFinObj) {
     const nuevaDisponibilidad = {
       entidadId,
@@ -296,18 +315,16 @@ const crearDisponibilidadDiaria = async (entidadId, tipoEntidad, fechaInicio, fe
       fechaDisponibilidad: new Date(fechaActual),
       franjas: franjasBase
     };
-    
+
     const disponibilidadCreada = await createDisponibilidad(nuevaDisponibilidad);
     disponibilidadesCreadas.push(disponibilidadCreada);
-    
-    // Avanzar al siguiente día
+
     fechaActual.setDate(fechaActual.getDate() + 1);
   }
-  
+
   return disponibilidadesCreadas;
 };
 
-// Función auxiliar para convertir hora en formato "HH:MM" a minutos
 function convertirHoraAMinutos(hora) {
   const [horas, minutos] = hora.split(':').map(Number);
   return horas * 60 + minutos;

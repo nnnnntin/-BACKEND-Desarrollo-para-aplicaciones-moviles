@@ -70,8 +70,7 @@ const updatePromocion = async (id, payload) => {
 };
 
 const deletePromocion = async (id) => {
-  // En lugar de eliminar, marcamos como inactiva
-  return await Promocion.findByIdAndUpdate(
+    return await Promocion.findByIdAndUpdate(
     id,
     { activo: false },
     { new: true }
@@ -97,8 +96,7 @@ const incrementarUsos = async (id) => {
 const validarPromocion = async (codigo, usuarioId, entidadTipo, entidadId) => {
   const fechaActual = new Date();
   
-  // Encontrar la promoción
-  const promocion = await Promocion.findOne({
+    const promocion = await Promocion.findOne({
     codigo,
     fechaInicio: { $lte: fechaActual },
     fechaFin: { $gte: fechaActual },
@@ -109,8 +107,7 @@ const validarPromocion = async (codigo, usuarioId, entidadTipo, entidadId) => {
     return { valido: false, mensaje: 'Código de promoción inválido o expirado' };
   }
   
-  // Verificar si la promoción aplica a la entidad
-  if (promocion.aplicableA && promocion.aplicableA.entidad) {
+    if (promocion.aplicableA && promocion.aplicableA.entidad) {
     if (promocion.aplicableA.entidad !== entidadTipo) {
       return { valido: false, mensaje: 'Esta promoción no aplica para este tipo de reserva' };
     }
@@ -124,13 +121,11 @@ const validarPromocion = async (codigo, usuarioId, entidadTipo, entidadId) => {
     }
   }
   
-  // Verificar límite de cupos
-  if (promocion.limiteCupos && promocion.usosActuales >= promocion.limiteCupos) {
+    if (promocion.limiteCupos && promocion.usosActuales >= promocion.limiteCupos) {
     return { valido: false, mensaje: 'Esta promoción ha alcanzado su límite de usos' };
   }
   
-  // TODO: Implementar verificación de límite por usuario (requiere historial de usos)
-  
+    
   return { 
     valido: true, 
     promocion,

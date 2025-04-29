@@ -13,8 +13,7 @@ const {
   actualizarCalificacion,
   agregarAmenidad,
   eliminarAmenidad,
-  actualizarHorario,
-  buscarEdificiosCercanos
+  actualizarHorario
 } = require("../repositories/edificio.repository");
 const { 
   createEdificioSchema, 
@@ -393,15 +392,21 @@ const actualizarCalificacionController = async (req, res) => {
 
 const agregarAmenidadController = async (req, res) => {
   const { id } = req.params;
-  const { amenidad } = req.body;
-  
+  const amenidad = req.body.amenidad
+    ? req.body.amenidad
+    : {
+        tipo: req.body.tipo,
+        descripcion: req.body.descripcion,
+        horario: req.body.horario
+      };
+
   if (!amenidad || !amenidad.tipo) {
-    return res.status(400).json({ 
-      message: "Datos inválidos", 
+    return res.status(400).json({
+      message: "Datos inválidos",
       details: "Se requiere información de amenidad con un tipo"
     });
   }
-  
+
   try {
     const edificio = await agregarAmenidad(id, amenidad);
     if (!edificio) {
@@ -410,32 +415,28 @@ const agregarAmenidadController = async (req, res) => {
     res.status(200).json({ message: "Amenidad agregada correctamente", edificio });
   } catch (error) {
     console.error(error);
-    
     if (error.name === 'CastError') {
-      return res.status(400).json({ 
-        message: "ID de edificio inválido", 
+      return res.status(400).json({
+        message: "ID de edificio inválido",
         details: `El formato del ID '${id}' no es válido`
       });
     }
-    
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({ 
-        message: "Error de validación en datos de amenidad", 
+      return res.status(400).json({
+        message: "Error de validación en datos de amenidad",
         details: errors
       });
     }
-    
-    if (error.message && error.message.includes('ya existe') || error.message.includes('already exists')) {
-      return res.status(400).json({ 
-        message: "Amenidad duplicada", 
+    if (error.message && (error.message.includes('ya existe') || error.message.includes('already exists'))) {
+      return res.status(400).json({
+        message: "Amenidad duplicada",
         details: "El edificio ya tiene registrada esta amenidad"
       });
     }
-    
-    res.status(500).json({ 
-      message: "Error al agregar amenidad", 
-      details: error.message 
+    res.status(500).json({
+      message: "Error al agregar amenidad",
+      details: error.message
     });
   }
 };
@@ -476,139 +477,84 @@ const eliminarAmenidadController = async (req, res) => {
 
 const actualizarHorarioController = async (req, res) => {
   const { id } = req.params;
-  const { horario } = req.body;
-  
+
+  const horario = req.body.horario
+    ? req.body.horario
+    : {
+        apertura: req.body.apertura,
+        cierre: req.body.cierre,
+        diasOperacion: req.body.diasOperacion
+      };
+
   if (!horario || !horario.apertura || !horario.cierre || !horario.diasOperacion) {
-    return res.status(400).json({ 
-      message: "Datos incompletos", 
+    return res.status(400).json({
+      message: "Datos incompletos",
       details: "Se requiere un horario completo con apertura, cierre y días de operación"
     });
   }
-  
+
   const horaRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
   if (!horaRegex.test(horario.apertura) || !horaRegex.test(horario.cierre)) {
-    return res.status(400).json({ 
-      message: "Formato de hora inválido", 
+    return res.status(400).json({
+      message: "Formato de hora inválido",
       details: "Las horas deben tener formato HH:MM (24h)"
     });
   }
-  
-  const [aperturaHora, aperturaMin] = horario.apertura.split(':').map(Number);
-  const [cierreHora, cierreMin] = horario.cierre.split(':').map(Number);
-  
-  if (aperturaHora > cierreHora || (aperturaHora === cierreHora && aperturaMin >= cierreMin)) {
-    return res.status(400).json({ 
-      message: "Horario inválido", 
+
+  const [hA, mA] = horario.apertura.split(":").map(Number);
+  const [hC, mC] = horario.cierre.split(":").map(Number);
+  if (hA > hC || (hA === hC && mA >= mC)) {
+    return res.status(400).json({
+      message: "Horario inválido",
       details: "La hora de apertura debe ser anterior a la hora de cierre"
     });
   }
-  
+
   if (!Array.isArray(horario.diasOperacion) || horario.diasOperacion.length === 0) {
-    return res.status(400).json({ 
-      message: "Días de operación inválidos", 
+    return res.status(400).json({
+      message: "Días de operación inválidos",
       details: "Se requiere al menos un día de operación"
     });
   }
-  
-  const diasValidos = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+  const diasValidos = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
   const diasInvalidos = horario.diasOperacion.filter(dia => !diasValidos.includes(dia));
-  
   if (diasInvalidos.length > 0) {
-    return res.status(400).json({ 
-      message: "Días no válidos", 
-      details: `Los siguientes días no son válidos: ${diasInvalidos.join(', ')}`
+    return res.status(400).json({
+      message: "Días no válidos",
+      details: `Los siguientes días no son válidos: ${diasInvalidos.join(", ")}`
     });
   }
-  
+
   try {
     const edificio = await actualizarHorario(id, horario);
     if (!edificio) {
       return res.status(404).json({ message: `No se ha encontrado el edificio con id: ${id}` });
     }
-    res.status(200).json({ message: "Horario actualizado correctamente", edificio });
+    return res.status(200).json({ message: "Horario actualizado correctamente", edificio });
   } catch (error) {
     console.error(error);
-    
     if (error.name === 'CastError') {
-      return res.status(400).json({ 
-        message: "ID de edificio inválido", 
+      return res.status(400).json({
+        message: "ID de edificio inválido",
         details: `El formato del ID '${id}' no es válido`
       });
     }
-    
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({ 
-        message: "Error de validación en datos de horario", 
+      return res.status(400).json({
+        message: "Error de validación en datos de horario",
         details: errors
       });
     }
-    
-    if (error.message && error.message.includes('reservas afectadas') || error.message.includes('affected bookings')) {
-      return res.status(400).json({ 
-        message: "Reservas afectadas", 
+    if (error.message && (error.message.includes('reservas afectadas') || error.message.includes('affected bookings'))) {
+      return res.status(400).json({
+        message: "Reservas afectadas",
         details: "El cambio de horario afectaría a reservas existentes"
       });
     }
-    
-    res.status(500).json({ 
-      message: "Error al actualizar horario", 
-      details: error.message 
-    });
-  }
-};
-
-const buscarEdificiosCercanosController = async (req, res) => {
-  const { lat, lng, distanciaMax } = req.query;
-  
-  if (!lat || !lng || !distanciaMax || isNaN(lat) || isNaN(lng) || isNaN(distanciaMax)) {
-    return res.status(400).json({ 
-      message: "Parámetros inválidos", 
-      details: "Se requieren coordenadas y distancia máxima válidas"
-    });
-  }
-  
-  const latFloat = parseFloat(lat);
-  const lngFloat = parseFloat(lng);
-  const distFloat = parseFloat(distanciaMax);
-  
-  if (latFloat < -90 || latFloat > 90) {
-    return res.status(400).json({ 
-      message: "Latitud fuera de rango", 
-      details: "La latitud debe estar entre -90 y 90 grados"
-    });
-  }
-  
-  if (lngFloat < -180 || lngFloat > 180) {
-    return res.status(400).json({ 
-      message: "Longitud fuera de rango", 
-      details: "La longitud debe estar entre -180 y 180 grados"
-    });
-  }
-  
-  if (distFloat <= 0) {
-    return res.status(400).json({ 
-      message: "Distancia inválida", 
-      details: "La distancia máxima debe ser un valor positivo"
-    });
-  }
-  
-  try {
-    const edificios = await buscarEdificiosCercanos(latFloat, lngFloat, distFloat);
-    res.status(200).json(edificios);
-  } catch (error) {
-    console.error(error);
-    
-    if (error.message && error.message.includes('coordenadas')) {
-      return res.status(400).json({ 
-        message: "Error en coordenadas", 
-        details: error.message
-      });
-    }
-    
-    res.status(500).json({ 
-      message: "Error al buscar edificios cercanos", 
-      details: error.message 
+    return res.status(500).json({
+      message: "Error al actualizar horario",
+      details: error.message
     });
   }
 };
@@ -673,6 +619,5 @@ module.exports = {
   agregarAmenidadController,
   eliminarAmenidadController,
   actualizarHorarioController,
-  buscarEdificiosCercanosController,
   filtrarEdificiosController
 };

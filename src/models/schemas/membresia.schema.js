@@ -8,13 +8,13 @@ const membresiaSchema = new mongoose.Schema(
     beneficios: [{
       tipo: { type: String, required: true },
       descripcion: { type: String, required: true },
-      valor: { type: String } // Ejemplo: "10% descuento", "Prioridad alta", etc.
+      valor: { type: String }
     }],
     precio: {
       valor: { type: Number, required: true },
       periodicidad: { type: String, enum: ['mensual', 'trimestral', 'anual'], default: 'mensual' }
     },
-    duracion: { type: Number, default: 30 }, // en días
+    duracion: { type: Number, default: 30 },
     activo: { type: Boolean, default: true },
     restricciones: { type: String }
   },

@@ -85,17 +85,31 @@ const getOficinasByRangoPrecio = async (precioMin, precioMax, tipoPrecio = 'porD
 };
 
 const getOficinasDisponibles = async (fecha, horaInicio, horaFin) => {
-  // Esta función es más compleja, necesitaría integrarse con el repository de Disponibilidad
-  // para verificar las franjas horarias disponibles
-  const filtrosBase = { 
-    estado: 'disponible',
-    activo: true
-  };
-  
-  return await Oficina.find(filtrosBase)
-    .populate('ubicacion.edificioId')
-    .populate('propietarioId', 'nombre email')
-    .populate('empresaInmobiliariaId', 'nombre');
+  const diasMap = [
+    "domingo",
+    "lunes",
+    "martes",
+    "miércoles",
+    "jueves",
+    "viernes",
+    "sábado"
+  ];
+
+  const fechaObj = new Date(fecha);
+  if (isNaN(fechaObj.getTime())) {
+    throw new Error(`Fecha inválida: ${fecha}`);
+  }
+  const diaNombre = diasMap[fechaObj.getUTCDay()];
+
+  return await Oficina.find({
+    activo: true,
+    "disponibilidad.dias": diaNombre,
+    "disponibilidad.horario.apertura": { $lte: horaInicio },
+    "disponibilidad.horario.cierre":    { $gte: horaFin }
+  })
+    .populate("ubicacion.edificioId")
+    .populate("propietarioId", "nombre email")
+    .populate("empresaInmobiliariaId", "nombre");
 };
 
 const actualizarCalificacion = async (id, nuevaCalificacion) => {

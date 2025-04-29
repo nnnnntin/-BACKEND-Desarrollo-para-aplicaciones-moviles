@@ -9,12 +9,12 @@ const reservaSchema = new mongoose.Schema(
     },
     fechaInicio: { type: Date, required: true },
     fechaFin: { type: Date, required: true },
-    horaInicio: { type: String, required: true }, // Formato: "HH:MM"
-    horaFin: { type: String, required: true },    // Formato: "HH:MM"
+    horaInicio: { type: String, required: true },
+    horaFin: { type: String, required: true },
     estado: { type: String, enum: ['pendiente', 'confirmada', 'cancelada', 'completada', 'no_asistio'], required: true, default: 'pendiente' },
     tipoReserva: { type: String, enum: ['hora', 'dia', 'semana', 'mes'], required: true },
     cantidadPersonas: { type: Number, default: 1 },
-    proposito: { type: String }, // Propósito de la reserva
+    proposito: { type: String },
     precioTotal: { type: Number, required: true },
     descuento: {
       porcentaje: { type: Number, default: 0 },

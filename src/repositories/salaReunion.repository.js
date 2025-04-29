@@ -110,9 +110,7 @@ const actualizarPrecios = async (id, precios) => {
 };
 
 const getSalasDisponibles = async (fecha, horaInicio, horaFin) => {
-  // Esta función es más compleja, necesitaría integrarse con el repository de Disponibilidad
-  // para verificar las franjas horarias disponibles
-  const filtrosBase = { 
+      const filtrosBase = { 
     estado: 'disponible',
     activo: true
   };

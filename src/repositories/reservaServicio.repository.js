@@ -124,8 +124,7 @@ const vincularPago = async (id, pagoId) => {
 };
 
 const getReservasPendientesByFecha = async (fecha) => {
-  // Encuentra reservas pendientes para una fecha específica
-  const startOfDay = new Date(fecha);
+    const startOfDay = new Date(fecha);
   startOfDay.setHours(0, 0, 0, 0);
   
   const endOfDay = new Date(fecha);

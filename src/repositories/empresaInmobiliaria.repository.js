@@ -35,7 +35,6 @@ const updateEmpresaInmobiliaria = async (id, payload) => {
 };
 
 const deleteEmpresaInmobiliaria = async (id) => {
-  // En lugar de eliminar, marcamos como inactiva
   return await EmpresaInmobiliaria.findByIdAndUpdate(
     id,
     { activo: false },

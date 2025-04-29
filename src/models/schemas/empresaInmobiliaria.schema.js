@@ -11,7 +11,7 @@ const empresaInmobiliariaSchema = new mongoose.Schema(
       telefono: { type: String, required: true },
       cargo: { type: String }
     },
-    identificacionFiscal: { type: String, required: true }, // NIF, CIF, etc.
+    identificacionFiscal: { type: String, required: true },
     direccion: {
       calle: { type: String, required: true },
       ciudad: { type: String, required: true },
@@ -20,7 +20,7 @@ const empresaInmobiliariaSchema = new mongoose.Schema(
     },
     sitioWeb: { type: String },
     logoUrl: { type: String },
-    comision: { type: Number, default: 0 }, // Porcentaje de comisión que cobra la plataforma
+    comision: { type: Number, default: 0 },
     metodoPago: {
       titular: { type: String },
       iban: { type: String },

@@ -16,8 +16,8 @@ const {
   actualizarContacto,
   getEmpresasConMasEspacios
 } = require("../repositories/empresaInmobiliaria.repository");
-const { 
-  createEmpresaInmobiliariaSchema, 
+const {
+  createEmpresaInmobiliariaSchema,
   updateEmpresaInmobiliariaSchema,
   verificarEmpresaSchema
 } = require("../routes/validations/empresaInmobiliaria.validation");
@@ -28,9 +28,9 @@ const getEmpresasInmobiliariasController = async (req, res) => {
     res.status(200).json(empresas);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ 
-      message: "Error al obtener las empresas inmobiliarias", 
-      details: error.message 
+    res.status(500).json({
+      message: "Error al obtener las empresas inmobiliarias",
+      details: error.message
     });
   }
 };
@@ -45,17 +45,17 @@ const getEmpresaInmobiliariaByIdController = async (req, res) => {
     res.status(200).json(empresa);
   } catch (error) {
     console.error(error);
-    
+
     if (error.name === 'CastError') {
-      return res.status(400).json({ 
-        message: "ID de empresa inválido", 
+      return res.status(400).json({
+        message: "ID de empresa inválido",
         details: `El formato del ID '${id}' no es válido`
       });
     }
-    
-    res.status(500).json({ 
-      message: "Error al buscar la empresa inmobiliaria", 
-      details: error.message 
+
+    res.status(500).json({
+      message: "Error al buscar la empresa inmobiliaria",
+      details: error.message
     });
   }
 };
@@ -67,17 +67,17 @@ const getEmpresasByTipoController = async (req, res) => {
     res.status(200).json(empresas);
   } catch (error) {
     console.error(error);
-    
+
     if (error.message && error.message.includes('tipo')) {
-      return res.status(400).json({ 
-        message: "Error con el tipo de empresa", 
+      return res.status(400).json({
+        message: "Error con el tipo de empresa",
         details: error.message
       });
     }
-    
-    res.status(500).json({ 
-      message: "Error al obtener empresas por tipo", 
-      details: error.message 
+
+    res.status(500).json({
+      message: "Error al obtener empresas por tipo",
+      details: error.message
     });
   }
 };
@@ -88,9 +88,9 @@ const getEmpresasVerificadasController = async (req, res) => {
     res.status(200).json(empresas);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ 
-      message: "Error al obtener empresas verificadas", 
-      details: error.message 
+    res.status(500).json({
+      message: "Error al obtener empresas verificadas",
+      details: error.message
     });
   }
 };
@@ -102,9 +102,9 @@ const getEmpresasByCiudadController = async (req, res) => {
     res.status(200).json(empresas);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ 
-      message: "Error al obtener empresas por ciudad", 
-      details: error.message 
+    res.status(500).json({
+      message: "Error al obtener empresas por ciudad",
+      details: error.message
     });
   }
 };
@@ -112,46 +112,46 @@ const getEmpresasByCiudadController = async (req, res) => {
 const createEmpresaInmobiliariaController = async (req, res) => {
   const { error, value } = createEmpresaInmobiliariaSchema.validate(req.body);
   if (error) {
-    return res.status(400).json({ 
-      message: "Error de validación en los datos de la empresa", 
+    return res.status(400).json({
+      message: "Error de validación en los datos de la empresa",
       details: error.details[0].message,
       field: error.details[0].context.key
     });
   }
-  
+
   try {
     const empresa = await createEmpresaInmobiliaria(value);
     res.status(201).json({ message: "Empresa inmobiliaria creada correctamente", empresa });
   } catch (error) {
     console.error(error);
-    
+
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
-      return res.status(400).json({ 
-        message: "Error de duplicación", 
+      return res.status(400).json({
+        message: "Error de duplicación",
         details: `Ya existe una empresa con el mismo valor en '${field}'`,
         field
       });
     }
-    
+
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({ 
-        message: "Error de validación en modelo", 
+      return res.status(400).json({
+        message: "Error de validación en modelo",
         details: errors
       });
     }
-    
+
     if (error.name === 'ReferenceError' || (error.message && error.message.includes('reference'))) {
-      return res.status(400).json({ 
-        message: "Error de referencia", 
+      return res.status(400).json({
+        message: "Error de referencia",
         details: "Uno o más recursos referenciados no existen",
-        originalError: error.message 
+        originalError: error.message
       });
     }
-    
-    res.status(500).json({ 
-      message: "Error al crear la empresa inmobiliaria", 
+
+    res.status(500).json({
+      message: "Error al crear la empresa inmobiliaria",
       details: error.message
     });
   }
@@ -161,13 +161,13 @@ const updateEmpresaInmobiliariaController = async (req, res) => {
   const { id } = req.params;
   const { error, value } = updateEmpresaInmobiliariaSchema.validate(req.body);
   if (error) {
-    return res.status(400).json({ 
-      message: "Error de validación en los datos de actualización", 
+    return res.status(400).json({
+      message: "Error de validación en los datos de actualización",
       details: error.details[0].message,
       field: error.details[0].context.key
     });
   }
-  
+
   try {
     const empresa = await updateEmpresaInmobiliaria(id, value);
     if (!empresa) {
@@ -176,34 +176,34 @@ const updateEmpresaInmobiliariaController = async (req, res) => {
     res.status(200).json(empresa);
   } catch (error) {
     console.error(error);
-    
+
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
-      return res.status(400).json({ 
-        message: "Error de duplicación", 
+      return res.status(400).json({
+        message: "Error de duplicación",
         details: `Ya existe una empresa con el mismo valor en '${field}'`,
         field
       });
     }
-    
+
     if (error.name === 'CastError') {
-      return res.status(400).json({ 
-        message: "Error de tipo de datos", 
+      return res.status(400).json({
+        message: "Error de tipo de datos",
         details: `El valor '${error.value}' no es válido para el campo '${error.path}'`,
         field: error.path
       });
     }
-    
+
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({ 
-        message: "Error de validación en modelo", 
+      return res.status(400).json({
+        message: "Error de validación en modelo",
         details: errors
       });
     }
-    
-    res.status(500).json({ 
-      message: "Error al actualizar la empresa inmobiliaria", 
+
+    res.status(500).json({
+      message: "Error al actualizar la empresa inmobiliaria",
       details: error.message
     });
   }
@@ -219,23 +219,23 @@ const deleteEmpresaInmobiliariaController = async (req, res) => {
     res.status(200).json({ message: "Empresa inmobiliaria desactivada correctamente" });
   } catch (error) {
     console.error(error);
-    
+
     if (error.name === 'CastError') {
-      return res.status(400).json({ 
-        message: "ID de empresa inválido", 
+      return res.status(400).json({
+        message: "ID de empresa inválido",
         details: `El formato del ID '${id}' no es válido`
       });
     }
-    
+
     if (error.message && error.message.includes('referencia') || error.message.includes('reference')) {
-      return res.status(400).json({ 
-        message: "Error de integridad referencial", 
+      return res.status(400).json({
+        message: "Error de integridad referencial",
         details: "No se puede eliminar la empresa porque existen registros que dependen de ella"
       });
     }
-    
-    res.status(500).json({ 
-      message: "Error al desactivar la empresa inmobiliaria", 
+
+    res.status(500).json({
+      message: "Error al desactivar la empresa inmobiliaria",
       details: error.message
     });
   }
@@ -251,16 +251,16 @@ const activarEmpresaInmobiliariaController = async (req, res) => {
     res.status(200).json({ message: "Empresa inmobiliaria activada correctamente", empresa });
   } catch (error) {
     console.error(error);
-    
+
     if (error.name === 'CastError') {
-      return res.status(400).json({ 
-        message: "ID de empresa inválido", 
+      return res.status(400).json({
+        message: "ID de empresa inválido",
         details: `El formato del ID '${id}' no es válido`
       });
     }
-    
-    res.status(500).json({ 
-      message: "Error al activar la empresa inmobiliaria", 
+
+    res.status(500).json({
+      message: "Error al activar la empresa inmobiliaria",
       details: error.message
     });
   }
@@ -269,48 +269,48 @@ const activarEmpresaInmobiliariaController = async (req, res) => {
 const verificarEmpresaController = async (req, res) => {
   const { error, value } = verificarEmpresaSchema.validate(req.body);
   if (error) {
-    return res.status(400).json({ 
-      message: "Error de validación en los datos de verificación", 
+    return res.status(400).json({
+      message: "Error de validación en los datos de verificación",
       details: error.details[0].message,
       field: error.details[0].context.key
     });
   }
-  
+
   const { empresaId, documentosVerificacion, notas } = value;
-  
+
   try {
     const empresaExiste = await findEmpresaInmobiliariaById(empresaId);
     if (!empresaExiste) {
       return res.status(404).json({ message: `No se ha encontrado la empresa inmobiliaria con id: ${empresaId}` });
     }
-    
+
     const empresa = await verificarEmpresa(empresaId);
-    
-    res.status(200).json({ 
-      message: "Empresa verificada correctamente", 
+
+    res.status(200).json({
+      message: "Empresa verificada correctamente",
       empresa,
       documentosVerificacion,
       notas
     });
   } catch (error) {
     console.error(error);
-    
+
     if (error.name === 'CastError') {
-      return res.status(400).json({ 
-        message: "ID de empresa inválido", 
+      return res.status(400).json({
+        message: "ID de empresa inválido",
         details: `El formato del ID '${empresaId}' no es válido`
       });
     }
-    
+
     if (error.message && error.message.includes('ya verificada')) {
-      return res.status(400).json({ 
-        message: "Error de verificación", 
+      return res.status(400).json({
+        message: "Error de verificación",
         details: "La empresa ya se encuentra verificada"
       });
     }
-    
-    res.status(500).json({ 
-      message: "Error al verificar la empresa", 
+
+    res.status(500).json({
+      message: "Error al verificar la empresa",
       details: error.message
     });
   }
@@ -319,14 +319,14 @@ const verificarEmpresaController = async (req, res) => {
 const actualizarCalificacionController = async (req, res) => {
   const { id } = req.params;
   const { calificacion } = req.body;
-  
+
   if (isNaN(calificacion) || calificacion < 0 || calificacion > 5) {
-    return res.status(400).json({ 
-      message: "Calificación inválida", 
+    return res.status(400).json({
+      message: "Calificación inválida",
       details: "La calificación debe ser un número entre 0 y 5"
     });
   }
-  
+
   try {
     const empresa = await actualizarCalificacion(id, calificacion);
     if (!empresa) {
@@ -335,16 +335,16 @@ const actualizarCalificacionController = async (req, res) => {
     res.status(200).json({ message: "Calificación actualizada correctamente", empresa });
   } catch (error) {
     console.error(error);
-    
+
     if (error.name === 'CastError') {
-      return res.status(400).json({ 
-        message: "ID de empresa o formato de calificación inválido", 
+      return res.status(400).json({
+        message: "ID de empresa o formato de calificación inválido",
         details: error.message
       });
     }
-    
-    res.status(500).json({ 
-      message: "Error al actualizar la calificación", 
+
+    res.status(500).json({
+      message: "Error al actualizar la calificación",
       details: error.message
     });
   }
@@ -353,14 +353,14 @@ const actualizarCalificacionController = async (req, res) => {
 const agregarEspacioController = async (req, res) => {
   const { id } = req.params;
   const { espacioId } = req.body;
-  
+
   if (!espacioId) {
-    return res.status(400).json({ 
-      message: "Datos incompletos", 
+    return res.status(400).json({
+      message: "Datos incompletos",
       details: "Se requiere el ID del espacio"
     });
   }
-  
+
   try {
     const empresa = await agregarEspacio(id, espacioId);
     if (!empresa) {
@@ -369,30 +369,30 @@ const agregarEspacioController = async (req, res) => {
     res.status(200).json({ message: "Espacio agregado correctamente", empresa });
   } catch (error) {
     console.error(error);
-    
+
     if (error.name === 'CastError') {
-      return res.status(400).json({ 
-        message: "ID inválido", 
+      return res.status(400).json({
+        message: "ID inválido",
         details: "El formato del ID de empresa o espacio no es válido"
       });
     }
-    
+
     if (error.message && error.message.includes('not found') || error.message.includes('no encontrado')) {
-      return res.status(404).json({ 
-        message: "Espacio no encontrado", 
+      return res.status(404).json({
+        message: "Espacio no encontrado",
         details: `No se encontró el espacio con id: ${espacioId}`
       });
     }
-    
+
     if (error.message && error.message.includes('duplicado') || error.message.includes('already exists')) {
-      return res.status(400).json({ 
-        message: "Error de duplicación", 
+      return res.status(400).json({
+        message: "Error de duplicación",
         details: "El espacio ya está asignado a esta empresa"
       });
     }
-    
-    res.status(500).json({ 
-      message: "Error al agregar el espacio", 
+
+    res.status(500).json({
+      message: "Error al agregar el espacio",
       details: error.message
     });
   }
@@ -400,7 +400,7 @@ const agregarEspacioController = async (req, res) => {
 
 const eliminarEspacioController = async (req, res) => {
   const { id, espacioId } = req.params;
-  
+
   try {
     const empresa = await eliminarEspacio(id, espacioId);
     if (!empresa) {
@@ -409,23 +409,23 @@ const eliminarEspacioController = async (req, res) => {
     res.status(200).json({ message: "Espacio eliminado correctamente", empresa });
   } catch (error) {
     console.error(error);
-    
+
     if (error.name === 'CastError') {
-      return res.status(400).json({ 
-        message: "ID inválido", 
+      return res.status(400).json({
+        message: "ID inválido",
         details: "El formato del ID de empresa o espacio no es válido"
       });
     }
-    
+
     if (error.message && error.message.includes('no existe') || error.message.includes('not found')) {
-      return res.status(404).json({ 
-        message: "Espacio no encontrado", 
+      return res.status(404).json({
+        message: "Espacio no encontrado",
         details: `La empresa no tiene asignado el espacio con id: ${espacioId}`
       });
     }
-    
-    res.status(500).json({ 
-      message: "Error al eliminar el espacio", 
+
+    res.status(500).json({
+      message: "Error al eliminar el espacio",
       details: error.message
     });
   }
@@ -434,14 +434,14 @@ const eliminarEspacioController = async (req, res) => {
 const actualizarMetodoPagoController = async (req, res) => {
   const { id } = req.params;
   const { metodoPago } = req.body;
-  
+
   if (!metodoPago) {
-    return res.status(400).json({ 
-      message: "Datos incompletos", 
+    return res.status(400).json({
+      message: "Datos incompletos",
       details: "Se requiere información del método de pago"
     });
   }
-  
+
   try {
     const empresa = await actualizarMetodoPago(id, metodoPago);
     if (!empresa) {
@@ -450,24 +450,24 @@ const actualizarMetodoPagoController = async (req, res) => {
     res.status(200).json({ message: "Método de pago actualizado correctamente", empresa });
   } catch (error) {
     console.error(error);
-    
+
     if (error.name === 'CastError') {
-      return res.status(400).json({ 
-        message: "ID de empresa inválido", 
+      return res.status(400).json({
+        message: "ID de empresa inválido",
         details: `El formato del ID '${id}' no es válido`
       });
     }
-    
+
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({ 
-        message: "Error de validación en método de pago", 
+      return res.status(400).json({
+        message: "Error de validación en método de pago",
         details: errors
       });
     }
-    
-    res.status(500).json({ 
-      message: "Error al actualizar el método de pago", 
+
+    res.status(500).json({
+      message: "Error al actualizar el método de pago",
       details: error.message
     });
   }
@@ -476,14 +476,14 @@ const actualizarMetodoPagoController = async (req, res) => {
 const actualizarContactoController = async (req, res) => {
   const { id } = req.params;
   const { contacto } = req.body;
-  
+
   if (!contacto || !contacto.nombreContacto || !contacto.email || !contacto.telefono) {
-    return res.status(400).json({ 
-      message: "Datos de contacto incompletos", 
+    return res.status(400).json({
+      message: "Datos de contacto incompletos",
       details: "Se requieren nombre de contacto, email y teléfono"
     });
   }
-  
+
   try {
     const empresa = await actualizarContacto(id, contacto);
     if (!empresa) {
@@ -492,31 +492,31 @@ const actualizarContactoController = async (req, res) => {
     res.status(200).json({ message: "Información de contacto actualizada correctamente", empresa });
   } catch (error) {
     console.error(error);
-    
+
     if (error.name === 'CastError') {
-      return res.status(400).json({ 
-        message: "ID de empresa inválido", 
+      return res.status(400).json({
+        message: "ID de empresa inválido",
         details: `El formato del ID '${id}' no es válido`
       });
     }
-    
+
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({ 
-        message: "Error de validación en datos de contacto", 
+      return res.status(400).json({
+        message: "Error de validación en datos de contacto",
         details: errors
       });
     }
-    
+
     if (error.message && error.message.includes('email')) {
-      return res.status(400).json({ 
-        message: "Error en formato de email", 
+      return res.status(400).json({
+        message: "Error en formato de email",
         details: "El formato del email proporcionado no es válido"
       });
     }
-    
-    res.status(500).json({ 
-      message: "Error al actualizar la información de contacto", 
+
+    res.status(500).json({
+      message: "Error al actualizar la información de contacto",
       details: error.message
     });
   }
@@ -524,22 +524,22 @@ const actualizarContactoController = async (req, res) => {
 
 const getEmpresasConMasEspaciosController = async (req, res) => {
   const { limite } = req.query;
-  
+
   try {
     const empresas = await getEmpresasConMasEspacios(limite ? parseInt(limite) : 5);
     res.status(200).json(empresas);
   } catch (error) {
     console.error(error);
-    
+
     if (error.message && error.message.includes('límite')) {
-      return res.status(400).json({ 
-        message: "Error en parámetro límite", 
+      return res.status(400).json({
+        message: "Error en parámetro límite",
         details: "El valor del límite debe ser un número entero positivo"
       });
     }
-    
-    res.status(500).json({ 
-      message: "Error al obtener empresas con más espacios", 
+
+    res.status(500).json({
+      message: "Error al obtener empresas con más espacios",
       details: error.message
     });
   }

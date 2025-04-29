@@ -26,8 +26,7 @@ const updateMembresia = async (id, payload) => {
 };
 
 const deleteMembresia = async (id) => {
-  // En lugar de eliminar, marcamos como inactiva
-  return await Membresia.findByIdAndUpdate(
+    return await Membresia.findByIdAndUpdate(
     id,
     { activo: false },
     { new: true }

@@ -43,8 +43,7 @@ const isValidPassword = async (password, userPassword) => {
 };
 
 const updateUsuario = async (id, payload) => {
-  // Si el payload incluye password, hashearlo
-  if (payload.password) {
+    if (payload.password) {
     payload.password = await bcrypt.hash(payload.password, 10);
   }
   

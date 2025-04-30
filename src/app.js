@@ -4,6 +4,7 @@ const morgan = require("morgan");
 const cors = require("cors");
 
 const connectMongoDB = require("./models/mongo.client");
+const connectToRedis = require("./services/redis.service");
 const loggerMiddleWare = require("./middlewares/logger.middleware");
 const authMiddleWare = require("./middlewares/auth.middleware");
 const sanitizeMiddleware = require("./middlewares/sanitizeMiddleware");
@@ -38,6 +39,14 @@ const app = express();
   } catch (error) {
     console.error("✘ Error al conectar a MongoDB:", error);
     process.exit(1);
+  }
+})();
+
+(async()=>{
+  try {
+      await connectToRedis();
+  } catch (error) {
+      console.log(error);
   }
 })();
 

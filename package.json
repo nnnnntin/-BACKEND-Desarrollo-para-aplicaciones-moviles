@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/zeneixa/Obligatorio-Desarrollo-para-aplicaciones-m-viles#readme",
   "dependencies": {
+    "@upstash/redis": "^1.34.8",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",

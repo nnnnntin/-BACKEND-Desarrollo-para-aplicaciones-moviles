@@ -1,83 +1,321 @@
 const Espacio = require("../models/espacio.model");
+const connectToRedis = require("../services/redis.service");
+
+const _getEspacioRedisKey = (id) => `id:${id}-espacio`;
+const _getEspaciosFilterRedisKey = (filtros) => `espacios:${JSON.stringify(filtros)}`;
+const _getEspaciosByEdificioRedisKey = (edificioId) => `edificio:${edificioId}-espacios`;
+const _getEspaciosByTipoRedisKey = (tipo) => `espacios:tipo:${tipo}`;
+const _getEspaciosByPropietarioRedisKey = (propietarioId) => `propietario:${propietarioId}-espacios`;
+const _getEspaciosByEmpresaRedisKey = (empresaId) => `empresa:${empresaId}-espacios`;
+const _getEspaciosDisponiblesRedisKey = (tipo, fecha, horaInicio, horaFin) => `espacios:disponibles:${tipo}:${fecha}:${horaInicio}-${horaFin}`;
+const _getEspaciosByAmenidadesRedisKey = (amenidades) => `espacios:amenidades:${JSON.stringify(amenidades)}`;
 
 const getEspacios = async (filtros = {}) => {
-  return await Espacio.find(filtros)
+  const redisClient = connectToRedis();
+  const key = _getEspaciosFilterRedisKey(filtros);
+  let cached = await redisClient.get(key);
+  if (cached) {
+    console.log("[Leyendo getEspacios desde Redis]");
+    try {
+      return JSON.parse(cached);
+    } catch (err) {
+      console.error("Error al parsear caché de getEspacios, volviendo a MongoDB", err);
+    }
+  }
+  console.log("[Leyendo getEspacios desde MongoDB]");
+  const result = await Espacio.find(filtros)
     .populate('ubicacion.edificioId')
     .populate('propietarioId', 'nombre email')
     .populate('empresaInmobiliariaId', 'nombre');
+  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+  return result;
 };
 
 const findEspacioById = async (id) => {
-  return await Espacio.findById(id)
+  const redisClient = connectToRedis();
+  const key = _getEspacioRedisKey(id);
+  let cached = await redisClient.get(key);
+  if (cached) {
+    console.log("[Leyendo findEspacioById desde Redis]");
+    try {
+      return JSON.parse(cached);
+    } catch (err) {
+      console.error("Error al parsear caché de findEspacioById, volviendo a MongoDB", err);
+    }
+  }
+  console.log("[Leyendo findEspacioById desde MongoDB]");
+  const result = await Espacio.findById(id)
     .populate('ubicacion.edificioId')
     .populate('propietarioId', 'nombre email')
     .populate('empresaInmobiliariaId', 'nombre');
+  if (result) {
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+  }
+  return result;
 };
 
 const getEspaciosByEdificio = async (edificioId) => {
-  return await Espacio.find({ 'ubicacion.edificioId': edificioId })
+  const redisClient = connectToRedis();
+  const key = _getEspaciosByEdificioRedisKey(edificioId);
+  let cached = await redisClient.get(key);
+  if (cached) {
+    console.log("[Leyendo getEspaciosByEdificio desde Redis]");
+    try {
+      return JSON.parse(cached);
+    } catch (err) {
+      console.error("Error al parsear caché de getEspaciosByEdificio, volviendo a MongoDB", err);
+    }
+  }
+  console.log("[Leyendo getEspaciosByEdificio desde MongoDB]");
+  const result = await Espacio.find({ 'ubicacion.edificioId': edificioId })
     .populate('propietarioId', 'nombre email')
     .populate('empresaInmobiliariaId', 'nombre');
+  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+  return result;
 };
 
 const getEspaciosByTipo = async (tipo) => {
-  return await Espacio.find({ tipo })
+  const redisClient = connectToRedis();
+  const key = _getEspaciosByTipoRedisKey(tipo);
+  let cached = await redisClient.get(key);
+  if (cached) {
+    console.log("[Leyendo getEspaciosByTipo desde Redis]");
+    try {
+      return JSON.parse(cached);
+    } catch (err) {
+      console.error("Error al parsear caché de getEspaciosByTipo, volviendo a MongoDB", err);
+    }
+  }
+  console.log("[Leyendo getEspaciosByTipo desde MongoDB]");
+  const result = await Espacio.find({ tipo })
     .populate('ubicacion.edificioId')
     .populate('propietarioId', 'nombre email')
     .populate('empresaInmobiliariaId', 'nombre');
+  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+  return result;
 };
 
 const getEspaciosByPropietario = async (propietarioId) => {
-  return await Espacio.find({ propietarioId })
+  const redisClient = connectToRedis();
+  const key = _getEspaciosByPropietarioRedisKey(propietarioId);
+  let cached = await redisClient.get(key);
+  if (cached) {
+    console.log("[Leyendo getEspaciosByPropietario desde Redis]");
+    try {
+      return JSON.parse(cached);
+    } catch (err) {
+      console.error("Error al parsear caché de getEspaciosByPropietario, volviendo a MongoDB", err);
+    }
+  }
+  console.log("[Leyendo getEspaciosByPropietario desde MongoDB]");
+  const result = await Espacio.find({ propietarioId })
     .populate('ubicacion.edificioId')
     .populate('empresaInmobiliariaId', 'nombre');
+  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+  return result;
 };
 
 const getEspaciosByEmpresa = async (empresaInmobiliariaId) => {
-  return await Espacio.find({ empresaInmobiliariaId })
+  const redisClient = connectToRedis();
+  const key = _getEspaciosByEmpresaRedisKey(empresaInmobiliariaId);
+  let cached = await redisClient.get(key);
+  if (cached) {
+    console.log("[Leyendo getEspaciosByEmpresa desde Redis]");
+    try {
+      return JSON.parse(cached);
+    } catch (err) {
+      console.error("Error al parsear caché de getEspaciosByEmpresa, volviendo a MongoDB", err);
+    }
+  }
+  console.log("[Leyendo getEspaciosByEmpresa desde MongoDB]");
+  const result = await Espacio.find({ empresaInmobiliariaId })
     .populate('ubicacion.edificioId')
     .populate('propietarioId', 'nombre email');
+  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+  return result;
 };
 
 const createEspacio = async (espacioData) => {
+  const redisClient = connectToRedis();
   const newEspacio = new Espacio(espacioData);
-  return await newEspacio.save();
+  const saved = await newEspacio.save();
+  
+  // Invalidar caches
+  await redisClient.del(_getEspaciosFilterRedisKey({}));
+  if (saved.ubicacion && saved.ubicacion.edificioId) {
+    await redisClient.del(_getEspaciosByEdificioRedisKey(saved.ubicacion.edificioId.toString()));
+  }
+  if (saved.tipo) {
+    await redisClient.del(_getEspaciosByTipoRedisKey(saved.tipo));
+  }
+  if (saved.propietarioId) {
+    await redisClient.del(_getEspaciosByPropietarioRedisKey(saved.propietarioId.toString()));
+  }
+  if (saved.empresaInmobiliariaId) {
+    await redisClient.del(_getEspaciosByEmpresaRedisKey(saved.empresaInmobiliariaId.toString()));
+  }
+  
+  return saved;
 };
 
 const updateEspacio = async (id, payload) => {
-  return await Espacio.findByIdAndUpdate(id, payload, { new: true });
+  const redisClient = connectToRedis();
+  const espacio = await Espacio.findById(id);
+  const updated = await Espacio.findByIdAndUpdate(id, payload, { new: true });
+  
+  // Invalidar caches
+  await redisClient.del(_getEspacioRedisKey(id));
+  await redisClient.del(_getEspaciosFilterRedisKey({}));
+  
+  if (espacio.ubicacion && espacio.ubicacion.edificioId) {
+    await redisClient.del(_getEspaciosByEdificioRedisKey(espacio.ubicacion.edificioId.toString()));
+  }
+  if (updated.ubicacion && updated.ubicacion.edificioId && 
+      (!espacio.ubicacion || !espacio.ubicacion.edificioId || 
+       espacio.ubicacion.edificioId.toString() !== updated.ubicacion.edificioId.toString())) {
+    await redisClient.del(_getEspaciosByEdificioRedisKey(updated.ubicacion.edificioId.toString()));
+  }
+  
+  if (espacio.tipo) {
+    await redisClient.del(_getEspaciosByTipoRedisKey(espacio.tipo));
+  }
+  if (updated.tipo && espacio.tipo !== updated.tipo) {
+    await redisClient.del(_getEspaciosByTipoRedisKey(updated.tipo));
+  }
+  
+  if (espacio.propietarioId) {
+    await redisClient.del(_getEspaciosByPropietarioRedisKey(espacio.propietarioId.toString()));
+  }
+  if (updated.propietarioId && (!espacio.propietarioId || 
+      espacio.propietarioId.toString() !== updated.propietarioId.toString())) {
+    await redisClient.del(_getEspaciosByPropietarioRedisKey(updated.propietarioId.toString()));
+  }
+  
+  if (espacio.empresaInmobiliariaId) {
+    await redisClient.del(_getEspaciosByEmpresaRedisKey(espacio.empresaInmobiliariaId.toString()));
+  }
+  if (updated.empresaInmobiliariaId && (!espacio.empresaInmobiliariaId || 
+      espacio.empresaInmobiliariaId.toString() !== updated.empresaInmobiliariaId.toString())) {
+    await redisClient.del(_getEspaciosByEmpresaRedisKey(updated.empresaInmobiliariaId.toString()));
+  }
+  
+  // Invalidar cache de disponibles
+  await redisClient.keys('espacios:disponibles:*').then(keys => {
+    keys.forEach(key => redisClient.del(key));
+  });
+  
+  // Invalidar cache de amenidades si cambiaron
+  if (payload.amenidades) {
+    await redisClient.keys('espacios:amenidades:*').then(keys => {
+      keys.forEach(key => redisClient.del(key));
+    });
+  }
+  
+  return updated;
 };
 
 const deleteEspacio = async (id) => {
-  return await Espacio.findByIdAndDelete(id);
+  const redisClient = connectToRedis();
+  const espacio = await Espacio.findById(id);
+  const removed = await Espacio.findByIdAndDelete(id);
+  
+  // Invalidar caches
+  await redisClient.del(_getEspacioRedisKey(id));
+  await redisClient.del(_getEspaciosFilterRedisKey({}));
+  
+  if (espacio.ubicacion && espacio.ubicacion.edificioId) {
+    await redisClient.del(_getEspaciosByEdificioRedisKey(espacio.ubicacion.edificioId.toString()));
+  }
+  if (espacio.tipo) {
+    await redisClient.del(_getEspaciosByTipoRedisKey(espacio.tipo));
+  }
+  if (espacio.propietarioId) {
+    await redisClient.del(_getEspaciosByPropietarioRedisKey(espacio.propietarioId.toString()));
+  }
+  if (espacio.empresaInmobiliariaId) {
+    await redisClient.del(_getEspaciosByEmpresaRedisKey(espacio.empresaInmobiliariaId.toString()));
+  }
+  
+  // Invalidar cache de disponibles
+  await redisClient.keys('espacios:disponibles:*').then(keys => {
+    keys.forEach(key => redisClient.del(key));
+  });
+  
+  // Invalidar cache de amenidades
+  await redisClient.keys('espacios:amenidades:*').then(keys => {
+    keys.forEach(key => redisClient.del(key));
+  });
+  
+  return removed;
 };
 
 const cambiarEstadoEspacio = async (id, nuevoEstado) => {
-  return await Espacio.findByIdAndUpdate(
+  const redisClient = connectToRedis();
+  const updated = await Espacio.findByIdAndUpdate(
     id,
     { estado: nuevoEstado },
     { new: true }
   );
+  
+  // Invalidar caches
+  await redisClient.del(_getEspacioRedisKey(id));
+  
+  // Invalidar cache de disponibles
+  await redisClient.keys('espacios:disponibles:*').then(keys => {
+    keys.forEach(key => redisClient.del(key));
+  });
+  
+  return updated;
 };
 
 const getEspaciosDisponibles = async (tipo, fecha, horaInicio, horaFin) => {
+  const redisClient = connectToRedis();
+  const key = _getEspaciosDisponiblesRedisKey(tipo, fecha || "todas", horaInicio || "todas", horaFin || "todas");
+  let cached = await redisClient.get(key);
+  if (cached) {
+    console.log("[Leyendo getEspaciosDisponibles desde Redis]");
+    try {
+      return JSON.parse(cached);
+    } catch (err) {
+      console.error("Error al parsear caché de getEspaciosDisponibles, volviendo a MongoDB", err);
+    }
+  }
+  
+  console.log("[Leyendo getEspaciosDisponibles desde MongoDB]");
   const filtrosBase = {
     tipo,
     estado: 'disponible',
     activo: true
   };
-
-  return await Espacio.find(filtrosBase)
+  
+  const result = await Espacio.find(filtrosBase)
     .populate('ubicacion.edificioId')
     .populate('propietarioId', 'nombre email')
     .populate('empresaInmobiliariaId', 'nombre');
+  
+  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+  return result;
 };
 
 const getEspaciosByAmenidades = async (amenidades) => {
-  return await Espacio.find({ amenidades: { $all: amenidades } })
+  const redisClient = connectToRedis();
+  const key = _getEspaciosByAmenidadesRedisKey(amenidades);
+  let cached = await redisClient.get(key);
+  if (cached) {
+    console.log("[Leyendo getEspaciosByAmenidades desde Redis]");
+    try {
+      return JSON.parse(cached);
+    } catch (err) {
+      console.error("Error al parsear caché de getEspaciosByAmenidades, volviendo a MongoDB", err);
+    }
+  }
+  console.log("[Leyendo getEspaciosByAmenidades desde MongoDB]");
+  const result = await Espacio.find({ amenidades: { $all: amenidades } })
     .populate('ubicacion.edificioId')
     .populate('propietarioId', 'nombre email')
     .populate('empresaInmobiliariaId', 'nombre');
+  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+  return result;
 };
 
 module.exports = {

@@ -45,8 +45,10 @@ const app = express();
 (async()=>{
   try {
       await connectToRedis();
+      console.log("✔ Conectado a Redis establecida correctamente");
   } catch (error) {
-      console.log(error);
+    console.error("✘ Error al conectar a Redis:", error);
+    process.exit(1);
   }
 })();
 

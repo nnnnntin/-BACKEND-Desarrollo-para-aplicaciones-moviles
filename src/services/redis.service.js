@@ -1,19 +1,18 @@
 const { Redis } = require('@upstash/redis')
 
-const ENVIRONMENT = process.env.ENVIRONMENT
 const REDIS_URL = process.env.REDIS_URL
 const REDIS_TOKEN = process.env.REDIS_TOKEN
+let redisClient = null;
 
-const connectToRedis = async() =>{
-    const connectionOpts ={
-        url: REDIS_URL,
-    };
-    if(ENVIRONMENT!="development"){
-        connectionOpts.token = REDIS_TOKEN;
+const connectToRedis = () =>{
+    if(!redisClient){
+        const connectionOpts ={
+            url: REDIS_URL,
+            token: REDIS_TOKEN
+        };
+        redisClient = new Redis(connectionOpts);
     }
-    const redis = new Redis(connectionOpts);
-    await redis.set('foo', 'bar');
-    return redis;
+    return redisClient;
 }
 
 module.exports = connectToRedis;

@@ -1,21 +1,24 @@
-require("dotenv").config();
-const mongoose = require("mongoose");
+require('dotenv').config();
+const mongoose = require('mongoose');
 
 const connectMongoDB = async () => {
-  const { MONGODB_URI, MONGODB_DATABASE_NAME } = process.env;
-  if (!MONGODB_URI || !MONGODB_DATABASE_NAME) {
-    throw new Error("Faltan variables MONGODB_URI o MONGODB_DATABASE_NAME");
+  const uri    = process.env.MONGODB_URI; 
+  const dbName = process.env.MONGODB_DATABASE_NAME;
+
+  if (!uri) {
+    throw new Error('⚠️ La variable MONGODB_URI no está definida en el entorno');
   }
 
-  console.log("Conectando a MongoDB en:", MONGODB_URI, "DB:", MONGODB_DATABASE_NAME);
-  await mongoose.connect(MONGODB_URI, {
-    dbName: MONGODB_DATABASE_NAME,
-    serverSelectionTimeoutMS: 3000,
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
-
-  console.log("✔ Conexión a MongoDB establecida correctamente");
+  try {
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 3000,
+      dbName,
+    });
+    console.log('✅ Conexión a MongoDB establecida correctamente');
+  } catch (error) {
+    console.error('✘ Error al conectar a MongoDB:', error);
+    throw error;
+  }
 };
 
 module.exports = connectMongoDB;

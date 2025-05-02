@@ -86,3 +86,9 @@ app.use("/v1",    disponibilidadesRoutes);
 // app.listen(PORT, () => {
 //   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}/`);
 // });
+
+app.get("/", (req, res) => {
+  res.send("🟢 API UES funcionando correctamente");
+});
+
+module.exports = app;

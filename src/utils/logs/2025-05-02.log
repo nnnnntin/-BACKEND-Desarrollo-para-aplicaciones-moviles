@@ -1,0 +1,7 @@
+[2025-05-02T23:26:50.762Z] METHOD: GET /public/swagger 
+[2025-05-02T23:26:50.768Z] METHOD: GET /public/swagger/ 
+[2025-05-02T23:26:50.775Z] METHOD: GET /public/swagger/swagger-ui.css 
+[2025-05-02T23:26:50.776Z] METHOD: GET /public/swagger/swagger-ui-bundle.js 
+[2025-05-02T23:26:50.776Z] METHOD: GET /public/swagger/swagger-ui-standalone-preset.js 
+[2025-05-02T23:26:50.783Z] METHOD: GET /public/swagger/swagger-ui-init.js 
+[2025-05-02T23:26:54.879Z] METHOD: GET /public/health 

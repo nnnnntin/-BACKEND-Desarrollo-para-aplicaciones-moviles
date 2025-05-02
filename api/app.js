@@ -88,7 +88,7 @@ app.use("/v1",    disponibilidadesRoutes);
 // });
 
 app.get("/", (req, res) => {
-  res.send("🟢 API UES funcionando correctamente");
+  res.send("🟢 API funcionando correctamente");
 });
 
 module.exports = app;

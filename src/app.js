@@ -5,7 +5,7 @@ const cors = require("cors");
 
 const connectMongoDB = require("./models/mongo.client");
 const connectToRedis = require("./services/redis.service");
-const loggerMiddleWare = require("./middlewares/logger.middleware");
+//const loggerMiddleWare = require("./middlewares/logger.middleware");
 const authMiddleWare = require("./middlewares/auth.middleware");
 const sanitizeMiddleware = require("./middlewares/sanitizeMiddleware");
 
@@ -53,7 +53,7 @@ const app = express();
 })();
 
 app.use(express.json());
-app.use(loggerMiddleWare);
+//app.use(loggerMiddleWare);
 app.use(morgan("dev"));
 app.use(cors());
 app.use(sanitizeMiddleware);

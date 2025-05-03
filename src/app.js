@@ -58,7 +58,7 @@ app.use(morgan("dev"));
 app.use(cors());
 app.use(sanitizeMiddleware);
 
-app.use("/public", publicRoutes);
+app.use("/", publicRoutes);
 app.use("/v1/auth", authRouter);
 
 app.use("/v1", authMiddleWare);

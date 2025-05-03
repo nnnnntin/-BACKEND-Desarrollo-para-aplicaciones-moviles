@@ -1,8 +1,7 @@
 const express = require("express");
 const swaggerUi = require("swagger-ui-express");
 const publicRouter = express.Router();
-const path = require('path');
-const swaggerDocument = require(path.join(__dirname, '../public/swagger.json'));
+const swaggerDocument = require("../public/swagger.json");
 
 const {
   healthController,

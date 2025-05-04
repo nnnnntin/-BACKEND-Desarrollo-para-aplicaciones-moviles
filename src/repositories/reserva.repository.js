@@ -12,146 +12,308 @@ const _getReservasRecurrentesRedisKey = () => `reservas:recurrentes`;
 const getReservas = async (filtros = {}) => {
   const redisClient = connectToRedis();
   const key = _getReservasFilterRedisKey(filtros);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getReservas desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getReservas, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Reserva.find(filtros)
+      .populate('usuarioId', 'nombre email')
+      .populate('pagoId')
+      .populate('serviciosAdicionales')
+      .populate('aprobador.usuarioId', 'nombre email')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Reserva.find(filtros)
+      .populate('usuarioId', 'nombre email')
+      .populate('pagoId')
+      .populate('serviciosAdicionales')
+      .populate('aprobador.usuarioId', 'nombre email')
+      .lean();
   }
-  console.log("[Leyendo getReservas desde MongoDB]");
-  const result = await Reserva.find(filtros)
-    .populate('usuarioId', 'nombre email')
-    .populate('pagoId')
-    .populate('serviciosAdicionales')
-    .populate('aprobador.usuarioId', 'nombre email');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const findReservaById = async (id) => {
   const redisClient = connectToRedis();
   const key = _getReservasRedisKey(id);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo findReservaById desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de findReservaById, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const doc = await Reserva.findById(id)
+      .populate('usuarioId', 'nombre email')
+      .populate('pagoId')
+      .populate('serviciosAdicionales')
+      .populate('aprobador.usuarioId', 'nombre email')
+      .lean();
+    
+    if (doc) {
+      await redisClient.set(key, doc, { ex: 3600 });
+    }
+    
+    return doc;
+  } catch (error) {
+    return await Reserva.findById(id)
+      .populate('usuarioId', 'nombre email')
+      .populate('pagoId')
+      .populate('serviciosAdicionales')
+      .populate('aprobador.usuarioId', 'nombre email')
+      .lean();
   }
-  console.log("[Leyendo findReservaById desde MongoDB]");
-  const doc = await Reserva.findById(id)
-    .populate('usuarioId', 'nombre email')
-    .populate('pagoId')
-    .populate('serviciosAdicionales')
-    .populate('aprobador.usuarioId', 'nombre email');
-  if (doc) {
-    await redisClient.set(key, JSON.stringify(doc), { ex: 3600 });
-  }
-  return doc;
 };
 
 const getReservasByUsuario = async (usuarioId) => {
   const redisClient = connectToRedis();
   const key = _getReservasByUsuarioRedisKey(usuarioId);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getReservasByUsuario desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getReservasByUsuario, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Reserva.find({ usuarioId })
+      .populate('pagoId')
+      .populate('serviciosAdicionales')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Reserva.find({ usuarioId })
+      .populate('pagoId')
+      .populate('serviciosAdicionales')
+      .lean();
   }
-  console.log("[Leyendo getReservasByUsuario desde MongoDB]");
-  const result = await Reserva.find({ usuarioId })
-    .populate('pagoId')
-    .populate('serviciosAdicionales');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getReservasByEntidad = async (tipoEntidad, entidadId) => {
   const redisClient = connectToRedis();
   const key = _getReservasByEntidadRedisKey(tipoEntidad, entidadId);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getReservasByEntidad desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getReservasByEntidad, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Reserva.find({
+      'entidadReservada.tipo': tipoEntidad,
+      'entidadReservada.id': entidadId
+    })
+      .populate('usuarioId', 'nombre email')
+      .populate('pagoId')
+      .populate('serviciosAdicionales')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Reserva.find({
+      'entidadReservada.tipo': tipoEntidad,
+      'entidadReservada.id': entidadId
+    })
+      .populate('usuarioId', 'nombre email')
+      .populate('pagoId')
+      .populate('serviciosAdicionales')
+      .lean();
   }
-  console.log("[Leyendo getReservasByEntidad desde MongoDB]");
-  const result = await Reserva.find({
-    'entidadReservada.tipo': tipoEntidad,
-    'entidadReservada.id': entidadId
-  })
-    .populate('usuarioId', 'nombre email')
-    .populate('pagoId')
-    .populate('serviciosAdicionales');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getReservasPendientesAprobacion = async () => {
   const redisClient = connectToRedis();
   const key = _getReservasPendientesAprobacionRedisKey();
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getReservasPendientesAprobacion desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getReservasPendientesAprobacion, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Reserva.find({
+      'aprobador.necesitaAprobacion': true,
+      'aprobador.fechaAprobacion': { $exists: false },
+      estado: 'pendiente'
+    })
+      .populate('usuarioId', 'nombre email')
+      .populate('entidadReservada.id')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Reserva.find({
+      'aprobador.necesitaAprobacion': true,
+      'aprobador.fechaAprobacion': { $exists: false },
+      estado: 'pendiente'
+    })
+      .populate('usuarioId', 'nombre email')
+      .populate('entidadReservada.id')
+      .lean();
   }
-  console.log("[Leyendo getReservasPendientesAprobacion desde MongoDB]");
-  const result = await Reserva.find({
-    'aprobador.necesitaAprobacion': true,
-    'aprobador.fechaAprobacion': { $exists: false },
-    estado: 'pendiente'
-  })
-    .populate('usuarioId', 'nombre email')
-    .populate('entidadReservada.id');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getReservasPorFecha = async (fechaInicio, fechaFin) => {
   const redisClient = connectToRedis();
   const key = _getReservasPorFechaRedisKey(fechaInicio, fechaFin);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getReservasPorFecha desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getReservasPorFecha, volviendo a MongoDB", err);
-    }
-  }
-  console.log("[Leyendo getReservasPorFecha desde MongoDB]");
-  const result = await Reserva.find({
-    $or: [
-      { fechaInicio: { $gte: fechaInicio, $lte: fechaFin } },
-      { fechaFin: { $gte: fechaInicio, $lte: fechaFin } },
-      {
-        $and: [
-          { fechaInicio: { $lte: fechaInicio } },
-          { fechaFin: { $gte: fechaFin } }
-        ]
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
       }
-    ]
-  })
-    .populate('usuarioId', 'nombre email')
-    .populate('entidadReservada.id');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const result = await Reserva.find({
+      $or: [
+        { fechaInicio: { $gte: fechaInicio, $lte: fechaFin } },
+        { fechaFin: { $gte: fechaInicio, $lte: fechaFin } },
+        {
+          $and: [
+            { fechaInicio: { $lte: fechaInicio } },
+            { fechaFin: { $gte: fechaFin } }
+          ]
+        }
+      ]
+    })
+      .populate('usuarioId', 'nombre email')
+      .populate('entidadReservada.id')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Reserva.find({
+      $or: [
+        { fechaInicio: { $gte: fechaInicio, $lte: fechaFin } },
+        { fechaFin: { $gte: fechaInicio, $lte: fechaFin } },
+        {
+          $and: [
+            { fechaInicio: { $lte: fechaInicio } },
+            { fechaFin: { $gte: fechaFin } }
+          ]
+        }
+      ]
+    })
+      .populate('usuarioId', 'nombre email')
+      .populate('entidadReservada.id')
+      .lean();
+  }
+};
+
+const getReservasRecurrentes = async () => {
+  const redisClient = connectToRedis();
+  const key = _getReservasRecurrentesRedisKey();
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const result = await Reserva.find({ esRecurrente: true })
+      .populate('usuarioId', 'nombre email')
+      .populate('entidadReservada.id')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Reserva.find({ esRecurrente: true })
+      .populate('usuarioId', 'nombre email')
+      .populate('entidadReservada.id')
+      .lean();
+  }
 };
 
 const createReserva = async (reservaData) => {
@@ -252,26 +414,6 @@ const rechazarReserva = async (id, aprobadorId, notas) => {
     'aprobador.fechaAprobacion': new Date(),
     'aprobador.notas': notas
   });
-};
-
-const getReservasRecurrentes = async () => {
-  const redisClient = connectToRedis();
-  const key = _getReservasRecurrentesRedisKey();
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getReservasRecurrentes desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getReservasRecurrentes, volviendo a MongoDB", err);
-    }
-  }
-  console.log("[Leyendo getReservasRecurrentes desde MongoDB]");
-  const result = await Reserva.find({ esRecurrente: true })
-    .populate('usuarioId', 'nombre email')
-    .populate('entidadReservada.id');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const vincularPagoReserva = async (id, pagoId) => {

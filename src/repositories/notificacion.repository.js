@@ -10,99 +10,224 @@ const _getNotificacionesPorEntidadRedisKey = (tipoEntidad, entidadId) => `entida
 const getNotificaciones = async (filtros = {}) => {
   const redisClient = connectToRedis();
   const key = _getNotificacionesFilterRedisKey(filtros);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getNotificaciones desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getNotificaciones, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Notificacion.find(filtros)
+      .populate('destinatarioId', 'nombre email')
+      .populate('remitenteId', 'nombre email')
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Notificacion.find(filtros)
+      .populate('destinatarioId', 'nombre email')
+      .populate('remitenteId', 'nombre email')
+      .sort({ createdAt: -1 })
+      .lean();
   }
-  console.log("[Leyendo getNotificaciones desde MongoDB]");
-  const result = await Notificacion.find(filtros)
-    .populate('destinatarioId', 'nombre email')
-    .populate('remitenteId', 'nombre email')
-    .sort({ createdAt: -1 });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const findNotificacionById = async (id) => {
   const redisClient = connectToRedis();
   const key = _getNotificacionRedisKey(id);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo findNotificacionById desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de findNotificacionById, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Notificacion.findById(id)
+      .populate('destinatarioId', 'nombre email')
+      .populate('remitenteId', 'nombre email')
+      .lean();
+    
+    if (result) {
+      await redisClient.set(key, result, { ex: 3600 });
+    }
+    
+    return result;
+  } catch (error) {
+    return await Notificacion.findById(id)
+      .populate('destinatarioId', 'nombre email')
+      .populate('remitenteId', 'nombre email')
+      .lean();
   }
-  console.log("[Leyendo findNotificacionById desde MongoDB]");
-  const result = await Notificacion.findById(id)
-    .populate('destinatarioId', 'nombre email')
-    .populate('remitenteId', 'nombre email');
-  if (result) {
-    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  }
-  return result;
 };
 
 const getNotificacionesByUsuario = async (usuarioId, leidas = null) => {
   const redisClient = connectToRedis();
   const key = _getNotificacionesByUsuarioRedisKey(usuarioId, leidas);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getNotificacionesByUsuario desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getNotificacionesByUsuario, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const filtros = { destinatarioId: usuarioId };
+    
+    if (leidas !== null) {
+      filtros.leido = leidas;
+    }
+    
+    const result = await Notificacion.find(filtros)
+      .populate('remitenteId', 'nombre email')
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    const filtros = { destinatarioId: usuarioId };
+    
+    if (leidas !== null) {
+      filtros.leido = leidas;
+    }
+    
+    return await Notificacion.find(filtros)
+      .populate('remitenteId', 'nombre email')
+      .sort({ createdAt: -1 })
+      .lean();
   }
-  
-  console.log("[Leyendo getNotificacionesByUsuario desde MongoDB]");
-  const filtros = { destinatarioId: usuarioId };
-  
-  if (leidas !== null) {
-    filtros.leido = leidas;
-  }
-  
-  const result = await Notificacion.find(filtros)
-    .populate('remitenteId', 'nombre email')
-    .sort({ createdAt: -1 });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getNotificacionesPorTipo = async (tipoNotificacion, destinatarioId = null) => {
   const redisClient = connectToRedis();
   const key = _getNotificacionesPorTipoRedisKey(tipoNotificacion, destinatarioId);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getNotificacionesPorTipo desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getNotificacionesPorTipo, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const filtros = { tipoNotificacion };
+    
+    if (destinatarioId) {
+      filtros.destinatarioId = destinatarioId;
+    }
+    
+    const result = await Notificacion.find(filtros)
+      .populate('destinatarioId', 'nombre email')
+      .populate('remitenteId', 'nombre email')
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    const filtros = { tipoNotificacion };
+    
+    if (destinatarioId) {
+      filtros.destinatarioId = destinatarioId;
+    }
+    
+    return await Notificacion.find(filtros)
+      .populate('destinatarioId', 'nombre email')
+      .populate('remitenteId', 'nombre email')
+      .sort({ createdAt: -1 })
+      .lean();
   }
+};
+
+const getNotificacionesPorEntidad = async (tipoEntidad, entidadId) => {
+  const redisClient = connectToRedis();
+  const key = _getNotificacionesPorEntidadRedisKey(tipoEntidad, entidadId);
   
-  console.log("[Leyendo getNotificacionesPorTipo desde MongoDB]");
-  const filtros = { tipoNotificacion };
-  
-  if (destinatarioId) {
-    filtros.destinatarioId = destinatarioId;
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const result = await Notificacion.find({
+      'entidadRelacionada.tipo': tipoEntidad,
+      'entidadRelacionada.id': entidadId
+    })
+      .populate('destinatarioId', 'nombre email')
+      .populate('remitenteId', 'nombre email')
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Notificacion.find({
+      'entidadRelacionada.tipo': tipoEntidad,
+      'entidadRelacionada.id': entidadId
+    })
+      .populate('destinatarioId', 'nombre email')
+      .populate('remitenteId', 'nombre email')
+      .sort({ createdAt: -1 })
+      .lean();
   }
-  
-  const result = await Notificacion.find(filtros)
-    .populate('destinatarioId', 'nombre email')
-    .populate('remitenteId', 'nombre email')
-    .sort({ createdAt: -1 });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const createNotificacion = async (notificacionData) => {
@@ -252,30 +377,6 @@ const marcarTodasComoLeidas = async (destinatarioId) => {
     keys.forEach(key => redisClient.del(key));
   });
   
-  return result;
-};
-
-const getNotificacionesPorEntidad = async (tipoEntidad, entidadId) => {
-  const redisClient = connectToRedis();
-  const key = _getNotificacionesPorEntidadRedisKey(tipoEntidad, entidadId);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getNotificacionesPorEntidad desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getNotificacionesPorEntidad, volviendo a MongoDB", err);
-    }
-  }
-  console.log("[Leyendo getNotificacionesPorEntidad desde MongoDB]");
-  const result = await Notificacion.find({
-    'entidadRelacionada.tipo': tipoEntidad,
-    'entidadRelacionada.id': entidadId
-  })
-    .populate('destinatarioId', 'nombre email')
-    .populate('remitenteId', 'nombre email')
-    .sort({ createdAt: -1 });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
   return result;
 };
 

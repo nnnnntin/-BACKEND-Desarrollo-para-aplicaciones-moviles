@@ -12,130 +12,282 @@ const _getPagosPorRangoMontosRedisKey = (montoMin, montoMax) => `pagos:monto:${m
 const getPagos = async (filtros = {}) => {
   const redisClient = connectToRedis();
   const key = _getPagosFilterRedisKey(filtros);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getPagos desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getPagos, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Pago.find(filtros)
+      .populate('usuarioId', 'nombre email')
+      .populate('facturaId')
+      .sort({ fecha: -1 })
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Pago.find(filtros)
+      .populate('usuarioId', 'nombre email')
+      .populate('facturaId')
+      .sort({ fecha: -1 })
+      .lean();
   }
-  console.log("[Leyendo getPagos desde MongoDB]");
-  const result = await Pago.find(filtros)
-    .populate('usuarioId', 'nombre email')
-    .populate('facturaId')
-    .sort({ fecha: -1 });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const findPagoById = async (id) => {
   const redisClient = connectToRedis();
   const key = _getPagoRedisKey(id);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo findPagoById desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de findPagoById, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Pago.findById(id)
+      .populate('usuarioId', 'nombre email')
+      .populate('facturaId')
+      .lean();
+    
+    if (result) {
+      await redisClient.set(key, result, { ex: 3600 });
+    }
+    
+    return result;
+  } catch (error) {
+    return await Pago.findById(id)
+      .populate('usuarioId', 'nombre email')
+      .populate('facturaId')
+      .lean();
   }
-  console.log("[Leyendo findPagoById desde MongoDB]");
-  const result = await Pago.findById(id)
-    .populate('usuarioId', 'nombre email')
-    .populate('facturaId');
-  if (result) {
-    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  }
-  return result;
 };
 
 const getPagosByUsuario = async (usuarioId) => {
   const redisClient = connectToRedis();
   const key = _getPagosByUsuarioRedisKey(usuarioId);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getPagosByUsuario desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getPagosByUsuario, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Pago.find({ usuarioId })
+      .populate('facturaId')
+      .sort({ fecha: -1 })
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Pago.find({ usuarioId })
+      .populate('facturaId')
+      .sort({ fecha: -1 })
+      .lean();
   }
-  console.log("[Leyendo getPagosByUsuario desde MongoDB]");
-  const result = await Pago.find({ usuarioId })
-    .populate('facturaId')
-    .sort({ fecha: -1 });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getPagosPorConcepto = async (conceptoPago) => {
   const redisClient = connectToRedis();
   const key = _getPagosPorConceptoRedisKey(conceptoPago);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getPagosPorConcepto desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getPagosPorConcepto, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Pago.find({ conceptoPago })
+      .populate('usuarioId', 'nombre email')
+      .populate('facturaId')
+      .sort({ fecha: -1 })
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Pago.find({ conceptoPago })
+      .populate('usuarioId', 'nombre email')
+      .populate('facturaId')
+      .sort({ fecha: -1 })
+      .lean();
   }
-  console.log("[Leyendo getPagosPorConcepto desde MongoDB]");
-  const result = await Pago.find({ conceptoPago })
-    .populate('usuarioId', 'nombre email')
-    .populate('facturaId')
-    .sort({ fecha: -1 });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getPagosPorEstado = async (estado) => {
   const redisClient = connectToRedis();
   const key = _getPagosPorEstadoRedisKey(estado);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getPagosPorEstado desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getPagosPorEstado, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Pago.find({ estado })
+      .populate('usuarioId', 'nombre email')
+      .populate('facturaId')
+      .sort({ fecha: -1 })
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Pago.find({ estado })
+      .populate('usuarioId', 'nombre email')
+      .populate('facturaId')
+      .sort({ fecha: -1 })
+      .lean();
   }
-  console.log("[Leyendo getPagosPorEstado desde MongoDB]");
-  const result = await Pago.find({ estado })
-    .populate('usuarioId', 'nombre email')
-    .populate('facturaId')
-    .sort({ fecha: -1 });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getPagosPorEntidad = async (tipoEntidad, entidadId) => {
   const redisClient = connectToRedis();
   const key = _getPagosPorEntidadRedisKey(tipoEntidad, entidadId);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getPagosPorEntidad desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getPagosPorEntidad, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Pago.find({
+      'entidadRelacionada.tipo': tipoEntidad,
+      'entidadRelacionada.id': entidadId
+    })
+      .populate('usuarioId', 'nombre email')
+      .populate('facturaId')
+      .sort({ fecha: -1 })
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Pago.find({
+      'entidadRelacionada.tipo': tipoEntidad,
+      'entidadRelacionada.id': entidadId
+    })
+      .populate('usuarioId', 'nombre email')
+      .populate('facturaId')
+      .sort({ fecha: -1 })
+      .lean();
   }
-  console.log("[Leyendo getPagosPorEntidad desde MongoDB]");
-  const result = await Pago.find({
-    'entidadRelacionada.tipo': tipoEntidad,
-    'entidadRelacionada.id': entidadId
-  })
-    .populate('usuarioId', 'nombre email')
-    .populate('facturaId')
-    .sort({ fecha: -1 });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
+};
+
+const getPagosPorRangoMontos = async (montoMin, montoMax) => {
+  const redisClient = connectToRedis();
+  const key = _getPagosPorRangoMontosRedisKey(montoMin, montoMax);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const result = await Pago.find({
+      monto: { $gte: montoMin, $lte: montoMax }
+    })
+      .populate('usuarioId', 'nombre email')
+      .populate('facturaId')
+      .sort({ monto: -1 })
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Pago.find({
+      monto: { $gte: montoMin, $lte: montoMax }
+    })
+      .populate('usuarioId', 'nombre email')
+      .populate('facturaId')
+      .sort({ monto: -1 })
+      .lean();
+  }
 };
 
 const createPago = async (pagoData) => {
@@ -324,29 +476,6 @@ const vincularFactura = async (id, facturaId) => {
   await redisClient.del(_getPagoRedisKey(id));
   
   return updated;
-};
-
-const getPagosPorRangoMontos = async (montoMin, montoMax) => {
-  const redisClient = connectToRedis();
-  const key = _getPagosPorRangoMontosRedisKey(montoMin, montoMax);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getPagosPorRangoMontos desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getPagosPorRangoMontos, volviendo a MongoDB", err);
-    }
-  }
-  console.log("[Leyendo getPagosPorRangoMontos desde MongoDB]");
-  const result = await Pago.find({
-    monto: { $gte: montoMin, $lte: montoMax }
-  })
-    .populate('usuarioId', 'nombre email')
-    .populate('facturaId')
-    .sort({ monto: -1 });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 module.exports = {

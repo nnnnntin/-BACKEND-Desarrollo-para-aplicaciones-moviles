@@ -13,164 +13,345 @@ const _getPromocionesProximasAExpirarRedisKey = (diasRestantes) => `promociones:
 const getPromociones = async (filtros = {}) => {
   const redisClient = connectToRedis();
   const key = _getPromocionesFilterRedisKey(filtros);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getPromociones desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getPromociones, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Promocion.find(filtros)
+      .sort({ fechaInicio: -1 })
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Promocion.find(filtros)
+      .sort({ fechaInicio: -1 })
+      .lean();
   }
-  console.log("[Leyendo getPromociones desde MongoDB]");
-  const result = await Promocion.find(filtros)
-    .sort({ fechaInicio: -1 });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const findPromocionById = async (id) => {
   const redisClient = connectToRedis();
   const key = _getPromocionRedisKey(id);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo findPromocionById desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de findPromocionById, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Promocion.findById(id).lean();
+    
+    if (result) {
+      await redisClient.set(key, result, { ex: 3600 });
+    }
+    
+    return result;
+  } catch (error) {
+    return await Promocion.findById(id).lean();
   }
-  console.log("[Leyendo findPromocionById desde MongoDB]");
-  const result = await Promocion.findById(id);
-  if (result) {
-    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  }
-  return result;
 };
 
 const findPromocionByCodigo = async (codigo) => {
   const redisClient = connectToRedis();
   const key = _getPromocionByCodigoRedisKey(codigo);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo findPromocionByCodigo desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de findPromocionByCodigo, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Promocion.findOne({ codigo }).lean();
+    
+    if (result) {
+      await redisClient.set(key, result, { ex: 3600 });
+    }
+    
+    return result;
+  } catch (error) {
+    return await Promocion.findOne({ codigo }).lean();
   }
-  console.log("[Leyendo findPromocionByCodigo desde MongoDB]");
-  const result = await Promocion.findOne({ codigo });
-  if (result) {
-    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  }
-  return result;
 };
 
 const getPromocionesActivas = async () => {
   const redisClient = connectToRedis();
   const key = _getPromocionesActivasRedisKey();
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getPromocionesActivas desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getPromocionesActivas, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const fechaActual = new Date();
+    
+    const result = await Promocion.find({
+      fechaInicio: { $lte: fechaActual },
+      fechaFin: { $gte: fechaActual },
+      activo: true
+    })
+      .sort({ fechaFin: 1 })
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    const fechaActual = new Date();
+    
+    return await Promocion.find({
+      fechaInicio: { $lte: fechaActual },
+      fechaFin: { $gte: fechaActual },
+      activo: true
+    })
+      .sort({ fechaFin: 1 })
+      .lean();
   }
-  console.log("[Leyendo getPromocionesActivas desde MongoDB]");
-  const fechaActual = new Date();
-  
-  const result = await Promocion.find({
-    fechaInicio: { $lte: fechaActual },
-    fechaFin: { $gte: fechaActual },
-    activo: true
-  })
-    .sort({ fechaFin: 1 });
-  
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getPromocionesPorTipo = async (tipo) => {
   const redisClient = connectToRedis();
   const key = _getPromocionesPorTipoRedisKey(tipo);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getPromocionesPorTipo desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getPromocionesPorTipo, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Promocion.find({ tipo, activo: true })
+      .sort({ fechaInicio: -1 })
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Promocion.find({ tipo, activo: true })
+      .sort({ fechaInicio: -1 })
+      .lean();
   }
-  console.log("[Leyendo getPromocionesPorTipo desde MongoDB]");
-  const result = await Promocion.find({ tipo, activo: true })
-    .sort({ fechaInicio: -1 });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getPromocionesPorEntidad = async (entidad, entidadId = null) => {
   const redisClient = connectToRedis();
   const key = _getPromocionesPorEntidadRedisKey(entidad, entidadId);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getPromocionesPorEntidad desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getPromocionesPorEntidad, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const query = {
+      'aplicableA.entidad': entidad,
+      activo: true
+    };
+    
+    if (entidadId) {
+      query['aplicableA.ids'] = entidadId;
+    }
+    
+    const result = await Promocion.find(query)
+      .sort({ fechaInicio: -1 })
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    const query = {
+      'aplicableA.entidad': entidad,
+      activo: true
+    };
+    
+    if (entidadId) {
+      query['aplicableA.ids'] = entidadId;
+    }
+    
+    return await Promocion.find(query)
+      .sort({ fechaInicio: -1 })
+      .lean();
   }
-  console.log("[Leyendo getPromocionesPorEntidad desde MongoDB]");
-  const query = {
-    'aplicableA.entidad': entidad,
-    activo: true
-  };
-  
-  if (entidadId) {
-    query['aplicableA.ids'] = entidadId;
-  }
-  
-  const result = await Promocion.find(query)
-    .sort({ fechaInicio: -1 });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getPromocionesPorRangoDeFechas = async (fechaInicio, fechaFin) => {
   const redisClient = connectToRedis();
   const key = _getPromocionesPorRangoDeFechasRedisKey(fechaInicio, fechaFin);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getPromocionesPorRangoDeFechas desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getPromocionesPorRangoDeFechas, volviendo a MongoDB", err);
-    }
-  }
-  console.log("[Leyendo getPromocionesPorRangoDeFechas desde MongoDB]");
-  const result = await Promocion.find({
-    $or: [
-      { fechaInicio: { $gte: fechaInicio, $lte: fechaFin } },
-      { fechaFin: { $gte: fechaInicio, $lte: fechaFin } },
-      {
-        $and: [
-          { fechaInicio: { $lte: fechaInicio } },
-          { fechaFin: { $gte: fechaFin } }
-        ]
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
       }
-    ],
-    activo: true
-  })
-    .sort({ fechaInicio: -1 });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const result = await Promocion.find({
+      $or: [
+        { fechaInicio: { $gte: fechaInicio, $lte: fechaFin } },
+        { fechaFin: { $gte: fechaInicio, $lte: fechaFin } },
+        {
+          $and: [
+            { fechaInicio: { $lte: fechaInicio } },
+            { fechaFin: { $gte: fechaFin } }
+          ]
+        }
+      ],
+      activo: true
+    })
+      .sort({ fechaInicio: -1 })
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Promocion.find({
+      $or: [
+        { fechaInicio: { $gte: fechaInicio, $lte: fechaFin } },
+        { fechaFin: { $gte: fechaInicio, $lte: fechaFin } },
+        {
+          $and: [
+            { fechaInicio: { $lte: fechaInicio } },
+            { fechaFin: { $gte: fechaFin } }
+          ]
+        }
+      ],
+      activo: true
+    })
+      .sort({ fechaInicio: -1 })
+      .lean();
+  }
+};
+
+const getPromocionesProximasAExpirar = async (diasRestantes = 7) => {
+  const redisClient = connectToRedis();
+  const key = _getPromocionesProximasAExpirarRedisKey(diasRestantes);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const fechaActual = new Date();
+    const fechaLimite = new Date();
+    fechaLimite.setDate(fechaLimite.getDate() + diasRestantes);
+    
+    const result = await Promocion.find({
+      fechaFin: { $gte: fechaActual, $lte: fechaLimite },
+      activo: true
+    })
+      .sort({ fechaFin: 1 })
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    const fechaActual = new Date();
+    const fechaLimite = new Date();
+    fechaLimite.setDate(fechaLimite.getDate() + diasRestantes);
+    
+    return await Promocion.find({
+      fechaFin: { $gte: fechaActual, $lte: fechaLimite },
+      activo: true
+    })
+      .sort({ fechaFin: 1 })
+      .lean();
+  }
 };
 
 const createPromocion = async (promocionData) => {
@@ -388,33 +569,6 @@ const validarPromocion = async (codigo, usuarioId, entidadTipo, entidadId) => {
     promocion,
     mensaje: 'Promoción válida' 
   };
-};
-
-const getPromocionesProximasAExpirar = async (diasRestantes = 7) => {
-  const redisClient = connectToRedis();
-  const key = _getPromocionesProximasAExpirarRedisKey(diasRestantes);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getPromocionesProximasAExpirar desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getPromocionesProximasAExpirar, volviendo a MongoDB", err);
-    }
-  }
-  console.log("[Leyendo getPromocionesProximasAExpirar desde MongoDB]");
-  const fechaActual = new Date();
-  const fechaLimite = new Date();
-  fechaLimite.setDate(fechaLimite.getDate() + diasRestantes);
-  
-  const result = await Promocion.find({
-    fechaFin: { $gte: fechaActual, $lte: fechaLimite },
-    activo: true
-  })
-    .sort({ fechaFin: 1 });
-  
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const actualizarAplicabilidad = async (id, entidad, ids) => {

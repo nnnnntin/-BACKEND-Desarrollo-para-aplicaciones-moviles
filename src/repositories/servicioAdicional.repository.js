@@ -14,170 +14,356 @@ const _getServiciosConAprobacionRedisKey = () => `serviciosAdicionales:requiereA
 const getServiciosAdicionales = async (filtros = {}) => {
   const redisClient = connectToRedis();
   const key = _getServiciosAdicionalesFilterRedisKey(filtros);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getServiciosAdicionales desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getServiciosAdicionales, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await ServicioAdicional.find(filtros)
+      .populate('proveedorId', 'nombre contacto')
+      .populate('espaciosDisponibles')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await ServicioAdicional.find(filtros)
+      .populate('proveedorId', 'nombre contacto')
+      .populate('espaciosDisponibles')
+      .lean();
   }
-  console.log("[Leyendo getServiciosAdicionales desde MongoDB]");
-  const result = await ServicioAdicional.find(filtros)
-    .populate('proveedorId', 'nombre contacto')
-    .populate('espaciosDisponibles');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const findServicioAdicionalById = async (id) => {
   const redisClient = connectToRedis();
   const key = _getServiciosAdicionalesRedisKey(id);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo findServicioAdicionalById desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de findServicioAdicionalById, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await ServicioAdicional.findById(id)
+      .populate('proveedorId', 'nombre contacto')
+      .populate('espaciosDisponibles')
+      .lean();
+    
+    if (result) {
+      await redisClient.set(key, result, { ex: 3600 });
+    }
+    
+    return result;
+  } catch (error) {
+    return await ServicioAdicional.findById(id)
+      .populate('proveedorId', 'nombre contacto')
+      .populate('espaciosDisponibles')
+      .lean();
   }
-  console.log("[Leyendo findServicioAdicionalById desde MongoDB]");
-  const result = await ServicioAdicional.findById(id)
-    .populate('proveedorId', 'nombre contacto')
-    .populate('espaciosDisponibles');
-  if (result) {
-    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  }
-  return result;
 };
 
 const getServiciosByTipo = async (tipo) => {
   const redisClient = connectToRedis();
   const key = _getServiciosByTipoRedisKey(tipo);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getServiciosByTipo desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getServiciosByTipo, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await ServicioAdicional.find({ tipo, activo: true })
+      .populate('proveedorId', 'nombre contacto')
+      .populate('espaciosDisponibles')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await ServicioAdicional.find({ tipo, activo: true })
+      .populate('proveedorId', 'nombre contacto')
+      .populate('espaciosDisponibles')
+      .lean();
   }
-  console.log("[Leyendo getServiciosByTipo desde MongoDB]");
-  const result = await ServicioAdicional.find({ tipo, activo: true })
-    .populate('proveedorId', 'nombre contacto')
-    .populate('espaciosDisponibles');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getServiciosByProveedor = async (proveedorId) => {
   const redisClient = connectToRedis();
   const key = _getServiciosByProveedorRedisKey(proveedorId);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getServiciosByProveedor desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getServiciosByProveedor, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await ServicioAdicional.find({ proveedorId, activo: true })
+      .populate('espaciosDisponibles')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await ServicioAdicional.find({ proveedorId, activo: true })
+      .populate('espaciosDisponibles')
+      .lean();
   }
-  console.log("[Leyendo getServiciosByProveedor desde MongoDB]");
-  const result = await ServicioAdicional.find({ proveedorId, activo: true })
-    .populate('espaciosDisponibles');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getServiciosByEspacio = async (espacioId) => {
   const redisClient = connectToRedis();
   const key = _getServiciosByEspacioRedisKey(espacioId);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getServiciosByEspacio desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getServiciosByEspacio, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await ServicioAdicional.find({ 
+      espaciosDisponibles: espacioId,
+      activo: true
+    })
+      .populate('proveedorId', 'nombre contacto')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await ServicioAdicional.find({ 
+      espaciosDisponibles: espacioId,
+      activo: true
+    })
+      .populate('proveedorId', 'nombre contacto')
+      .lean();
   }
-  console.log("[Leyendo getServiciosByEspacio desde MongoDB]");
-  const result = await ServicioAdicional.find({ 
-    espaciosDisponibles: espacioId,
-    activo: true
-  })
-    .populate('proveedorId', 'nombre contacto');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getServiciosByRangoPrecio = async (precioMin, precioMax) => {
   const redisClient = connectToRedis();
   const key = _getServiciosByRangoPrecioRedisKey(precioMin, precioMax);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getServiciosByRangoPrecio desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getServiciosByRangoPrecio, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await ServicioAdicional.find({
+      precio: { $gte: precioMin, $lte: precioMax },
+      activo: true
+    })
+      .populate('proveedorId', 'nombre contacto')
+      .populate('espaciosDisponibles')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await ServicioAdicional.find({
+      precio: { $gte: precioMin, $lte: precioMax },
+      activo: true
+    })
+      .populate('proveedorId', 'nombre contacto')
+      .populate('espaciosDisponibles')
+      .lean();
   }
-  console.log("[Leyendo getServiciosByRangoPrecio desde MongoDB]");
-  const result = await ServicioAdicional.find({
-    precio: { $gte: precioMin, $lte: precioMax },
-    activo: true
-  })
-    .populate('proveedorId', 'nombre contacto')
-    .populate('espaciosDisponibles');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getServiciosByUnidadPrecio = async (unidadPrecio) => {
   const redisClient = connectToRedis();
   const key = _getServiciosByUnidadPrecioRedisKey(unidadPrecio);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getServiciosByUnidadPrecio desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getServiciosByUnidadPrecio, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await ServicioAdicional.find({ unidadPrecio, activo: true })
+      .populate('proveedorId', 'nombre contacto')
+      .populate('espaciosDisponibles')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await ServicioAdicional.find({ unidadPrecio, activo: true })
+      .populate('proveedorId', 'nombre contacto')
+      .populate('espaciosDisponibles')
+      .lean();
   }
-  console.log("[Leyendo getServiciosByUnidadPrecio desde MongoDB]");
-  const result = await ServicioAdicional.find({ unidadPrecio, activo: true })
-    .populate('proveedorId', 'nombre contacto')
-    .populate('espaciosDisponibles');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getServiciosDisponiblesEnFecha = async (fecha, diaDeSemanaNombre) => {
   const redisClient = connectToRedis();
   const key = _getServiciosDisponiblesEnFechaRedisKey(fecha, diaDeSemanaNombre);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getServiciosDisponiblesEnFecha desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getServiciosDisponiblesEnFecha, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await ServicioAdicional.find({
+      'disponibilidad.diasDisponibles': diaDeSemanaNombre,
+      activo: true
+    })
+      .populate('proveedorId', 'nombre contacto')
+      .populate('espaciosDisponibles')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await ServicioAdicional.find({
+      'disponibilidad.diasDisponibles': diaDeSemanaNombre,
+      activo: true
+    })
+      .populate('proveedorId', 'nombre contacto')
+      .populate('espaciosDisponibles')
+      .lean();
   }
-  console.log("[Leyendo getServiciosDisponiblesEnFecha desde MongoDB]");
-  const result = await ServicioAdicional.find({
-    'disponibilidad.diasDisponibles': diaDeSemanaNombre,
-    activo: true
-  })
-    .populate('proveedorId', 'nombre contacto')
-    .populate('espaciosDisponibles');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
+};
+
+const getServiciosConAprobacion = async () => {
+  const redisClient = connectToRedis();
+  const key = _getServiciosConAprobacionRedisKey();
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const result = await ServicioAdicional.find({ 
+      requiereAprobacion: true,
+      activo: true
+    })
+      .populate('proveedorId', 'nombre contacto')
+      .populate('espaciosDisponibles')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await ServicioAdicional.find({ 
+      requiereAprobacion: true,
+      activo: true
+    })
+      .populate('proveedorId', 'nombre contacto')
+      .populate('espaciosDisponibles')
+      .lean();
+  }
 };
 
 const createServicioAdicional = async (servicioData) => {
@@ -312,29 +498,6 @@ const eliminarEspacio = async (id, espacioId) => {
   await redisClient.del(_getServiciosByEspacioRedisKey(espacioId.toString()));
   
   return updated;
-};
-
-const getServiciosConAprobacion = async () => {
-  const redisClient = connectToRedis();
-  const key = _getServiciosConAprobacionRedisKey();
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getServiciosConAprobacion desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getServiciosConAprobacion, volviendo a MongoDB", err);
-    }
-  }
-  console.log("[Leyendo getServiciosConAprobacion desde MongoDB]");
-  const result = await ServicioAdicional.find({ 
-    requiereAprobacion: true,
-    activo: true
-  })
-    .populate('proveedorId', 'nombre contacto')
-    .populate('espaciosDisponibles');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 module.exports = {

@@ -7,7 +7,7 @@ export const options = {
   duration: "20s",
 };
 
-const BASE_URL = "http://localhost:3001/v1/oficinas"; // CAMBIAR POR LA ENTIDAD QUE SE QUIERA VER
+const BASE_URL = "http://localhost:3001/v1/usuarios"; // CAMBIAR POR LA ENTIDAD QUE SE QUIERA VER
 const TOKEN = __ENV.AUTH_TOKEN;
 
 export default function () {

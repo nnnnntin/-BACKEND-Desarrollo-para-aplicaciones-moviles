@@ -7,43 +7,71 @@ const _getDisponibilidadesFilterRedisKey = (filtros) => `disponibilidades:${JSON
 const getDisponibilidades = async (filtros = {}) => {
   const redisClient = connectToRedis();
   const key = _getDisponibilidadesFilterRedisKey(filtros);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getDisponibilidades desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getDisponibilidades, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    console.log("[Leyendo getDisponibilidades desde MongoDB]");
+    const result = await Disponibilidad.find(filtros).lean();
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    console.log("[Error en Redis, leyendo desde MongoDB]", error);
+    return await Disponibilidad.find(filtros).lean();
   }
-  console.log("[Leyendo getDisponibilidades desde MongoDB]");
-  const result = await Disponibilidad.find(filtros);
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const findDisponibilidadById = async (id) => {
   const redisClient = connectToRedis();
   const key = _getDisponibilidadesRedisKey(id);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo findDisponibilidadById desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de findDisponibilidadById, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    console.log("[Leyendo findDisponibilidadById desde MongoDB]");
+    const doc = await Disponibilidad.findById(id).lean();
+    if (doc) {
+      await redisClient.set(key, JSON.stringify(doc), { ex: 3600 });
+    }
+    
+    return doc;
+  } catch (error) {
+    console.log("[Error en Redis, leyendo desde MongoDB]", error);
+    return await Disponibilidad.findById(id).lean();
   }
-  console.log("[Leyendo findDisponibilidadById desde MongoDB]");
-  const doc = await Disponibilidad.findById(id);
-  if (doc) {
-    await redisClient.set(key, JSON.stringify(doc), { ex: 3600 });
-  }
-  return doc;
 };
 
 const getDisponibilidadByEntidad = async (entidadId, tipoEntidad) =>
-  await Disponibilidad.find({ entidadId, tipoEntidad }).sort({ fechaDisponibilidad: 1 });
+  await Disponibilidad.find({ entidadId, tipoEntidad }).sort({ fechaDisponibilidad: 1 }).lean();
 
 const getDisponibilidadByFecha = async (entidadId, tipoEntidad, fecha) => {
   const fechaBusqueda = new Date(fecha);
@@ -55,7 +83,7 @@ const getDisponibilidadByFecha = async (entidadId, tipoEntidad, fecha) => {
     entidadId,
     tipoEntidad,
     fechaDisponibilidad: { $gte: fechaBusqueda, $lte: fechaFin }
-  });
+  }).lean();
 };
 
 const getDisponibilidadEnRango = async (entidadId, tipoEntidad, fechaInicio, fechaFin) => {
@@ -68,7 +96,7 @@ const getDisponibilidadEnRango = async (entidadId, tipoEntidad, fechaInicio, fec
     entidadId,
     tipoEntidad,
     fechaDisponibilidad: { $gte: fechaIni, $lte: fechaFn }
-  }).sort({ fechaDisponibilidad: 1 });
+  }).sort({ fechaDisponibilidad: 1 }).lean();
 };
 
 const createDisponibilidad = async (disponibilidadData) => {

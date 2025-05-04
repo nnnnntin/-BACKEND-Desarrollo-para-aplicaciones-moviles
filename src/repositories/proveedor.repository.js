@@ -11,77 +11,135 @@ const _getProveedoresConMasServiciosRedisKey = (limite) => `proveedores:mas-serv
 const getProveedores = async (filtros = {}) => {
   const redisClient = connectToRedis();
   const key = _getProveedoresFilterRedisKey(filtros);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getProveedores desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getProveedores, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Proveedor.find(filtros)
+      .populate('serviciosOfrecidos')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Proveedor.find(filtros)
+      .populate('serviciosOfrecidos')
+      .lean();
   }
-  console.log("[Leyendo getProveedores desde MongoDB]");
-  const result = await Proveedor.find(filtros)
-    .populate('serviciosOfrecidos');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const findProveedorById = async (id) => {
   const redisClient = connectToRedis();
   const key = _getProveedorRedisKey(id);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo findProveedorById desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de findProveedorById, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Proveedor.findById(id)
+      .populate('serviciosOfrecidos')
+      .lean();
+    
+    if (result) {
+      await redisClient.set(key, result, { ex: 3600 });
+    }
+    
+    return result;
+  } catch (error) {
+    return await Proveedor.findById(id)
+      .populate('serviciosOfrecidos')
+      .lean();
   }
-  console.log("[Leyendo findProveedorById desde MongoDB]");
-  const result = await Proveedor.findById(id)
-    .populate('serviciosOfrecidos');
-  if (result) {
-    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  }
-  return result;
 };
 
 const getProveedoresByTipo = async (tipo) => {
   const redisClient = connectToRedis();
   const key = _getProveedoresByTipoRedisKey(tipo);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getProveedoresByTipo desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getProveedoresByTipo, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Proveedor.find({ tipo, activo: true }).lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Proveedor.find({ tipo, activo: true }).lean();
   }
-  console.log("[Leyendo getProveedoresByTipo desde MongoDB]");
-  const result = await Proveedor.find({ tipo, activo: true });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getProveedoresVerificados = async () => {
   const redisClient = connectToRedis();
   const key = _getProveedoresVerificadosRedisKey();
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getProveedoresVerificados desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getProveedoresVerificados, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Proveedor.find({ verificado: true, activo: true }).lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Proveedor.find({ verificado: true, activo: true }).lean();
   }
-  console.log("[Leyendo getProveedoresVerificados desde MongoDB]");
-  const result = await Proveedor.find({ verificado: true, activo: true });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const createProveedor = async (proveedorData) => {
@@ -287,47 +345,85 @@ const actualizarMetodoPago = async (id, metodoPago) => {
 const getProveedoresPorCalificacion = async (calificacionMinima = 4) => {
   const redisClient = connectToRedis();
   const key = _getProveedoresPorCalificacionRedisKey(calificacionMinima);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getProveedoresPorCalificacion desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getProveedoresPorCalificacion, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Proveedor.find({
+      calificacionPromedio: { $gte: calificacionMinima },
+      activo: true
+    })
+      .populate('serviciosOfrecidos')
+      .sort({ calificacionPromedio: -1 })
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Proveedor.find({
+      calificacionPromedio: { $gte: calificacionMinima },
+      activo: true
+    })
+      .populate('serviciosOfrecidos')
+      .sort({ calificacionPromedio: -1 })
+      .lean();
   }
-  console.log("[Leyendo getProveedoresPorCalificacion desde MongoDB]");
-  const result = await Proveedor.find({
-    calificacionPromedio: { $gte: calificacionMinima },
-    activo: true
-  })
-    .populate('serviciosOfrecidos')
-    .sort({ calificacionPromedio: -1 });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getProveedoresConMasServicios = async (limite = 5) => {
   const redisClient = connectToRedis();
   const key = _getProveedoresConMasServiciosRedisKey(limite);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getProveedoresConMasServicios desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getProveedoresConMasServicios, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Proveedor.aggregate([
+      { $match: { activo: true } },
+      { $project: { nombre: 1, tipo: 1, numeroServicios: { $size: '$serviciosOfrecidos' } } },
+      { $sort: { numeroServicios: -1 } },
+      { $limit: limite }
+    ]);
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Proveedor.aggregate([
+      { $match: { activo: true } },
+      { $project: { nombre: 1, tipo: 1, numeroServicios: { $size: '$serviciosOfrecidos' } } },
+      { $sort: { numeroServicios: -1 } },
+      { $limit: limite }
+    ]);
   }
-  console.log("[Leyendo getProveedoresConMasServicios desde MongoDB]");
-  const result = await Proveedor.aggregate([
-    { $match: { activo: true } },
-    { $project: { nombre: 1, tipo: 1, numeroServicios: { $size: '$serviciosOfrecidos' } } },
-    { $sort: { numeroServicios: -1 } },
-    { $limit: limite }
-  ]);
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 module.exports = {

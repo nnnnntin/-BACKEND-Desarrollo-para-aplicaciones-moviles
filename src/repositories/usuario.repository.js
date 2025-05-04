@@ -11,79 +11,135 @@ const _getUsuariosByTipoRedisKey = (tipoUsuario) => `usuarios:tipo:${tipoUsuario
 const getUsuarios = async (filtros = {}) => {
   const redisClient = connectToRedis();
   const key = _getUsuariosFilterRedisKey(filtros);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getUsuarios desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getUsuarios, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    console.log("[Leyendo getUsuarios desde MongoDB]");
+    const result = await Usuario.find(filtros).lean();
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    console.log("[Error en Redis, leyendo desde MongoDB]", error);
+    return await Usuario.find(filtros).lean();
   }
-  console.log("[Leyendo getUsuarios desde MongoDB]");
-  const result = await Usuario.find(filtros);
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const findUsuarioById = async (id) => {
   const redisClient = connectToRedis();
   const key = _getUsuarioRedisKey(id);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo findUsuarioById desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de findUsuarioById, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    console.log("[Leyendo findUsuarioById desde MongoDB]");
+    const result = await Usuario.findById(id).lean();
+    if (result) {
+      await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+    }
+    
+    return result;
+  } catch (error) {
+    console.log("[Error en Redis, leyendo desde MongoDB]", error);
+    return await Usuario.findById(id).lean();
   }
-  console.log("[Leyendo findUsuarioById desde MongoDB]");
-  const result = await Usuario.findById(id);
-  if (result) {
-    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  }
-  return result;
 };
 
 const findUsuarioByEmail = async (email) => {
   const redisClient = connectToRedis();
   const key = _getUsuarioByEmailRedisKey(email);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo findUsuarioByEmail desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de findUsuarioByEmail, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    console.log("[Leyendo findUsuarioByEmail desde MongoDB]");
+    const result = await Usuario.findOne({ email }).lean();
+    if (result) {
+      await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+    }
+    
+    return result;
+  } catch (error) {
+    console.log("[Error en Redis, leyendo desde MongoDB]", error);
+    return await Usuario.findOne({ email }).lean();
   }
-  console.log("[Leyendo findUsuarioByEmail desde MongoDB]");
-  const result = await Usuario.findOne({ email });
-  if (result) {
-    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  }
-  return result;
 };
 
 const findUsuarioByUsername = async (username) => {
   const redisClient = connectToRedis();
   const key = _getUsuarioByUsernameRedisKey(username);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo findUsuarioByUsername desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de findUsuarioByUsername, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    console.log("[Leyendo findUsuarioByUsername desde MongoDB]");
+    const result = await Usuario.findOne({ username }).lean();
+    if (result) {
+      await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+    }
+    
+    return result;
+  } catch (error) {
+    console.log("[Error en Redis, leyendo desde MongoDB]", error);
+    return await Usuario.findOne({ username }).lean();
   }
-  console.log("[Leyendo findUsuarioByUsername desde MongoDB]");
-  const result = await Usuario.findOne({ username });
-  if (result) {
-    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  }
-  return result;
 };
 
 const registerUsuario = async (userData) => {
@@ -190,19 +246,33 @@ const updateMembresiaUsuario = async (id, membresiaData) => {
 const getUsuariosByTipo = async (tipoUsuario) => {
   const redisClient = connectToRedis();
   const key = _getUsuariosByTipoRedisKey(tipoUsuario);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getUsuariosByTipo desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getUsuariosByTipo, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    console.log("[Leyendo getUsuariosByTipo desde MongoDB]");
+    const result = await Usuario.find({ tipoUsuario }).lean();
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    console.log("[Error en Redis, leyendo desde MongoDB]", error);
+    return await Usuario.find({ tipoUsuario }).lean();
   }
-  console.log("[Leyendo getUsuariosByTipo desde MongoDB]");
-  const result = await Usuario.find({ tipoUsuario });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const cambiarRolUsuario = async (id, nuevoRol) => {

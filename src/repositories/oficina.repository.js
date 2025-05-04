@@ -15,149 +15,437 @@ const _getOficinasDisponiblesRedisKey = (fecha, horaInicio, horaFin) => `oficina
 const getOficinas = async (filtros = {}) => {
   const redisClient = connectToRedis();
   const key = _getOficinasFilterRedisKey(filtros);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getOficinas desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getOficinas, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Oficina.find(filtros)
+      .populate('ubicacion.edificioId')
+      .populate('propietarioId', 'nombre email')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Oficina.find(filtros)
+      .populate('ubicacion.edificioId')
+      .populate('propietarioId', 'nombre email')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
   }
-  console.log("[Leyendo getOficinas desde MongoDB]");
-  const result = await Oficina.find(filtros)
-    .populate('ubicacion.edificioId')
-    .populate('propietarioId', 'nombre email')
-    .populate('empresaInmobiliariaId', 'nombre');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const findOficinaById = async (id) => {
   const redisClient = connectToRedis();
   const key = _getOficinaRedisKey(id);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo findOficinaById desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de findOficinaById, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Oficina.findById(id)
+      .populate('ubicacion.edificioId')
+      .populate('propietarioId', 'nombre email')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
+    
+    if (result) {
+      await redisClient.set(key, result, { ex: 3600 });
+    }
+    
+    return result;
+  } catch (error) {
+    return await Oficina.findById(id)
+      .populate('ubicacion.edificioId')
+      .populate('propietarioId', 'nombre email')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
   }
-  console.log("[Leyendo findOficinaById desde MongoDB]");
-  const result = await Oficina.findById(id)
-    .populate('ubicacion.edificioId')
-    .populate('propietarioId', 'nombre email')
-    .populate('empresaInmobiliariaId', 'nombre');
-  if (result) {
-    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  }
-  return result;
 };
 
 const findOficinaByCodigo = async (codigo) => {
   const redisClient = connectToRedis();
   const key = _getOficinaByCodigoRedisKey(codigo);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo findOficinaByCodigo desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de findOficinaByCodigo, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Oficina.findOne({ codigo })
+      .populate('ubicacion.edificioId')
+      .populate('propietarioId', 'nombre email')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
+    
+    if (result) {
+      await redisClient.set(key, result, { ex: 3600 });
+    }
+    
+    return result;
+  } catch (error) {
+    return await Oficina.findOne({ codigo })
+      .populate('ubicacion.edificioId')
+      .populate('propietarioId', 'nombre email')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
   }
-  console.log("[Leyendo findOficinaByCodigo desde MongoDB]");
-  const result = await Oficina.findOne({ codigo })
-    .populate('ubicacion.edificioId')
-    .populate('propietarioId', 'nombre email')
-    .populate('empresaInmobiliariaId', 'nombre');
-  if (result) {
-    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  }
-  return result;
 };
 
 const getOficinasByEdificio = async (edificioId) => {
   const redisClient = connectToRedis();
   const key = _getOficinasByEdificioRedisKey(edificioId);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getOficinasByEdificio desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getOficinasByEdificio, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Oficina.find({ 'ubicacion.edificioId': edificioId })
+      .populate('propietarioId', 'nombre email')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Oficina.find({ 'ubicacion.edificioId': edificioId })
+      .populate('propietarioId', 'nombre email')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
   }
-  console.log("[Leyendo getOficinasByEdificio desde MongoDB]");
-  const result = await Oficina.find({ 'ubicacion.edificioId': edificioId })
-    .populate('propietarioId', 'nombre email')
-    .populate('empresaInmobiliariaId', 'nombre');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getOficinasByTipo = async (tipo) => {
   const redisClient = connectToRedis();
   const key = _getOficinasByTipoRedisKey(tipo);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getOficinasByTipo desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getOficinasByTipo, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Oficina.find({ tipo })
+      .populate('ubicacion.edificioId')
+      .populate('propietarioId', 'nombre email')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Oficina.find({ tipo })
+      .populate('ubicacion.edificioId')
+      .populate('propietarioId', 'nombre email')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
   }
-  console.log("[Leyendo getOficinasByTipo desde MongoDB]");
-  const result = await Oficina.find({ tipo })
-    .populate('ubicacion.edificioId')
-    .populate('propietarioId', 'nombre email')
-    .populate('empresaInmobiliariaId', 'nombre');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getOficinasByPropietario = async (propietarioId) => {
   const redisClient = connectToRedis();
   const key = _getOficinasByPropietarioRedisKey(propietarioId);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getOficinasByPropietario desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getOficinasByPropietario, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Oficina.find({ propietarioId })
+      .populate('ubicacion.edificioId')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Oficina.find({ propietarioId })
+      .populate('ubicacion.edificioId')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
   }
-  console.log("[Leyendo getOficinasByPropietario desde MongoDB]");
-  const result = await Oficina.find({ propietarioId })
-    .populate('ubicacion.edificioId')
-    .populate('empresaInmobiliariaId', 'nombre');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getOficinasByEmpresa = async (empresaInmobiliariaId) => {
   const redisClient = connectToRedis();
   const key = _getOficinasByEmpresaRedisKey(empresaInmobiliariaId);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getOficinasByEmpresa desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getOficinasByEmpresa, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Oficina.find({ empresaInmobiliariaId })
+      .populate('ubicacion.edificioId')
+      .populate('propietarioId', 'nombre email')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Oficina.find({ empresaInmobiliariaId })
+      .populate('ubicacion.edificioId')
+      .populate('propietarioId', 'nombre email')
+      .lean();
   }
-  console.log("[Leyendo getOficinasByEmpresa desde MongoDB]");
-  const result = await Oficina.find({ empresaInmobiliariaId })
-    .populate('ubicacion.edificioId')
-    .populate('propietarioId', 'nombre email');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
+};
+
+const getOficinasByCapacidad = async (capacidadMinima) => {
+  const redisClient = connectToRedis();
+  const key = _getOficinasByCapacidadRedisKey(capacidadMinima);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const result = await Oficina.find({ capacidad: { $gte: capacidadMinima } })
+      .populate('ubicacion.edificioId')
+      .populate('propietarioId', 'nombre email')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Oficina.find({ capacidad: { $gte: capacidadMinima } })
+      .populate('ubicacion.edificioId')
+      .populate('propietarioId', 'nombre email')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
+  }
+};
+
+const getOficinasByRangoPrecio = async (precioMin, precioMax, tipoPrecio = 'porDia') => {
+  const redisClient = connectToRedis();
+  const key = _getOficinasByRangoPrecioRedisKey(precioMin, precioMax, tipoPrecio);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const query = {};
+    query[`precios.${tipoPrecio}`] = { $gte: precioMin, $lte: precioMax };
+    
+    const result = await Oficina.find(query)
+      .populate('ubicacion.edificioId')
+      .populate('propietarioId', 'nombre email')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    const query = {};
+    query[`precios.${tipoPrecio}`] = { $gte: precioMin, $lte: precioMax };
+    
+    return await Oficina.find(query)
+      .populate('ubicacion.edificioId')
+      .populate('propietarioId', 'nombre email')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
+  }
+};
+
+const getOficinasDisponibles = async (fecha, horaInicio, horaFin) => {
+  const redisClient = connectToRedis();
+  const key = _getOficinasDisponiblesRedisKey(fecha || "todas", horaInicio || "todas", horaFin || "todas");
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const diasMap = [
+      "domingo",
+      "lunes",
+      "martes",
+      "miércoles",
+      "jueves",
+      "viernes",
+      "sábado"
+    ];
+
+    const fechaObj = new Date(fecha);
+    if (isNaN(fechaObj.getTime())) {
+      throw new Error(`Fecha inválida: ${fecha}`);
+    }
+    const diaNombre = diasMap[fechaObj.getUTCDay()];
+
+    const result = await Oficina.find({
+      activo: true,
+      "disponibilidad.dias": diaNombre,
+      "disponibilidad.horario.apertura": { $lte: horaInicio },
+      "disponibilidad.horario.cierre":    { $gte: horaFin }
+    })
+      .populate("ubicacion.edificioId")
+      .populate("propietarioId", "nombre email")
+      .populate("empresaInmobiliariaId", "nombre")
+      .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    const diasMap = [
+      "domingo",
+      "lunes",
+      "martes",
+      "miércoles",
+      "jueves",
+      "viernes",
+      "sábado"
+    ];
+
+    const fechaObj = new Date(fecha);
+    if (isNaN(fechaObj.getTime())) {
+      throw new Error(`Fecha inválida: ${fecha}`);
+    }
+    const diaNombre = diasMap[fechaObj.getUTCDay()];
+
+    return await Oficina.find({
+      activo: true,
+      "disponibilidad.dias": diaNombre,
+      "disponibilidad.horario.apertura": { $lte: horaInicio },
+      "disponibilidad.horario.cierre":    { $gte: horaFin }
+    })
+      .populate("ubicacion.edificioId")
+      .populate("propietarioId", "nombre email")
+      .populate("empresaInmobiliariaId", "nombre")
+      .lean();
+  }
 };
 
 const createOficina = async (oficinaData) => {
@@ -311,95 +599,6 @@ const cambiarEstadoOficina = async (id, nuevoEstado) => {
   });
   
   return updated;
-};
-
-const getOficinasByCapacidad = async (capacidadMinima) => {
-  const redisClient = connectToRedis();
-  const key = _getOficinasByCapacidadRedisKey(capacidadMinima);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getOficinasByCapacidad desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getOficinasByCapacidad, volviendo a MongoDB", err);
-    }
-  }
-  console.log("[Leyendo getOficinasByCapacidad desde MongoDB]");
-  const result = await Oficina.find({ capacidad: { $gte: capacidadMinima } })
-    .populate('ubicacion.edificioId')
-    .populate('propietarioId', 'nombre email')
-    .populate('empresaInmobiliariaId', 'nombre');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
-};
-
-const getOficinasByRangoPrecio = async (precioMin, precioMax, tipoPrecio = 'porDia') => {
-  const redisClient = connectToRedis();
-  const key = _getOficinasByRangoPrecioRedisKey(precioMin, precioMax, tipoPrecio);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getOficinasByRangoPrecio desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getOficinasByRangoPrecio, volviendo a MongoDB", err);
-    }
-  }
-  console.log("[Leyendo getOficinasByRangoPrecio desde MongoDB]");
-  const query = {};
-  query[`precios.${tipoPrecio}`] = { $gte: precioMin, $lte: precioMax };
-  
-  const result = await Oficina.find(query)
-    .populate('ubicacion.edificioId')
-    .populate('propietarioId', 'nombre email')
-    .populate('empresaInmobiliariaId', 'nombre');
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
-};
-
-const getOficinasDisponibles = async (fecha, horaInicio, horaFin) => {
-  const redisClient = connectToRedis();
-  const key = _getOficinasDisponiblesRedisKey(fecha || "todas", horaInicio || "todas", horaFin || "todas");
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getOficinasDisponibles desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getOficinasDisponibles, volviendo a MongoDB", err);
-    }
-  }
-  
-  console.log("[Leyendo getOficinasDisponibles desde MongoDB]");
-  const diasMap = [
-    "domingo",
-    "lunes",
-    "martes",
-    "miércoles",
-    "jueves",
-    "viernes",
-    "sábado"
-  ];
-
-  const fechaObj = new Date(fecha);
-  if (isNaN(fechaObj.getTime())) {
-    throw new Error(`Fecha inválida: ${fecha}`);
-  }
-  const diaNombre = diasMap[fechaObj.getUTCDay()];
-
-  const result = await Oficina.find({
-    activo: true,
-    "disponibilidad.dias": diaNombre,
-    "disponibilidad.horario.apertura": { $lte: horaInicio },
-    "disponibilidad.horario.cierre":    { $gte: horaFin }
-  })
-    .populate("ubicacion.edificioId")
-    .populate("propietarioId", "nombre email")
-    .populate("empresaInmobiliariaId", "nombre");
-  
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const actualizarCalificacion = async (id, nuevaCalificacion) => {

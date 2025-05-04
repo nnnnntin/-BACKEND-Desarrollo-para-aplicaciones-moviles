@@ -13,77 +13,125 @@ const _getMembresiasPorRangoPrecioRedisKey = (precioMin, precioMax) => `membresi
 const getMembresias = async (filtros = {}) => {
   const redisClient = connectToRedis();
   const key = _getMembresiasFilterRedisKey(filtros);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getMembresias desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getMembresias, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Membresia.find({ ...filtros, activo: true }).lean();
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Membresia.find({ ...filtros, activo: true }).lean();
   }
-  console.log("[Leyendo getMembresias desde MongoDB]");
-  const result = await Membresia.find({ ...filtros, activo: true });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const findMembresiaById = async (id) => {
   const redisClient = connectToRedis();
   const key = _getMembresiaRedisKey(id);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo findMembresiaById desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de findMembresiaById, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Membresia.findById(id).lean();
+    if (result) {
+      await redisClient.set(key, result, { ex: 3600 });
+    }
+    
+    return result;
+  } catch (error) {
+    return await Membresia.findById(id).lean();
   }
-  console.log("[Leyendo findMembresiaById desde MongoDB]");
-  const result = await Membresia.findById(id);
-  if (result) {
-    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  }
-  return result;
 };
 
 const findMembresiaByTipo = async (tipo) => {
   const redisClient = connectToRedis();
   const key = _getMembresiaByTipoRedisKey(tipo);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo findMembresiaByTipo desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de findMembresiaByTipo, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Membresia.findOne({ tipo, activo: true }).lean();
+    if (result) {
+      await redisClient.set(key, result, { ex: 3600 });
+    }
+    
+    return result;
+  } catch (error) {
+    return await Membresia.findOne({ tipo, activo: true }).lean();
   }
-  console.log("[Leyendo findMembresiaByTipo desde MongoDB]");
-  const result = await Membresia.findOne({ tipo, activo: true });
-  if (result) {
-    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  }
-  return result;
 };
 
 const getMembresiasActivas = async () => {
   const redisClient = connectToRedis();
   const key = _getMembresiasActivasRedisKey();
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getMembresiasActivas desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getMembresiasActivas, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Membresia.find({ activo: true }).lean();
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Membresia.find({ activo: true }).lean();
   }
-  console.log("[Leyendo getMembresiasActivas desde MongoDB]");
-  const result = await Membresia.find({ activo: true });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const createMembresia = async (membresiaData) => {
@@ -203,85 +251,147 @@ const activarMembresia = async (id) => {
 const getMembresiasOrdenadas = async (campo = 'precio.valor', orden = 1) => {
   const redisClient = connectToRedis();
   const key = _getMembresiasOrdenadasRedisKey(campo, orden);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getMembresiasOrdenadas desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getMembresiasOrdenadas, volviendo a MongoDB", err);
-    }
-  }
-  console.log("[Leyendo getMembresiasOrdenadas desde MongoDB]");
-  const sortOptions = {};
-  sortOptions[campo] = orden;
   
-  const result = await Membresia.find({ activo: true }).sort(sortOptions);
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const sortOptions = {};
+    sortOptions[campo] = orden;
+    
+    const result = await Membresia.find({ activo: true }).sort(sortOptions).lean();
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    const sortOptions = {};
+    sortOptions[campo] = orden;
+    return await Membresia.find({ activo: true }).sort(sortOptions).lean();
+  }
 };
 
 const findMembresiasWithBeneficio = async (tipoBeneficio) => {
   const redisClient = connectToRedis();
   const key = _getMembresiasWithBeneficioRedisKey(tipoBeneficio);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo findMembresiasWithBeneficio desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de findMembresiasWithBeneficio, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Membresia.find({ 
+      activo: true,
+      'beneficios.tipo': tipoBeneficio
+    }).lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Membresia.find({ 
+      activo: true,
+      'beneficios.tipo': tipoBeneficio
+    }).lean();
   }
-  console.log("[Leyendo findMembresiasWithBeneficio desde MongoDB]");
-  const result = await Membresia.find({ 
-    activo: true,
-    'beneficios.tipo': tipoBeneficio
-  });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getMembresiasParaEmpresa = async () => {
   const redisClient = connectToRedis();
   const key = _getMembresiasParaEmpresaRedisKey();
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getMembresiasParaEmpresa desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getMembresiasParaEmpresa, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Membresia.find({ 
+      activo: true,
+      tipo: { $in: ['empresarial', 'premium'] }
+    }).lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Membresia.find({ 
+      activo: true,
+      tipo: { $in: ['empresarial', 'premium'] }
+    }).lean();
   }
-  console.log("[Leyendo getMembresiasParaEmpresa desde MongoDB]");
-  const result = await Membresia.find({ 
-    activo: true,
-    tipo: { $in: ['empresarial', 'premium'] }
-  });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const getMembresiasPorRangoPrecio = async (precioMin, precioMax) => {
   const redisClient = connectToRedis();
   const key = _getMembresiasPorRangoPrecioRedisKey(precioMin, precioMax);
-  let cached = await redisClient.get(key);
-  if (cached) {
-    console.log("[Leyendo getMembresiasPorRangoPrecio desde Redis]");
-    try {
-      return JSON.parse(cached);
-    } catch (err) {
-      console.error("Error al parsear caché de getMembresiasPorRangoPrecio, volviendo a MongoDB", err);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
     }
+    
+    const result = await Membresia.find({
+      activo: true,
+      'precio.valor': { $gte: precioMin, $lte: precioMax }
+    }).lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Membresia.find({
+      activo: true,
+      'precio.valor': { $gte: precioMin, $lte: precioMax }
+    }).lean();
   }
-  console.log("[Leyendo getMembresiasPorRangoPrecio desde MongoDB]");
-  const result = await Membresia.find({
-    activo: true,
-    'precio.valor': { $gte: precioMin, $lte: precioMax }
-  });
-  await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-  return result;
 };
 
 const actualizarBeneficios = async (id, beneficios) => {

@@ -5,9 +5,14 @@
     "description": "Documentación Swagger generada automáticamente con swagger-autogen",
     "version": "1.0.0"
   },
-  "servers": [{
-    "url": "http://localhost:3001/"
-  }],
+  "servers": [
+    {
+      "url": "/"
+    },
+    {
+      "url": "http://localhost:3001/"
+    }
+  ],
   "components": {
     "securitySchemes": {
       "bearerAuth": {
@@ -19,7 +24,7 @@
     }
   },
   "paths": {
-    "/public/health": {
+    "/health": {
       "get": {
         "tags": [
           "Public"
@@ -33,7 +38,7 @@
         }
       }
     },
-    "/public/ping": {
+    "/ping": {
       "get": {
         "tags": [
           "Public"

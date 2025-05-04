@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon api/dev.js"
+    "dev": "nodemon api/dev.js",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org obligatorio-desarrollo-para-ap --project node-express ./out && sentry-cli sourcemaps upload --org obligatorio-desarrollo-para-ap --project node-express ./out"
   },
   "repository": {
     "type": "git",

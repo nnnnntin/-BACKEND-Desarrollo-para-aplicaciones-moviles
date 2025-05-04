@@ -7,10 +7,16 @@
   },
   "servers": [
     {
-      "url": "/"
+      "url": "/",
+      "description": "Entorno actual"
     },
     {
-      "url": "http://localhost:3001/"
+      "url": "https://obligatorio-desarrollo-para-aplicaciones-m-viles.vercel.app",
+      "description": "Producción en Vercel"
+    },
+    {
+      "url": "http://localhost:3001",
+      "description": "Desarrollo local"
     }
   ],
   "components": {

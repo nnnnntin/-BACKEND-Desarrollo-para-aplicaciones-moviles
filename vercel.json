@@ -12,12 +12,17 @@
       "dest": "https://unpkg.com/swagger-ui-dist/$1"
     },
     {
-      "src": "/swagger",
-      "dest": "api/index.js"
+      "src": "/favicon.ico",
+      "dest": "https://unpkg.com/swagger-ui-dist/favicon-32x32.png"
     },
     {
       "src": "/(.*)",
-      "dest": "api/index.js"
+      "dest": "api/index.js",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "X-Requested-With, Content-Type, Accept, Authorization"
+      }
     }
   ]
 }

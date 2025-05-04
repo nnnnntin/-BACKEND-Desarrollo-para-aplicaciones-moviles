@@ -2,6 +2,8 @@ const express = require("express");
 const swaggerUi = require("swagger-ui-express");
 const publicRouter = express.Router();
 const swaggerDocument = require("../public/swagger.json");
+const path = require('path');
+const fs = require('fs');
 
 const {
   healthController,
@@ -11,24 +13,49 @@ const {
 publicRouter.get("/health", healthController);
 publicRouter.get("/ping", pingController);
 
-const swaggerOptions = {
-  explorer: true,
-  customCss: '.swagger-ui .topbar { display: none }',
-  swaggerOptions: {
-    docExpansion: 'list',
-    persistAuthorization: true,
-    filter: true
-  },
-  customJs: [
-    'https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js',
-    'https://unpkg.com/swagger-ui-dist/swagger-ui-standalone-preset.js'
-  ],
-  customCssUrl: 'https://unpkg.com/swagger-ui-dist/swagger-ui.css'
-};
+// Define custom HTML with direct CDN links
+const customSwaggerHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>API REST de Gestión</title>
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui.css">
+  <style>
+    .swagger-ui .topbar { display: none }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-standalone-preset.js"></script>
+  <script>
+    window.onload = function() {
+      window.ui = SwaggerUIBundle({
+        url: "/swagger.json",
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout",
+        docExpansion: 'list',
+        persistAuthorization: true,
+        filter: true
+      });
+    };
+  </script>
+</body>
+</html>
+`;
 
-publicRouter.use("/swagger", swaggerUi.serve);
+// Serve swagger
 publicRouter.get("/swagger", (req, res) => {
-  res.send(swaggerUi.generateHTML(swaggerDocument, swaggerOptions));
+  res.send(customSwaggerHtml);
 });
 
 publicRouter.get("/swagger.json", (req, res) => {

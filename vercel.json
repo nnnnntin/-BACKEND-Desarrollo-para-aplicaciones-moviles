@@ -8,8 +8,8 @@
   ],
   "routes": [
     {
-      "src": "/swagger/(.*\\.(js|css|png))",
-      "dest": "https://unpkg.com/swagger-ui-dist/$1"
+      "src": "/swagger-ui-dist(@[^/]+)?/(.*)",
+      "dest": "https://unpkg.com/swagger-ui-dist/$2"
     },
     {
       "src": "/swagger",

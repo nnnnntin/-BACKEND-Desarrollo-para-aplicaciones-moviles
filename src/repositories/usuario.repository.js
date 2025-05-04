@@ -97,7 +97,6 @@ const registerUsuario = async (userData) => {
   
   const saved = await newUsuario.save();
   
-  // Invalidar caches
   await redisClient.del(_getUsuariosFilterRedisKey({}));
   if (saved.email) {
     await redisClient.del(_getUsuarioByEmailRedisKey(saved.email));
@@ -136,7 +135,6 @@ const updateUsuario = async (id, payload) => {
   
   const updated = await Usuario.findByIdAndUpdate(id, payload, { new: true });
   
-  // Invalidar caches
   await redisClient.del(_getUsuarioRedisKey(id));
   await redisClient.del(_getUsuariosFilterRedisKey({}));
   
@@ -169,7 +167,6 @@ const deleteUsuario = async (id) => {
   const usuario = await Usuario.findById(id);
   const removed = await Usuario.findByIdAndDelete(id);
   
-  // Invalidar caches
   await redisClient.del(_getUsuarioRedisKey(id));
   await redisClient.del(_getUsuariosFilterRedisKey({}));
   

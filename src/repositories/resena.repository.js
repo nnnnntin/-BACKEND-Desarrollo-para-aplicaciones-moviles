@@ -144,7 +144,6 @@ const createResena = async (resenaData) => {
   const newResena = new Resena(resenaData);
   const saved = await newResena.save();
   
-  // Invalidar caches relacionados
   await redisClient.del(_getResenasFilterRedisKey({}));
   if (saved.usuarioId) {
     await redisClient.del(_getResenasByUsuarioRedisKey(saved.usuarioId.toString()));
@@ -170,7 +169,6 @@ const updateResena = async (id, payload) => {
   const redisClient = connectToRedis();
   const updated = await Resena.findByIdAndUpdate(id, payload, { new: true });
   
-  // Invalidar caches
   await redisClient.del(_getResenasRedisKey(id));
   await redisClient.del(_getResenasFilterRedisKey({}));
   if (updated.usuarioId) {
@@ -198,7 +196,6 @@ const deleteResena = async (id) => {
   const resena = await Resena.findById(id);
   const removed = await Resena.findByIdAndDelete(id);
   
-  // Invalidar caches
   await redisClient.del(_getResenasRedisKey(id));
   await redisClient.del(_getResenasFilterRedisKey({}));
   if (resena.usuarioId) {

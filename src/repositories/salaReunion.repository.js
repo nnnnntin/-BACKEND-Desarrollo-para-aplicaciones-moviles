@@ -211,7 +211,6 @@ const createSalaReunion = async (salaData) => {
   const newSala = new SalaReunion(salaData);
   const saved = await newSala.save();
   
-  // Invalidar caches relacionados
   await redisClient.del(_getSalasReunionFilterRedisKey({}));
   if (saved.codigo) {
     await redisClient.del(_getSalaReunionByCodigoRedisKey(saved.codigo));
@@ -231,7 +230,6 @@ const updateSalaReunion = async (id, payload) => {
   const sala = await SalaReunion.findById(id);
   const updated = await SalaReunion.findByIdAndUpdate(id, payload, { new: true });
   
-  // Invalidar caches
   await redisClient.del(_getSalasReunionRedisKey(id));
   await redisClient.del(_getSalasReunionFilterRedisKey({}));
   
@@ -257,7 +255,6 @@ const updateSalaReunion = async (id, payload) => {
   }
   
   if (sala.capacidad) {
-    // Invalidar varias caches de capacidad
     for (let i = 1; i <= sala.capacidad; i++) {
       await redisClient.del(_getSalasByCapacidadRedisKey(i));
     }
@@ -278,7 +275,6 @@ const deleteSalaReunion = async (id) => {
   const sala = await SalaReunion.findById(id);
   const removed = await SalaReunion.findByIdAndDelete(id);
   
-  // Invalidar caches
   await redisClient.del(_getSalasReunionRedisKey(id));
   await redisClient.del(_getSalasReunionFilterRedisKey({}));
   
@@ -305,7 +301,6 @@ const cambiarEstadoSala = async (id, nuevoEstado) => {
     { new: true }
   );
   
-  // Invalidar cache específica
   await redisClient.del(_getSalasReunionRedisKey(id));
   await redisClient.del(_getSalasReunionFilterRedisKey({}));
   await redisClient.del(_getSalasDisponiblesRedisKey("todas", "todas", "todas"));
@@ -321,7 +316,6 @@ const agregarEquipamiento = async (id, equipamiento) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getSalasReunionRedisKey(id));
   await redisClient.del(_getSalasReunionFilterRedisKey({}));
   await redisClient.del(_getSalasByEquipamientoRedisKey(equipamiento.tipo));
@@ -340,7 +334,6 @@ const eliminarEquipamiento = async (id, equipamientoId) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getSalasReunionRedisKey(id));
   await redisClient.del(_getSalasReunionFilterRedisKey({}));
   if (equipamientoAEliminar) {
@@ -358,11 +351,9 @@ const actualizarPrecios = async (id, precios) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getSalasReunionRedisKey(id));
   await redisClient.del(_getSalasReunionFilterRedisKey({}));
   
-  // Invalidar todas las caches de rango de precios (simplificación)
   for (const tipoPrecio in precios) {
     await redisClient.keys(`salasReunion:precio:${tipoPrecio}:*`).then(keys => {
       keys.forEach(key => redisClient.del(key));

@@ -110,11 +110,9 @@ const createNotificacion = async (notificacionData) => {
   const newNotificacion = new Notificacion(notificacionData);
   const saved = await newNotificacion.save();
   
-  // Invalidar caches
   await redisClient.del(_getNotificacionesFilterRedisKey({}));
   
   if (saved.destinatarioId) {
-    // Invalidar todas las caches del usuario destinatario
     await redisClient.keys(`usuario:${saved.destinatarioId.toString()}-notificaciones:*`).then(keys => {
       keys.forEach(key => redisClient.del(key));
     });
@@ -142,7 +140,6 @@ const updateNotificacion = async (id, payload) => {
   const notificacion = await Notificacion.findById(id);
   const updated = await Notificacion.findByIdAndUpdate(id, payload, { new: true });
   
-  // Invalidar caches
   await redisClient.del(_getNotificacionRedisKey(id));
   await redisClient.del(_getNotificacionesFilterRedisKey({}));
   
@@ -192,7 +189,6 @@ const deleteNotificacion = async (id) => {
   const notificacion = await Notificacion.findById(id);
   const removed = await Notificacion.findByIdAndDelete(id);
   
-  // Invalidar caches
   await redisClient.del(_getNotificacionRedisKey(id));
   await redisClient.del(_getNotificacionesFilterRedisKey({}));
   
@@ -231,7 +227,6 @@ const marcarComoLeida = async (id) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getNotificacionRedisKey(id));
   
   if (notificacion.destinatarioId) {
@@ -253,7 +248,6 @@ const marcarTodasComoLeidas = async (destinatarioId) => {
     }
   );
   
-  // Invalidar caches
   await redisClient.keys(`usuario:${destinatarioId.toString()}-notificaciones:*`).then(keys => {
     keys.forEach(key => redisClient.del(key));
   });

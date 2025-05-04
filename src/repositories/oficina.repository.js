@@ -165,7 +165,6 @@ const createOficina = async (oficinaData) => {
   const newOficina = new Oficina(oficinaData);
   const saved = await newOficina.save();
   
-  // Invalidar caches
   await redisClient.del(_getOficinasFilterRedisKey({}));
   if (saved.codigo) {
     await redisClient.del(_getOficinaByCodigoRedisKey(saved.codigo));
@@ -196,7 +195,6 @@ const updateOficina = async (id, payload) => {
   const oficina = await Oficina.findById(id);
   const updated = await Oficina.findByIdAndUpdate(id, payload, { new: true });
   
-  // Invalidar caches
   await redisClient.del(_getOficinaRedisKey(id));
   await redisClient.del(_getOficinasFilterRedisKey({}));
   
@@ -239,23 +237,19 @@ const updateOficina = async (id, payload) => {
     await redisClient.del(_getOficinasByEmpresaRedisKey(updated.empresaInmobiliariaId.toString()));
   }
   
-  // Capacidad
   if (oficina.capacidad !== updated.capacidad) {
-    // Invalidar todas las caches de capacidad que podrían verse afectadas
     const maxCapacidad = Math.max(oficina.capacidad || 0, updated.capacidad || 0);
     for (let i = 1; i <= maxCapacidad; i++) {
       await redisClient.del(_getOficinasByCapacidadRedisKey(i));
     }
   }
   
-  // Precio
   if (payload.precios) {
     await redisClient.keys('oficinas:precio:*').then(keys => {
       keys.forEach(key => redisClient.del(key));
     });
   }
   
-  // Disponibilidad
   if (payload.disponibilidad || payload.estado) {
     await redisClient.keys('oficinas:disponibles:*').then(keys => {
       keys.forEach(key => redisClient.del(key));
@@ -270,7 +264,6 @@ const deleteOficina = async (id) => {
   const oficina = await Oficina.findById(id);
   const removed = await Oficina.findByIdAndDelete(id);
   
-  // Invalidar caches
   await redisClient.del(_getOficinaRedisKey(id));
   await redisClient.del(_getOficinasFilterRedisKey({}));
   
@@ -290,14 +283,12 @@ const deleteOficina = async (id) => {
     await redisClient.del(_getOficinasByEmpresaRedisKey(oficina.empresaInmobiliariaId.toString()));
   }
   
-  // Invalidar cache de capacidad
   if (oficina.capacidad) {
     for (let i = 1; i <= oficina.capacidad; i++) {
       await redisClient.del(_getOficinasByCapacidadRedisKey(i));
     }
   }
   
-  // Invalidar cache de disponibles
   await redisClient.keys('oficinas:disponibles:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -313,10 +304,8 @@ const cambiarEstadoOficina = async (id, nuevoEstado) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getOficinaRedisKey(id));
   
-  // Invalidar cache de disponibles
   await redisClient.keys('oficinas:disponibles:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -421,7 +410,6 @@ const actualizarCalificacion = async (id, nuevaCalificacion) => {
     { new: true }
   );
   
-  // Invalidar cache
   await redisClient.del(_getOficinaRedisKey(id));
   
   return updated;

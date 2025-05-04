@@ -143,7 +143,6 @@ const createPago = async (pagoData) => {
   const newPago = new Pago(pagoData);
   const saved = await newPago.save();
   
-  // Invalidar caches
   await redisClient.del(_getPagosFilterRedisKey({}));
   if (saved.usuarioId) {
     await redisClient.del(_getPagosByUsuarioRedisKey(saved.usuarioId.toString()));
@@ -161,7 +160,6 @@ const createPago = async (pagoData) => {
     ));
   }
   
-  // Invalidar caches por rango de monto
   await redisClient.keys('pagos:monto:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -174,7 +172,6 @@ const updatePago = async (id, payload) => {
   const pago = await Pago.findById(id);
   const updated = await Pago.findByIdAndUpdate(id, payload, { new: true });
   
-  // Invalidar caches
   await redisClient.del(_getPagoRedisKey(id));
   await redisClient.del(_getPagosFilterRedisKey({}));
   
@@ -212,7 +209,6 @@ const updatePago = async (id, payload) => {
     ));
   }
   
-  // Invalidar caches por rango de monto si cambió el monto
   if (payload.monto && pago.monto !== payload.monto) {
     await redisClient.keys('pagos:monto:*').then(keys => {
       keys.forEach(key => redisClient.del(key));
@@ -227,7 +223,6 @@ const deletePago = async (id) => {
   const pago = await Pago.findById(id);
   const removed = await Pago.findByIdAndDelete(id);
   
-  // Invalidar caches
   await redisClient.del(_getPagoRedisKey(id));
   await redisClient.del(_getPagosFilterRedisKey({}));
   
@@ -247,7 +242,6 @@ const deletePago = async (id) => {
     ));
   }
   
-  // Invalidar caches por rango de monto
   await redisClient.keys('pagos:monto:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -264,7 +258,6 @@ const cambiarEstadoPago = async (id, nuevoEstado) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getPagoRedisKey(id));
   
   if (pago.estado) {
@@ -288,7 +281,6 @@ const completarPago = async (id, comprobante = null) => {
   
   const updated = await Pago.findByIdAndUpdate(id, actualizacion, { new: true });
   
-  // Invalidar caches
   await redisClient.del(_getPagoRedisKey(id));
   
   if (pago.estado) {
@@ -311,7 +303,6 @@ const reembolsarPago = async (id, motivoReembolso) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getPagoRedisKey(id));
   
   if (pago.estado) {
@@ -330,7 +321,6 @@ const vincularFactura = async (id, facturaId) => {
     { new: true }
   );
   
-  // Invalidar cache
   await redisClient.del(_getPagoRedisKey(id));
   
   return updated;

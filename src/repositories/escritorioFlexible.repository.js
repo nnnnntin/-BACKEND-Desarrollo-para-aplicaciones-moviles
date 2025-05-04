@@ -189,7 +189,6 @@ const createEscritorioFlexible = async (escritorioData) => {
   const newEscritorio = new EscritorioFlexible(escritorioData);
   const saved = await newEscritorio.save();
   
-  // Invalidar caches
   await redisClient.del(_getEscritoriosFilterRedisKey({}));
   if (saved.codigo) {
     await redisClient.del(_getEscritorioByCodigoRedisKey(saved.codigo));
@@ -212,7 +211,6 @@ const updateEscritorioFlexible = async (id, payload) => {
   const escritorio = await EscritorioFlexible.findById(id);
   const updated = await EscritorioFlexible.findByIdAndUpdate(id, payload, { new: true });
   
-  // Invalidar caches
   await redisClient.del(_getEscritorioRedisKey(id));
   await redisClient.del(_getEscritoriosFilterRedisKey({}));
   
@@ -247,7 +245,6 @@ const updateEscritorioFlexible = async (id, payload) => {
     await redisClient.del(_getEscritoriosByPropietarioRedisKey(updated.propietarioId.toString()));
   }
   
-  // Invalidar cache de disponibles
   await redisClient.keys('escritorios:disponibles:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -260,7 +257,6 @@ const deleteEscritorioFlexible = async (id) => {
   const escritorio = await EscritorioFlexible.findById(id);
   const removed = await EscritorioFlexible.findByIdAndDelete(id);
   
-  // Invalidar caches
   await redisClient.del(_getEscritorioRedisKey(id));
   await redisClient.del(_getEscritoriosFilterRedisKey({}));
   
@@ -277,7 +273,6 @@ const deleteEscritorioFlexible = async (id) => {
     await redisClient.del(_getEscritoriosByPropietarioRedisKey(escritorio.propietarioId.toString()));
   }
   
-  // Invalidar cache de disponibles
   await redisClient.keys('escritorios:disponibles:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -293,11 +288,9 @@ const cambiarEstadoEscritorio = async (id, nuevoEstado) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getEscritorioRedisKey(id));
   await redisClient.del(_getEscritoriosFilterRedisKey({}));
   
-  // Invalidar cache de disponibles
   await redisClient.keys('escritorios:disponibles:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -313,7 +306,6 @@ const agregarAmenidad = async (id, amenidad) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getEscritorioRedisKey(id));
   if (amenidad.tipo) {
     await redisClient.del(_getEscritoriosByAmenidadesRedisKey(amenidad.tipo));
@@ -333,7 +325,6 @@ const eliminarAmenidad = async (id, amenidadId) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getEscritorioRedisKey(id));
   if (amenidadAEliminar && amenidadAEliminar.tipo) {
     await redisClient.del(_getEscritoriosByAmenidadesRedisKey(amenidadAEliminar.tipo));

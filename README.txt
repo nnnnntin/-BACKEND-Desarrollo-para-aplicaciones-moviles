@@ -2,7 +2,7 @@
 
 Este es un proyecto desarrollado con React, diseñado para facilitar el desarrollo de aplicaciones móviles. Utiliza [nodemon](https://nodemon.io/) para reiniciar automáticamente el servidor durante el desarrollo cuando se detectan cambios en el código.
 
-Repositorio en GitHub: [Obligatorio Desarrollo para Aplicaciones Móviles](https://github.com/zeneixa/Obligatorio-Desarrollo-para-aplicaciones-m-viles.git)
+Repositorio en GitHub: [Obligatorio Desarrollo para Aplicaciones Móviles](https://github.com/nnnnntin/Obligatorio-Desarrollo-para-aplicaciones-m-viles.git)
 
 ## Requisitos
 
@@ -14,7 +14,7 @@ Repositorio en GitHub: [Obligatorio Desarrollo para Aplicaciones Móviles](https
 Como el directorio `node_modules` está en el `.gitignore`, deberás instalar las dependencias una vez clonado el repositorio.
 
 1. Clona el repositorio desde una terminal de git bash:
-    git clone https://github.com/zeneixa/Obligatorio-Desarrollo-para-aplicaciones-m-viles.git
+    git clone https://github.com/nnnnntin/Obligatorio-Desarrollo-para-aplicaciones-m-viles.git
 2. Entra en el directorio del proyecto:
     cd Obligatorio-Desarrollo-para-aplicaciones-m-viles
 3. Instala las dependencias:

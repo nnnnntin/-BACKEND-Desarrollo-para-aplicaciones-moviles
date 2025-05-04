@@ -13,7 +13,6 @@ const {
 publicRouter.get("/health", healthController);
 publicRouter.get("/ping", pingController);
 
-// Define custom HTML with direct CDN links
 const customSwaggerHtml = `
 <!DOCTYPE html>
 <html lang="en">
@@ -53,7 +52,6 @@ const customSwaggerHtml = `
 </html>
 `;
 
-// Serve swagger
 publicRouter.get("/swagger", (req, res) => {
   res.send(customSwaggerHtml);
 });

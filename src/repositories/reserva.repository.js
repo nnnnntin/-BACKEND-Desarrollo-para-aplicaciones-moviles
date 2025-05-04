@@ -159,7 +159,6 @@ const createReserva = async (reservaData) => {
   const newReserva = new Reserva(reservaData);
   const saved = await newReserva.save();
   
-  // Invalidar caches
   await redisClient.del(_getReservasFilterRedisKey({}));
   if (saved.usuarioId) {
     await redisClient.del(_getReservasByUsuarioRedisKey(saved.usuarioId.toString()));
@@ -183,7 +182,6 @@ const updateReserva = async (id, payload) => {
   const reserva = await Reserva.findById(id);
   const updated = await Reserva.findByIdAndUpdate(id, payload, { new: true });
   
-  // Invalidar caches
   await redisClient.del(_getReservasRedisKey(id));
   await redisClient.del(_getReservasFilterRedisKey({}));
   if (reserva.usuarioId) {
@@ -215,7 +213,6 @@ const deleteReserva = async (id) => {
   const reserva = await Reserva.findById(id);
   const removed = await Reserva.findByIdAndDelete(id);
   
-  // Invalidar caches
   await redisClient.del(_getReservasRedisKey(id));
   await redisClient.del(_getReservasFilterRedisKey({}));
   if (reserva.usuarioId) {
@@ -289,7 +286,6 @@ const agregarServicioAdicional = async (id, servicioId) => {
     { new: true }
   );
   
-  // Invalidar cache
   await redisClient.del(_getReservasRedisKey(id));
   
   return updated;

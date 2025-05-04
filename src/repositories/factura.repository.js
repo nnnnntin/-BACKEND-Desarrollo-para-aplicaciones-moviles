@@ -139,7 +139,6 @@ const getFacturasVencidas = async () => {
     .populate('pagosIds')
     .sort({ fechaVencimiento: 1 });
   
-  // Tiempo de caché más corto para facturas vencidas (1 hora)
   await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
   return result;
 };
@@ -172,7 +171,6 @@ const createFactura = async (facturaData) => {
   const newFactura = new Factura(facturaData);
   const saved = await newFactura.save();
   
-  // Invalidar caches
   await redisClient.del(_getFacturasFilterRedisKey({}));
   if (saved.numeroFactura) {
     await redisClient.del(_getFacturaByNumeroRedisKey(saved.numeroFactura));
@@ -184,7 +182,6 @@ const createFactura = async (facturaData) => {
     await redisClient.del(_getFacturasPorEstadoRedisKey(saved.estado));
   }
   
-  // Si es pendiente y está vencida
   if (saved.estado === 'pendiente' && saved.fechaVencimiento && saved.fechaVencimiento < new Date()) {
     await redisClient.del(_getFacturasVencidasRedisKey());
   }
@@ -197,7 +194,6 @@ const updateFactura = async (id, payload) => {
   const factura = await Factura.findById(id);
   const updated = await Factura.findByIdAndUpdate(id, payload, { new: true });
   
-  // Invalidar caches
   await redisClient.del(_getFacturaRedisKey(id));
   await redisClient.del(_getFacturasFilterRedisKey({}));
   
@@ -222,17 +218,14 @@ const updateFactura = async (id, payload) => {
     await redisClient.del(_getFacturasPorEstadoRedisKey(updated.estado));
   }
   
-  // Invalidar vencidas si aplica
   await redisClient.del(_getFacturasVencidasRedisKey());
   
-  // Invalidar facturas por rango de fechas si cambió la fecha de emisión
   if (payload.fechaEmision) {
     await redisClient.keys('facturas:fechas:*').then(keys => {
       keys.forEach(key => redisClient.del(key));
     });
   }
   
-  // Invalidar facturas por rango de monto si cambió el total
   if (payload.total) {
     await redisClient.keys('facturas:monto:*').then(keys => {
       keys.forEach(key => redisClient.del(key));
@@ -247,7 +240,6 @@ const deleteFactura = async (id) => {
   const factura = await Factura.findById(id);
   const removed = await Factura.findByIdAndDelete(id);
   
-  // Invalidar caches
   await redisClient.del(_getFacturaRedisKey(id));
   await redisClient.del(_getFacturasFilterRedisKey({}));
   
@@ -261,7 +253,6 @@ const deleteFactura = async (id) => {
     await redisClient.del(_getFacturasPorEstadoRedisKey(factura.estado));
   }
   
-  // Invalidar vencidas si aplica
   if (factura.estado === 'pendiente' && factura.fechaVencimiento && factura.fechaVencimiento < new Date()) {
     await redisClient.del(_getFacturasVencidasRedisKey());
   }
@@ -281,14 +272,12 @@ const marcarFacturaComoCancelada = async (id, motivo = '') => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getFacturaRedisKey(id));
   if (factura.estado) {
     await redisClient.del(_getFacturasPorEstadoRedisKey(factura.estado));
   }
   await redisClient.del(_getFacturasPorEstadoRedisKey('cancelada'));
   
-  // Invalidar vencidas si aplica
   if (factura.estado === 'pendiente' && factura.fechaVencimiento && factura.fechaVencimiento < new Date()) {
     await redisClient.del(_getFacturasVencidasRedisKey());
   }
@@ -304,7 +293,6 @@ const agregarPagoFactura = async (id, pagoId) => {
     { new: true }
   );
   
-  // Invalidar cache
   await redisClient.del(_getFacturaRedisKey(id));
   if (updated.usuarioId) {
     await redisClient.del(_getFacturasByUsuarioRedisKey(updated.usuarioId.toString()));
@@ -321,7 +309,6 @@ const actualizarPdfUrl = async (id, pdfUrl) => {
     { new: true }
   );
   
-  // Invalidar cache
   await redisClient.del(_getFacturaRedisKey(id));
   
   return updated;

@@ -140,7 +140,6 @@ const createEspacio = async (espacioData) => {
   const newEspacio = new Espacio(espacioData);
   const saved = await newEspacio.save();
   
-  // Invalidar caches
   await redisClient.del(_getEspaciosFilterRedisKey({}));
   if (saved.ubicacion && saved.ubicacion.edificioId) {
     await redisClient.del(_getEspaciosByEdificioRedisKey(saved.ubicacion.edificioId.toString()));
@@ -163,7 +162,6 @@ const updateEspacio = async (id, payload) => {
   const espacio = await Espacio.findById(id);
   const updated = await Espacio.findByIdAndUpdate(id, payload, { new: true });
   
-  // Invalidar caches
   await redisClient.del(_getEspacioRedisKey(id));
   await redisClient.del(_getEspaciosFilterRedisKey({}));
   
@@ -199,12 +197,10 @@ const updateEspacio = async (id, payload) => {
     await redisClient.del(_getEspaciosByEmpresaRedisKey(updated.empresaInmobiliariaId.toString()));
   }
   
-  // Invalidar cache de disponibles
   await redisClient.keys('espacios:disponibles:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
   
-  // Invalidar cache de amenidades si cambiaron
   if (payload.amenidades) {
     await redisClient.keys('espacios:amenidades:*').then(keys => {
       keys.forEach(key => redisClient.del(key));
@@ -219,7 +215,6 @@ const deleteEspacio = async (id) => {
   const espacio = await Espacio.findById(id);
   const removed = await Espacio.findByIdAndDelete(id);
   
-  // Invalidar caches
   await redisClient.del(_getEspacioRedisKey(id));
   await redisClient.del(_getEspaciosFilterRedisKey({}));
   
@@ -236,12 +231,10 @@ const deleteEspacio = async (id) => {
     await redisClient.del(_getEspaciosByEmpresaRedisKey(espacio.empresaInmobiliariaId.toString()));
   }
   
-  // Invalidar cache de disponibles
   await redisClient.keys('espacios:disponibles:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
   
-  // Invalidar cache de amenidades
   await redisClient.keys('espacios:amenidades:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -257,10 +250,8 @@ const cambiarEstadoEspacio = async (id, nuevoEstado) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getEspacioRedisKey(id));
   
-  // Invalidar cache de disponibles
   await redisClient.keys('espacios:disponibles:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });

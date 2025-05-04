@@ -154,7 +154,6 @@ const createEdificio = async (edificioData) => {
   const newEdificio = new Edificio(edificioData);
   const saved = await newEdificio.save();
   
-  // Invalidar caches
   await redisClient.del(_getEdificiosFilterRedisKey({}));
   if (saved.propietarioId) {
     await redisClient.del(_getEdificiosByPropietarioRedisKey(saved.propietarioId.toString()));
@@ -177,7 +176,6 @@ const updateEdificio = async (id, payload) => {
   const edificio = await Edificio.findById(id);
   const updated = await Edificio.findByIdAndUpdate(id, payload, { new: true });
   
-  // Invalidar caches
   await redisClient.del(_getEdificioRedisKey(id));
   await redisClient.del(_getEdificiosFilterRedisKey({}));
   
@@ -211,7 +209,6 @@ const updateEdificio = async (id, payload) => {
     await redisClient.del(_getEdificiosByPaisRedisKey(updated.direccion.pais));
   }
   
-  // Invalidar amenidades
   if (edificio.amenidades && edificio.amenidades.length > 0) {
     for (const amenidad of edificio.amenidades) {
       if (amenidad.tipo) {
@@ -232,7 +229,6 @@ const deleteEdificio = async (id) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getEdificioRedisKey(id));
   await redisClient.del(_getEdificiosFilterRedisKey({}));
   
@@ -268,7 +264,6 @@ const agregarAmenidad = async (id, amenidad) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getEdificioRedisKey(id));
   if (amenidad.tipo) {
     await redisClient.del(_getEdificiosConAmenidadRedisKey(amenidad.tipo));
@@ -288,7 +283,6 @@ const eliminarAmenidad = async (id, amenidadId) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getEdificioRedisKey(id));
   if (amenidadAEliminar && amenidadAEliminar.tipo) {
     await redisClient.del(_getEdificiosConAmenidadRedisKey(amenidadAEliminar.tipo));

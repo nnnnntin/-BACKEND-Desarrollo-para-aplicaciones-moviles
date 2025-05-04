@@ -1,4 +1,7 @@
 require("dotenv").config();
+require("./utils/instrument.js");
+
+const Sentry = require("@sentry/node");
 const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
@@ -8,6 +11,7 @@ const connectToRedis = require("./services/redis.service");
 //const loggerMiddleWare = require("./middlewares/logger.middleware");
 const authMiddleWare = require("./middlewares/auth.middleware");
 const sanitizeMiddleware = require("./middlewares/sanitizeMiddleware");
+const logger = require("./utils/logger.js");
 
 const publicRoutes = require("./routes/public.router");
 const authRouter = require("./routes/auth.router");
@@ -35,19 +39,22 @@ const app = express();
 (async () => {
   try {
     await connectMongoDB();
-    console.log("✔ Conectado a MongoDB");
+    logger.info("Conexión a MongoDB establecida correctamente");
   } catch (error) {
-    console.error("✘ Error al conectar a MongoDB:", error);
+    logger.sentryError({
+      message: "Ha ocurrido un error al intentar conectarse a MongoDB: ",
+      error,
+    });
     process.exit(1);
   }
 })();
 
-(async()=>{
+(async () => {
   try {
-      await connectToRedis();
-      console.log("✔ Conectado a Redis establecida correctamente");
+    await connectToRedis();
+    logger.info("Conexión a redis establecida correctamente");
   } catch (error) {
-    console.error("✘ Error al conectar a Redis:", error);
+    console.log("Ha ocurrido un error al intentar conectarse a Redis: ", error);
     process.exit(1);
   }
 })();
@@ -90,5 +97,7 @@ app.use("/v1",    disponibilidadesRoutes);
 app.get("/", (req, res) => {
   res.send("🟢 API funcionando correctamente");
 });
+
+Sentry.setupExpressErrorHandler(app);
 
 module.exports = app;

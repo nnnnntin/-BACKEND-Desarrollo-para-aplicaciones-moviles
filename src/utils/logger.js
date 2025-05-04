@@ -1,19 +1,20 @@
-const fs = require("fs");
-const path = require("path");
+const winston = require("winston");
+const Sentry = require("./instrument");
 
-const logRequest = (req) => {
-  const now = new Date();
-  const [date] = now.toISOString().split("T");
-  const logDir = path.join(__dirname, "logs");
-  const logFile = path.join(logDir, `${date}.log`);
+const logger = winston.createLogger({
+  level: "info",
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.printf(({ level, message, timestamp }) => {
+      return `[${timestamp}] ${level.toUpperCase()}: ${message}`;
+    })
+  ),
+  transports: [new winston.transports.Console()],
+});
 
-  const logMessage = `[${now.toISOString()}] METHOD: ${req.method} ${
-    req.url
-  } \n`;
-
-  fs.appendFile(logFile, logMessage, (err) => {
-    if (err) console.error("Error writing log: ", err);
-  });
+logger.sentryError = (err) => {
+  Sentry.captureException(err);
+  logger.error(err.stack || err.message);
 };
 
-module.exports = logRequest;
+module.exports = logger;

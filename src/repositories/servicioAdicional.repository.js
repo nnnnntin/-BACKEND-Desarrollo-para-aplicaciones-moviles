@@ -185,7 +185,6 @@ const createServicioAdicional = async (servicioData) => {
   const newServicio = new ServicioAdicional(servicioData);
   const saved = await newServicio.save();
   
-  // Invalidar caches
   await redisClient.del(_getServiciosAdicionalesFilterRedisKey({}));
   if (saved.tipo) {
     await redisClient.del(_getServiciosByTipoRedisKey(saved.tipo));
@@ -213,7 +212,6 @@ const updateServicioAdicional = async (id, payload) => {
   const servicio = await ServicioAdicional.findById(id);
   const updated = await ServicioAdicional.findByIdAndUpdate(id, payload, { new: true });
   
-  // Invalidar caches
   await redisClient.del(_getServiciosAdicionalesRedisKey(id));
   await redisClient.del(_getServiciosAdicionalesFilterRedisKey({}));
   
@@ -238,12 +236,10 @@ const updateServicioAdicional = async (id, payload) => {
     await redisClient.del(_getServiciosByUnidadPrecioRedisKey(updated.unidadPrecio));
   }
   
-  // Si hay cambios en requiereAprobacion
   if (servicio.requiereAprobacion !== updated.requiereAprobacion) {
     await redisClient.del(_getServiciosConAprobacionRedisKey());
   }
   
-  // Invalidar caches de rango de precios
   if (servicio.precio !== updated.precio) {
     await redisClient.keys('serviciosAdicionales:precio:*').then(keys => {
       keys.forEach(key => redisClient.del(key));
@@ -262,7 +258,6 @@ const deleteServicioAdicional = async (id) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getServiciosAdicionalesRedisKey(id));
   await redisClient.del(_getServiciosAdicionalesFilterRedisKey({}));
   
@@ -299,7 +294,6 @@ const asignarEspacio = async (id, espacioId) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getServiciosAdicionalesRedisKey(id));
   await redisClient.del(_getServiciosByEspacioRedisKey(espacioId.toString()));
   
@@ -314,7 +308,6 @@ const eliminarEspacio = async (id, espacioId) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getServiciosAdicionalesRedisKey(id));
   await redisClient.del(_getServiciosByEspacioRedisKey(espacioId.toString()));
   

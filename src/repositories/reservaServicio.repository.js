@@ -175,7 +175,6 @@ const createReservaServicio = async (reservaData) => {
   const newReserva = new ReservaServicio(reservaData);
   const saved = await newReserva.save();
   
-  // Invalidar caches
   await redisClient.del(_getReservasServicioFilterRedisKey({}));
   if (saved.usuarioId) {
     await redisClient.del(_getReservasByUsuarioRedisKey(saved.usuarioId.toString()));
@@ -202,7 +201,6 @@ const updateReservaServicio = async (id, payload) => {
   const reserva = await ReservaServicio.findById(id);
   const updated = await ReservaServicio.findByIdAndUpdate(id, payload, { new: true });
   
-  // Invalidar caches
   await redisClient.del(_getReservasServicioRedisKey(id));
   await redisClient.del(_getReservasServicioFilterRedisKey({}));
   
@@ -251,7 +249,6 @@ const deleteReservaServicio = async (id) => {
   const reserva = await ReservaServicio.findById(id);
   const removed = await ReservaServicio.findByIdAndDelete(id);
   
-  // Invalidar caches
   await redisClient.del(_getReservasServicioRedisKey(id));
   await redisClient.del(_getReservasServicioFilterRedisKey({}));
   

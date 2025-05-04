@@ -110,7 +110,6 @@ const createEmpresaInmobiliaria = async (empresaData) => {
   const newEmpresa = new EmpresaInmobiliaria(empresaData);
   const saved = await newEmpresa.save();
   
-  // Invalidar caches
   await redisClient.del(_getEmpresasFilterRedisKey({}));
   if (saved.tipo) {
     await redisClient.del(_getEmpresasByTipoRedisKey(saved.tipo));
@@ -133,7 +132,6 @@ const updateEmpresaInmobiliaria = async (id, payload) => {
   const empresa = await EmpresaInmobiliaria.findById(id);
   const updated = await EmpresaInmobiliaria.findByIdAndUpdate(id, payload, { new: true });
   
-  // Invalidar caches
   await redisClient.del(_getEmpresaRedisKey(id));
   await redisClient.del(_getEmpresasFilterRedisKey({}));
   
@@ -144,7 +142,6 @@ const updateEmpresaInmobiliaria = async (id, payload) => {
     await redisClient.del(_getEmpresasByTipoRedisKey(updated.tipo));
   }
   
-  // Si cambió el estado de verificación
   if ((!empresa.verificado && updated.verificado) || (empresa.verificado && !updated.verificado)) {
     await redisClient.del(_getEmpresasVerificadasRedisKey());
   }
@@ -157,7 +154,6 @@ const updateEmpresaInmobiliaria = async (id, payload) => {
     await redisClient.del(_getEmpresasByCiudadRedisKey(updated.direccion.ciudad));
   }
   
-  // Espacio empresas con más espacios
   await redisClient.keys(`empresas:mas-espacios:*`).then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -174,7 +170,6 @@ const deleteEmpresaInmobiliaria = async (id) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getEmpresaRedisKey(id));
   await redisClient.del(_getEmpresasFilterRedisKey({}));
   
@@ -188,7 +183,6 @@ const deleteEmpresaInmobiliaria = async (id) => {
     await redisClient.del(_getEmpresasByCiudadRedisKey(empresa.direccion.ciudad));
   }
   
-  // Espacio empresas con más espacios
   await redisClient.keys(`empresas:mas-espacios:*`).then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -208,7 +202,6 @@ const verificarEmpresa = async (id) => {
     { new: true }
   );
   
-  // Invalidar cache específica
   await redisClient.del(_getEmpresaRedisKey(id));
   await redisClient.del(_getEmpresasVerificadasRedisKey());
   
@@ -227,10 +220,8 @@ const agregarEspacio = async (id, espacioId) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getEmpresaRedisKey(id));
   
-  // Espacio empresas con más espacios
   await redisClient.keys(`empresas:mas-espacios:*`).then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -246,10 +237,8 @@ const eliminarEspacio = async (id, espacioId) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getEmpresaRedisKey(id));
   
-  // Espacio empresas con más espacios
   await redisClient.keys(`empresas:mas-espacios:*`).then(keys => {
     keys.forEach(key => redisClient.del(key));
   });

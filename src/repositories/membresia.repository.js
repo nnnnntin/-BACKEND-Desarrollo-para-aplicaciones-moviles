@@ -91,29 +91,24 @@ const createMembresia = async (membresiaData) => {
   const newMembresia = new Membresia(membresiaData);
   const saved = await newMembresia.save();
   
-  // Invalidar caches
   await redisClient.del(_getMembresiasFilterRedisKey({}));
   await redisClient.del(_getMembresiasActivasRedisKey());
   if (saved.tipo) {
     await redisClient.del(_getMembresiaByTipoRedisKey(saved.tipo));
   }
   
-  // Invalidar membresias ordenadas
   await redisClient.keys('membresias:ordenadas:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
   
-  // Invalidar cache para empresa si aplica
   if (saved.tipo === 'empresarial' || saved.tipo === 'premium') {
     await redisClient.del(_getMembresiasParaEmpresaRedisKey());
   }
   
-  // Invalidar cache por precio
   await redisClient.keys('membresias:precio:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
   
-  // Invalidar cache por beneficio
   if (saved.beneficios && saved.beneficios.length > 0) {
     for (const beneficio of saved.beneficios) {
       if (beneficio.tipo) {
@@ -130,7 +125,6 @@ const updateMembresia = async (id, payload) => {
   const membresia = await Membresia.findById(id);
   const updated = await Membresia.findByIdAndUpdate(id, payload, { new: true });
   
-  // Invalidar caches
   await redisClient.del(_getMembresiaRedisKey(id));
   await redisClient.del(_getMembresiasFilterRedisKey({}));
   await redisClient.del(_getMembresiasActivasRedisKey());
@@ -142,25 +136,21 @@ const updateMembresia = async (id, payload) => {
     await redisClient.del(_getMembresiaByTipoRedisKey(updated.tipo));
   }
   
-  // Invalidar membresias ordenadas
   await redisClient.keys('membresias:ordenadas:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
   
-  // Invalidar cache para empresa si cambió el tipo
   if (membresia.tipo === 'empresarial' || membresia.tipo === 'premium' ||
       updated.tipo === 'empresarial' || updated.tipo === 'premium') {
     await redisClient.del(_getMembresiasParaEmpresaRedisKey());
   }
   
-  // Invalidar cache por precio si cambió
   if (payload.precio) {
     await redisClient.keys('membresias:precio:*').then(keys => {
       keys.forEach(key => redisClient.del(key));
     });
   }
   
-  // Invalidar cache por beneficio si cambiaron
   if (payload.beneficios) {
     await redisClient.keys('membresias:beneficio:*').then(keys => {
       keys.forEach(key => redisClient.del(key));
@@ -179,7 +169,6 @@ const deleteMembresia = async (id) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getMembresiaRedisKey(id));
   await redisClient.del(_getMembresiasFilterRedisKey({}));
   await redisClient.del(_getMembresiasActivasRedisKey());
@@ -188,17 +177,14 @@ const deleteMembresia = async (id) => {
     await redisClient.del(_getMembresiaByTipoRedisKey(membresia.tipo));
   }
   
-  // Invalidar membresias ordenadas
   await redisClient.keys('membresias:ordenadas:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
   
-  // Invalidar cache para empresa si aplica
   if (membresia.tipo === 'empresarial' || membresia.tipo === 'premium') {
     await redisClient.del(_getMembresiasParaEmpresaRedisKey());
   }
   
-  // Invalidar cache por beneficio
   if (membresia.beneficios && membresia.beneficios.length > 0) {
     for (const beneficio of membresia.beneficios) {
       if (beneficio.tipo) {
@@ -307,10 +293,8 @@ const actualizarBeneficios = async (id, beneficios) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getMembresiaRedisKey(id));
   
-  // Invalidar cache por beneficio antiguos
   if (membresia.beneficios && membresia.beneficios.length > 0) {
     for (const beneficio of membresia.beneficios) {
       if (beneficio.tipo) {
@@ -319,7 +303,6 @@ const actualizarBeneficios = async (id, beneficios) => {
     }
   }
   
-  // Invalidar cache por beneficio nuevos
   if (beneficios && beneficios.length > 0) {
     for (const beneficio of beneficios) {
       if (beneficio.tipo) {

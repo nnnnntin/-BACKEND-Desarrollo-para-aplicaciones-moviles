@@ -91,7 +91,6 @@ const getPromocionesActivas = async () => {
   })
     .sort({ fechaFin: 1 });
   
-  // Tiempo de caché más corto para promociones activas (1 hora)
   await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
   return result;
 };
@@ -179,13 +178,11 @@ const createPromocion = async (promocionData) => {
   const newPromocion = new Promocion(promocionData);
   const saved = await newPromocion.save();
   
-  // Invalidar caches
   await redisClient.del(_getPromocionesFilterRedisKey({}));
   if (saved.codigo) {
     await redisClient.del(_getPromocionByCodigoRedisKey(saved.codigo));
   }
   
-  // Verificar si la promoción está activa actualmente
   const fechaActual = new Date();
   if (saved.activo && saved.fechaInicio <= fechaActual && saved.fechaFin >= fechaActual) {
     await redisClient.del(_getPromocionesActivasRedisKey());
@@ -204,12 +201,10 @@ const createPromocion = async (promocionData) => {
     }
   }
   
-  // Invalidar promociones por rango de fechas
   await redisClient.keys('promociones:fechas:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
   
-  // Invalidar promociones próximas a expirar
   await redisClient.keys('promociones:proximas-expiracion:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -222,7 +217,6 @@ const updatePromocion = async (id, payload) => {
   const promocion = await Promocion.findById(id);
   const updated = await Promocion.findByIdAndUpdate(id, payload, { new: true });
   
-  // Invalidar caches
   await redisClient.del(_getPromocionRedisKey(id));
   await redisClient.del(_getPromocionesFilterRedisKey({}));
   
@@ -233,7 +227,6 @@ const updatePromocion = async (id, payload) => {
     await redisClient.del(_getPromocionByCodigoRedisKey(updated.codigo));
   }
   
-  // Verificar cambios en estado activo, fechas o activo
   if (payload.fechaInicio || payload.fechaFin || 'activo' in payload) {
     await redisClient.del(_getPromocionesActivasRedisKey());
   }
@@ -245,7 +238,6 @@ const updatePromocion = async (id, payload) => {
     await redisClient.del(_getPromocionesPorTipoRedisKey(updated.tipo));
   }
   
-  // Entidades aplicables
   if (promocion.aplicableA && promocion.aplicableA.entidad) {
     await redisClient.del(_getPromocionesPorEntidadRedisKey(promocion.aplicableA.entidad));
     if (promocion.aplicableA.ids && promocion.aplicableA.ids.length > 0) {
@@ -263,14 +255,12 @@ const updatePromocion = async (id, payload) => {
     }
   }
   
-  // Invalidar promociones por rango de fechas si cambiaron las fechas
   if (payload.fechaInicio || payload.fechaFin) {
     await redisClient.keys('promociones:fechas:*').then(keys => {
       keys.forEach(key => redisClient.del(key));
     });
   }
   
-  // Invalidar promociones próximas a expirar
   await redisClient.keys('promociones:proximas-expiracion:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -287,7 +277,6 @@ const deletePromocion = async (id) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getPromocionRedisKey(id));
   await redisClient.del(_getPromocionesFilterRedisKey({}));
   
@@ -295,7 +284,6 @@ const deletePromocion = async (id) => {
     await redisClient.del(_getPromocionByCodigoRedisKey(promocion.codigo));
   }
   
-  // Verificar si la promoción estaba activa
   const fechaActual = new Date();
   if (promocion.activo && promocion.fechaInicio <= fechaActual && promocion.fechaFin >= fechaActual) {
     await redisClient.del(_getPromocionesActivasRedisKey());
@@ -314,7 +302,6 @@ const deletePromocion = async (id) => {
     }
   }
   
-  // Invalidar promociones próximas a expirar
   await redisClient.keys('promociones:proximas-expiracion:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -331,11 +318,9 @@ const activarPromocion = async (id) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getPromocionRedisKey(id));
   await redisClient.del(_getPromocionesFilterRedisKey({}));
   
-  // Verificar si la promoción ahora está activa
   const fechaActual = new Date();
   if (updated.fechaInicio <= fechaActual && updated.fechaFin >= fechaActual) {
     await redisClient.del(_getPromocionesActivasRedisKey());
@@ -356,10 +341,8 @@ const incrementarUsos = async (id) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getPromocionRedisKey(id));
   
-  // Si alcanzó el límite de usos, invalidar promociones activas
   if (updated.limiteCupos && updated.usosActuales >= updated.limiteCupos) {
     await redisClient.del(_getPromocionesActivasRedisKey());
   }
@@ -430,7 +413,6 @@ const getPromocionesProximasAExpirar = async (diasRestantes = 7) => {
   })
     .sort({ fechaFin: 1 });
   
-  // Caché de corta duración para promociones próximas a expirar
   await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
   return result;
 };
@@ -447,10 +429,8 @@ const actualizarAplicabilidad = async (id, entidad, ids) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getPromocionRedisKey(id));
   
-  // Invalidar caches de entidad anterior
   if (promocion.aplicableA && promocion.aplicableA.entidad) {
     await redisClient.del(_getPromocionesPorEntidadRedisKey(promocion.aplicableA.entidad));
     if (promocion.aplicableA.ids && promocion.aplicableA.ids.length > 0) {
@@ -460,7 +440,6 @@ const actualizarAplicabilidad = async (id, entidad, ids) => {
     }
   }
   
-  // Invalidar caches de nueva entidad
   await redisClient.del(_getPromocionesPorEntidadRedisKey(entidad));
   if (ids && ids.length > 0) {
     for (const entidadId of ids) {

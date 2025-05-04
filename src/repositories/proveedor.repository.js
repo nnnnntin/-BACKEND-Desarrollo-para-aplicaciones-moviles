@@ -89,7 +89,6 @@ const createProveedor = async (proveedorData) => {
   const newProveedor = new Proveedor(proveedorData);
   const saved = await newProveedor.save();
   
-  // Invalidar caches
   await redisClient.del(_getProveedoresFilterRedisKey({}));
   if (saved.tipo) {
     await redisClient.del(_getProveedoresByTipoRedisKey(saved.tipo));
@@ -98,14 +97,12 @@ const createProveedor = async (proveedorData) => {
     await redisClient.del(_getProveedoresVerificadosRedisKey());
   }
   
-  // Invalidar caches de calificación si aplica
   if (saved.calificacionPromedio) {
     for (let i = 1; i <= Math.min(saved.calificacionPromedio, 5); i++) {
       await redisClient.del(_getProveedoresPorCalificacionRedisKey(i));
     }
   }
   
-  // Invalidar caches de proveedores con más servicios
   await redisClient.keys('proveedores:mas-servicios:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -118,7 +115,6 @@ const updateProveedor = async (id, payload) => {
   const proveedor = await Proveedor.findById(id);
   const updated = await Proveedor.findByIdAndUpdate(id, payload, { new: true });
   
-  // Invalidar caches
   await redisClient.del(_getProveedorRedisKey(id));
   await redisClient.del(_getProveedoresFilterRedisKey({}));
   
@@ -129,21 +125,17 @@ const updateProveedor = async (id, payload) => {
     await redisClient.del(_getProveedoresByTipoRedisKey(updated.tipo));
   }
   
-  // Verificar cambios en verificado
   if (proveedor.verificado !== updated.verificado) {
     await redisClient.del(_getProveedoresVerificadosRedisKey());
   }
   
-  // Calificación
   if (proveedor.calificacionPromedio !== updated.calificacionPromedio) {
-    // Invalidar todas las caches de calificación que podrían verse afectadas
     const maxCalificacion = 5;
     for (let i = 1; i <= maxCalificacion; i++) {
       await redisClient.del(_getProveedoresPorCalificacionRedisKey(i));
     }
   }
   
-  // Servicios
   if (payload.serviciosOfrecidos) {
     await redisClient.keys('proveedores:mas-servicios:*').then(keys => {
       keys.forEach(key => redisClient.del(key));
@@ -162,7 +154,6 @@ const deleteProveedor = async (id) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getProveedorRedisKey(id));
   await redisClient.del(_getProveedoresFilterRedisKey({}));
   
@@ -173,14 +164,12 @@ const deleteProveedor = async (id) => {
     await redisClient.del(_getProveedoresVerificadosRedisKey());
   }
   
-  // Invalidar caches de calificación
   if (proveedor.calificacionPromedio) {
     for (let i = 1; i <= Math.min(proveedor.calificacionPromedio, 5); i++) {
       await redisClient.del(_getProveedoresPorCalificacionRedisKey(i));
     }
   }
   
-  // Invalidar caches de proveedores con más servicios
   await redisClient.keys('proveedores:mas-servicios:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -197,7 +186,6 @@ const activarProveedor = async (id) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getProveedorRedisKey(id));
   await redisClient.del(_getProveedoresFilterRedisKey({}));
   
@@ -208,14 +196,12 @@ const activarProveedor = async (id) => {
     await redisClient.del(_getProveedoresVerificadosRedisKey());
   }
   
-  // Invalidar caches de calificación
   if (proveedor.calificacionPromedio) {
     for (let i = 1; i <= Math.min(proveedor.calificacionPromedio, 5); i++) {
       await redisClient.del(_getProveedoresPorCalificacionRedisKey(i));
     }
   }
   
-  // Invalidar caches de proveedores con más servicios
   await redisClient.keys('proveedores:mas-servicios:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -231,7 +217,6 @@ const verificarProveedor = async (id) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getProveedorRedisKey(id));
   await redisClient.del(_getProveedoresVerificadosRedisKey());
   
@@ -247,10 +232,8 @@ const actualizarCalificacion = async (id, nuevaCalificacion) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getProveedorRedisKey(id));
   
-  // Invalidar caches de calificación
   const maxCalificacion = 5;
   for (let i = 1; i <= maxCalificacion; i++) {
     await redisClient.del(_getProveedoresPorCalificacionRedisKey(i));
@@ -267,10 +250,8 @@ const agregarServicio = async (id, servicioId) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getProveedorRedisKey(id));
   
-  // Invalidar caches de proveedores con más servicios
   await redisClient.keys('proveedores:mas-servicios:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -286,10 +267,8 @@ const eliminarServicio = async (id, servicioId) => {
     { new: true }
   );
   
-  // Invalidar caches
   await redisClient.del(_getProveedorRedisKey(id));
   
-  // Invalidar caches de proveedores con más servicios
   await redisClient.keys('proveedores:mas-servicios:*').then(keys => {
     keys.forEach(key => redisClient.del(key));
   });

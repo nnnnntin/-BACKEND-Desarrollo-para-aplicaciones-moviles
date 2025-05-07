@@ -19,7 +19,7 @@ const getResenas = async (filtros = {}, skip = 0, limit = 10) => {
       const cached = await redisClient.get(key);
       if (typeof cached === "string") {
         try { return JSON.parse(cached); }
-        catch { /* parse fallido, sigue a Mongo */ }
+        catch {  }
       } else if (cached) {
         return cached;
       }

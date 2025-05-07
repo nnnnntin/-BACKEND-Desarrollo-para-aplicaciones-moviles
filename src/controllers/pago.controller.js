@@ -22,12 +22,10 @@ const {
 } = require("../routes/validations/pago.validation");
 
 const getPagosController = async (req, res) => {
-  // 1) extraer skip, limit y filtros
   const { skip = "0", limit = "10", ...filtros } = req.query;
   const skipNum = parseInt(skip, 10);
   const limitNum = parseInt(limit, 10);
 
-  // 2) validación
   if (isNaN(skipNum) || skipNum < 0) {
     return res.status(400).json({
       message: "Parámetro inválido",
@@ -42,7 +40,6 @@ const getPagosController = async (req, res) => {
   }
 
   try {
-    // 3) llamar al repositorio
     const pagos = await getPagos(filtros, skipNum, limitNum);
     return res.status(200).json(pagos);
   } catch (error) {

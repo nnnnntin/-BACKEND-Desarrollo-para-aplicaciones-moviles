@@ -231,7 +231,6 @@ const getReservasPorRangoFechasController = async (req, res) => {
 };
 
 const createReservaServicioController = async (req, res) => {
-  // 1. Validación de esquema Joi
   const { error, value } = createReservaServicioSchema.validate(req.body);
   if (error) {
     return res.status(400).json({
@@ -243,7 +242,6 @@ const createReservaServicioController = async (req, res) => {
 
   const { usuarioId, servicioId, reservaEspacioId } = value;
 
-  // 2. Validar existencia de usuario, servicio y (opcional) reserva de espacio
   try {
     const usuario = await findUsuarioById(usuarioId);
     if (!usuario) {
@@ -278,7 +276,6 @@ const createReservaServicioController = async (req, res) => {
     });
   }
 
-  // 3. Crear la reserva de servicio
   try {
     const reserva = await createReservaServicio(value);
     return res.status(201).json({
@@ -296,7 +293,6 @@ const createReservaServicioController = async (req, res) => {
       });
     }
 
-    // Manejo de errores de disponibilidad, pagos, etc.
     if (err.message.includes("not available")) {
       return res.status(400).json({
         message: "Servicio no disponible",

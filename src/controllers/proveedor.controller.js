@@ -128,7 +128,6 @@ const createProveedorController = async (req, res) => {
     });
   }
 
-  // Verificar si los servicios ofrecidos existen
   const { serviciosOfrecidos } = value;
   if (serviciosOfrecidos && serviciosOfrecidos.length > 0) {
     try {

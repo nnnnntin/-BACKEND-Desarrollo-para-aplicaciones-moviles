@@ -18,18 +18,16 @@ const getOficinas = async (filtros = {}, skip = 0, limit = 10) => {
   const key = _getOficinasFilterRedisKey(filtros, skip, limit);
 
   try {
-    // 1) intenta servir desde cache
     if (await redisClient.exists(key)) {
       const cached = await redisClient.get(key);
       if (typeof cached === "string") {
         try { return JSON.parse(cached); }
-        catch { /* parse fallido */ }
+        catch {}
       } else if (cached) {
         return cached;
       }
     }
 
-    // 2) va a Mongo con paginación
     console.log("[Mongo] getOficinas con skip/limit");
     const result = await Oficina.find(filtros)
       .populate("ubicacion.edificioId")
@@ -39,7 +37,6 @@ const getOficinas = async (filtros = {}, skip = 0, limit = 10) => {
       .limit(limit)
       .lean();
 
-    // 3) guarda en cache
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
     return result;
 

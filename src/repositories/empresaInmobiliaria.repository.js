@@ -21,7 +21,6 @@ const getEmpresasInmobiliarias = async (filtros = {}, skip = 0, limit = 10) => {
         try {
           return JSON.parse(cached);
         } catch (parseError) {
-          // fallo parse, seguimos a Mongo
         }
       } else if (cached) {
         return cached;

@@ -31,7 +31,6 @@ const getEspacios = async (filtros = {}, skip = 0, limit = 10) => {
         try {
           return JSON.parse(cached);
         } catch (parseError) {
-          // si falla parse, continúa a Mongo
         }
       } else if (cached) {
         return cached;

@@ -13,7 +13,6 @@ const getNotificaciones = async (filtros = {}, skip = 0, limit = 10) => {
   const key = _getNotificacionesFilterRedisKey(filtros, skip, limit);
 
   try {
-    // Intentamos desde cache
     const exists = await redisClient.exists(key);
     if (exists) {
       const cached = await redisClient.get(key);
@@ -21,14 +20,12 @@ const getNotificaciones = async (filtros = {}, skip = 0, limit = 10) => {
         try {
           return JSON.parse(cached);
         } catch {
-          // fallback a Mongo
         }
       } else if (cached) {
         return cached;
       }
     }
 
-    // Si no hay cache, vamos a Mongo
     console.log("[Mongo] getNotificaciones con paginación");
     const result = await Notificacion.find(filtros)
       .populate("destinatarioId", "nombre email")
@@ -38,7 +35,6 @@ const getNotificaciones = async (filtros = {}, skip = 0, limit = 10) => {
       .limit(limit)
       .lean();
 
-    // Guardamos resultado en cache
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
     return result;
 

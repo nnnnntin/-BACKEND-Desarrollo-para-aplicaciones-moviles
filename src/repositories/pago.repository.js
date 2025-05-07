@@ -15,21 +15,18 @@ const getPagos = async (filtros = {}, skip = 0, limit = 10) => {
   const key = _getPagosFilterRedisKey(filtros, skip, limit);
 
   try {
-    // 1) Intenta servir desde Redis
     if (await redisClient.exists(key)) {
       const cached = await redisClient.get(key);
       if (typeof cached === "string") {
         try {
           return JSON.parse(cached);
         } catch {
-          // parse falló, seguirá a Mongo
         }
       } else if (cached) {
         return cached;
       }
     }
 
-    // 2) Si no está en cache, va a Mongo con paginación
     console.log("[Mongo] getPagos con skip/limit");
     const result = await Pago.find(filtros)
       .populate("usuarioId", "nombre email")
@@ -39,13 +36,11 @@ const getPagos = async (filtros = {}, skip = 0, limit = 10) => {
       .limit(limit)
       .lean();
 
-    // 3) Guarda en Redis
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
     return result;
 
   } catch (err) {
     console.log("[Error Redis] fallback a Mongo sin cache", err);
-    // Fallback directo a Mongo
     return await Pago.find(filtros)
       .populate("usuarioId", "nombre email")
       .populate("facturaId")

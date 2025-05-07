@@ -2,50 +2,51 @@ const Reserva = require("../models/reserva.model");
 const connectToRedis = require("../services/redis.service");
 
 const _getReservasRedisKey = (id) => `id:${id}-reservas`;
-const _getReservasFilterRedisKey = (filtros) => `reservas:${JSON.stringify(filtros)}`;
+const _getReservasFilterRedisKey = (filtros, skip, limit) =>
+  `reservas:${JSON.stringify(filtros)}:skip=${skip}:limit=${limit}`;
 const _getReservasByUsuarioRedisKey = (usuarioId) => `usuario:${usuarioId}-reservas`;
 const _getReservasByEntidadRedisKey = (tipoEntidad, entidadId) => `entidad:${tipoEntidad}:${entidadId}-reservas`;
 const _getReservasPendientesAprobacionRedisKey = () => `reservas:pendientes-aprobacion`;
 const _getReservasPorFechaRedisKey = (fechaInicio, fechaFin) => `reservas:fecha:${fechaInicio}-${fechaFin}`;
 const _getReservasRecurrentesRedisKey = () => `reservas:recurrentes`;
 
-const getReservas = async (filtros = {}) => {
+const getReservas = async (filtros = {}, skip = 0, limit = 10) => {
   const redisClient = connectToRedis();
-  const key = _getReservasFilterRedisKey(filtros);
-  
+  const key = _getReservasFilterRedisKey(filtros, skip, limit);
+
   try {
-    const exists = await redisClient.exists(key);
-    
-    if (exists) {
+    if (await redisClient.exists(key)) {
       const cached = await redisClient.get(key);
-      
-      if (typeof cached === 'object' && cached !== null) {
+      if (typeof cached === "string") {
+        try { return JSON.parse(cached); }
+        catch { /* fall back */ }
+      } else if (cached) {
         return cached;
       }
-      
-      if (typeof cached === 'string') {
-        try {
-          return JSON.parse(cached);
-        } catch (parseError) {}
-      }
     }
-    
+
+    console.log("[Mongo] getReservas con skip/limit");
     const result = await Reserva.find(filtros)
-      .populate('usuarioId', 'nombre email')
-      .populate('pagoId')
-      .populate('serviciosAdicionales')
-      .populate('aprobador.usuarioId', 'nombre email')
+      .populate("usuarioId", "nombre email")
+      .populate("pagoId")
+      .populate("serviciosAdicionales")
+      .populate("aprobador.usuarioId", "nombre email")
+      .skip(skip)
+      .limit(limit)
       .lean();
-    
-    await redisClient.set(key, result, { ex: 3600 });
-    
+
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
     return result;
-  } catch (error) {
+
+  } catch (err) {
+    console.log("[Error Redis] fallback a Mongo sin cache", err);
     return await Reserva.find(filtros)
-      .populate('usuarioId', 'nombre email')
-      .populate('pagoId')
-      .populate('serviciosAdicionales')
-      .populate('aprobador.usuarioId', 'nombre email')
+      .populate("usuarioId", "nombre email")
+      .populate("pagoId")
+      .populate("serviciosAdicionales")
+      .populate("aprobador.usuarioId", "nombre email")
+      .skip(skip)
+      .limit(limit)
       .lean();
   }
 };

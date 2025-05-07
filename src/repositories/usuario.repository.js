@@ -5,38 +5,39 @@ const connectToRedis = require("../services/redis.service");
 const _getUsuarioRedisKey = (id) => `id:${id}-usuario`;
 const _getUsuarioByEmailRedisKey = (email) => `usuario:email:${email}`;
 const _getUsuarioByUsernameRedisKey = (username) => `usuario:username:${username}`;
-const _getUsuariosFilterRedisKey = (filtros) => `usuarios:${JSON.stringify(filtros)}`;
+const _getUsuariosFilterRedisKey = (filtros, skip, limit) =>
+  `usuarios:${JSON.stringify(filtros)}:skip=${skip}:limit=${limit}`;
 const _getUsuariosByTipoRedisKey = (tipoUsuario) => `usuarios:tipo:${tipoUsuario}`;
 
-const getUsuarios = async (filtros = {}) => {
+const getUsuarios = async (filtros = {}, skip = 0, limit = 10) => {
   const redisClient = connectToRedis();
-  const key = _getUsuariosFilterRedisKey(filtros);
-  
+  const key = _getUsuariosFilterRedisKey(filtros, skip, limit);
+
   try {
-    const exists = await redisClient.exists(key);
-    
-    if (exists) {
+    if (await redisClient.exists(key)) {
       const cached = await redisClient.get(key);
-      
-      if (typeof cached === 'object' && cached !== null) {
+      if (typeof cached === "string") {
+        try { return JSON.parse(cached); } catch {}
+      } else if (cached) {
         return cached;
       }
-      
-      if (typeof cached === 'string') {
-        try {
-          return JSON.parse(cached);
-        } catch (parseError) {}
-      }
     }
-    
-    console.log("[Leyendo getUsuarios desde MongoDB]");
-    const result = await Usuario.find(filtros).lean();
+
+    console.log("[Mongo] getUsuarios con skip/limit");
+    const result = await Usuario.find(filtros)
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-    
     return result;
-  } catch (error) {
-    console.log("[Error en Redis, leyendo desde MongoDB]", error);
-    return await Usuario.find(filtros).lean();
+
+  } catch (err) {
+    console.log("[Error Redis] fallback a Mongo sin cache", err);
+    return await Usuario.find(filtros)
+      .skip(skip)
+      .limit(limit)
+      .lean();
   }
 };
 
@@ -185,6 +186,10 @@ const updateUsuario = async (id, payload) => {
   const redisClient = connectToRedis();
   const usuario = await Usuario.findById(id);
   
+  if (!usuario) {
+    return null;
+  }
+
   if (payload.password) {
     payload.password = await bcrypt.hash(payload.password, 10);
   }

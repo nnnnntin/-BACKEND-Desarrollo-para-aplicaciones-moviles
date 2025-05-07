@@ -2,37 +2,46 @@ const Disponibilidad = require("../models/disponibilidad.model");
 const connectToRedis = require("../services/redis.service");
 
 const _getDisponibilidadesRedisKey = (id) => `id:${id}-disponibilidades`;
-const _getDisponibilidadesFilterRedisKey = (filtros) => `disponibilidades:${JSON.stringify(filtros)}`;
+const _getDisponibilidadesFilterRedisKey = (filtros, skip, limit) => `disponibilidades:${JSON.stringify({ filtros, skip, limit })}`;
 
-const getDisponibilidades = async (filtros = {}) => {
+const getDisponibilidades = async (filtros = {}, skip = 0, limit = 10) => {
   const redisClient = connectToRedis();
-  const key = _getDisponibilidadesFilterRedisKey(filtros);
-  
+  const key = _getDisponibilidadesFilterRedisKey(filtros, skip, limit);
+
   try {
     const exists = await redisClient.exists(key);
-    
+
     if (exists) {
       const cached = await redisClient.get(key);
-      
-      if (typeof cached === 'object' && cached !== null) {
+      if (typeof cached === "object" && cached !== null) {
         return cached;
       }
-      
-      if (typeof cached === 'string') {
+      if (typeof cached === "string") {
         try {
           return JSON.parse(cached);
-        } catch (parseError) {}
+        } catch (parseError) {
+          console.log(parseError);
+        }
       }
     }
-    
-    console.log("[Leyendo getDisponibilidades desde MongoDB]");
-    const result = await Disponibilidad.find(filtros).lean();
+
+    console.log("[Mongo] getDisponibilidades con paginación");
+    const result = await Disponibilidad
+      .find(filtros)
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-    
     return result;
+
   } catch (error) {
-    console.log("[Error en Redis, leyendo desde MongoDB]", error);
-    return await Disponibilidad.find(filtros).lean();
+    console.log("[Error Redis] leyendo desde Mongo sin paginación", error);
+    return await Disponibilidad
+      .find(filtros)
+      .skip(skip)
+      .limit(limit)
+      .lean();
   }
 };
 

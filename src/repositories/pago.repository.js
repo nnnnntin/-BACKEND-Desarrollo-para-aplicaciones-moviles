@@ -2,48 +2,56 @@ const Pago = require("../models/pago.model");
 const connectToRedis = require("../services/redis.service");
 
 const _getPagoRedisKey = (id) => `id:${id}-pago`;
-const _getPagosFilterRedisKey = (filtros) => `pagos:${JSON.stringify(filtros)}`;
+const _getPagosFilterRedisKey = (filtros, skip, limit) =>
+  `pagos:${JSON.stringify(filtros)}:skip=${skip}:limit=${limit}`;
 const _getPagosByUsuarioRedisKey = (usuarioId) => `usuario:${usuarioId}-pagos`;
 const _getPagosPorConceptoRedisKey = (conceptoPago) => `pagos:concepto:${conceptoPago}`;
 const _getPagosPorEstadoRedisKey = (estado) => `pagos:estado:${estado}`;
 const _getPagosPorEntidadRedisKey = (tipoEntidad, entidadId) => `entidad:${tipoEntidad}:${entidadId}-pagos`;
 const _getPagosPorRangoMontosRedisKey = (montoMin, montoMax) => `pagos:monto:${montoMin}-${montoMax}`;
 
-const getPagos = async (filtros = {}) => {
+const getPagos = async (filtros = {}, skip = 0, limit = 10) => {
   const redisClient = connectToRedis();
-  const key = _getPagosFilterRedisKey(filtros);
-  
+  const key = _getPagosFilterRedisKey(filtros, skip, limit);
+
   try {
-    const exists = await redisClient.exists(key);
-    
-    if (exists) {
+    // 1) Intenta servir desde Redis
+    if (await redisClient.exists(key)) {
       const cached = await redisClient.get(key);
-      
-      if (typeof cached === 'object' && cached !== null) {
-        return cached;
-      }
-      
-      if (typeof cached === 'string') {
+      if (typeof cached === "string") {
         try {
           return JSON.parse(cached);
-        } catch (parseError) {}
+        } catch {
+          // parse falló, seguirá a Mongo
+        }
+      } else if (cached) {
+        return cached;
       }
     }
-    
+
+    // 2) Si no está en cache, va a Mongo con paginación
+    console.log("[Mongo] getPagos con skip/limit");
     const result = await Pago.find(filtros)
-      .populate('usuarioId', 'nombre email')
-      .populate('facturaId')
+      .populate("usuarioId", "nombre email")
+      .populate("facturaId")
       .sort({ fecha: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
-    
-    await redisClient.set(key, result, { ex: 3600 });
-    
+
+    // 3) Guarda en Redis
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
     return result;
-  } catch (error) {
+
+  } catch (err) {
+    console.log("[Error Redis] fallback a Mongo sin cache", err);
+    // Fallback directo a Mongo
     return await Pago.find(filtros)
-      .populate('usuarioId', 'nombre email')
-      .populate('facturaId')
+      .populate("usuarioId", "nombre email")
+      .populate("facturaId")
       .sort({ fecha: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
   }
 };

@@ -5,8 +5,7 @@
     "description": "Documentación Swagger generada automáticamente con swagger-autogen",
     "version": "1.0.0"
   },
-  "servers": [
-    {
+  "servers": [{
       "url": "/",
       "description": "Entorno actual"
     },
@@ -313,9 +312,33 @@
         "tags": [
           "Membresías - Gestión de membresías"
         ],
+        "parameters": [{
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a omitir (offset); entero ≥ 0",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar; entero ≥ 1",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de membresías obtenida exitosamente"
+          },
+          "400": {
+            "description": "Bad Request (parámetro inválido)"
           },
           "500": {
             "description": "Internal Server Error"
@@ -770,6 +793,27 @@
         "tags": [
           "Usuarios - Gestión de usuarios"
         ],
+        "parameters": [{
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a omitir (offset); entero ≥ 0",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar; entero ≥ 1",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de usuarios obtenida exitosamente"
@@ -969,7 +1013,7 @@
           "content": {
             "application/json": {
               "example": {
-                "usuarioId": "USR-456",
+                "usuarioId": "68116f4ec90fafe52c027a0e",
                 "nuevoRol": "administrador"
               }
             }
@@ -1043,9 +1087,33 @@
         "tags": [
           "Proveedores - Gestión de proveedores"
         ],
+        "parameters": [{
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a ommitir (offset); entero ≥ 0",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar; entero ≥ 1",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de proveedores obtenida exitosamente"
+          },
+          "400": {
+            "description": "Bad Request (parámetro inválido)"
           },
           "500": {
             "description": "Internal Server Error"
@@ -1615,9 +1683,33 @@
           "Empresas Inmobiliarias - Gestión de empresas inmobiliarias"
         ],
         "summary": "Obtener todas las empresas inmobiliarias",
+        "parameters": [{
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a omitir (offset); entero ≥ 0",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar; entero ≥ 1",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de empresas inmobiliarias obtenida exitosamente"
+          },
+          "400": {
+            "description": "Bad Request (parámetro inválido)"
           },
           "500": {
             "description": "Internal Server Error"
@@ -2039,7 +2131,7 @@
         "tags": [
           "Empresas Inmobiliarias - Gestión de empresas inmobiliarias"
         ],
-        "summary": "Activar o desactivar empresa inmobiliaria",
+        "summary": "Activar empresa inmobiliaria",
         "responses": {
           "200": {
             "description": "Estado de la empresa inmobiliaria actualizado exitosamente"
@@ -2452,9 +2544,33 @@
           "Edificios - Gestión de edificios"
         ],
         "summary": "Obtener todos los edificios",
+        "parameters": [{
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a omitir (offset); entero ≥ 0",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar; entero ≥ 1",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de edificios obtenida exitosamente"
+          },
+          "400": {
+            "description": "Bad Request (parámetro inválido)"
           },
           "500": {
             "description": "Internal Server Error"
@@ -2988,7 +3104,7 @@
         "tags": [
           "Edificios - Gestión de edificios"
         ],
-        "summary": "Activar o desactivar edificio",
+        "summary": "Activar edificio",
         "responses": {
           "200": {
             "description": "Estado del edificio actualizado exitosamente"
@@ -3323,9 +3439,33 @@
         "tags": [
           "Espacios - Gestión de espacios"
         ],
+        "parameters": [{
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a omitir (offset); entero ≥ 0",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar; entero ≥ 1",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de espacios obtenida exitosamente"
+          },
+          "400": {
+            "description": "Bad Request (parámetro inválido)"
           },
           "500": {
             "description": "Internal Server Error"
@@ -3844,9 +3984,33 @@
         "tags": [
           "Oficinas - Gestión de oficinas"
         ],
+        "parameters": [{
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a omitir (offset); entero ≥ 0",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar; entero ≥ 1",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de oficinas obtenida exitosamente"
+          },
+          "400": {
+            "description": "Bad Request (parámetro inválido)"
           },
           "500": {
             "description": "Internal Server Error"
@@ -4439,6 +4603,27 @@
         "tags": [
           "Salas de Reunión - Gestión de salas de reunión"
         ],
+        "parameters": [{
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a omitir (offset); entero ≥ 0",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar; entero ≥ 1",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de salas obtenida exitosamente"
@@ -4498,7 +4683,7 @@
                     "viernes"
                   ]
                 },
-                "propietarioId": "60f7e2a4b5c6d7e8f9a0b3f",
+                "propietarioId": "60f7e2a4b5c6d7e8f9da0b3f",
                 "empresaInmobiliariaId": "680e9c07d3dc5564ab1e3791",
                 "estado": "disponible",
                 "activo": true
@@ -4700,7 +4885,7 @@
               "example": {
                 "porHora": 1800,
                 "mediaDia": 7000,
-                "diaDompleto": 12000
+                "diaCompleto": 12000
               }
             }
           }
@@ -4866,9 +5051,33 @@
         "tags": [
           "Escritorios Flexibles - Gestión de escritorios flexibles"
         ],
+        "parameters": [{
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a omitir (offset); entero ≥ 0",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar; entero ≥ 1",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de escritorios flexibles obtenida exitosamente"
+          },
+          "400": {
+            "description": "Bad Request (parámetro inválido)"
           },
           "500": {
             "description": "Internal Server Error"
@@ -5495,6 +5704,25 @@
           "Disponibilidades - Gestión de disponibilidades"
         ],
         "summary": "Obtener todas las disponibilidades",
+        "parameters": [{
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a omitir (offset)",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de disponibilidades obtenida exitosamente"
@@ -5530,7 +5758,8 @@
                     "enum": [
                       "oficina",
                       "sala_reunion",
-                      "escritorio_flexible"
+                      "escritorio_flexible",
+                      "servicio"
                     ]
                   },
                   "fechaDisponibilidad": {
@@ -5548,24 +5777,19 @@
                       "properties": {
                         "horaInicio": {
                           "type": "string",
-                          "pattern": "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
+                          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
                         },
                         "horaFin": {
                           "type": "string",
-                          "pattern": "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
+                          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
                         },
                         "disponible": {
-                          "type": "boolean",
-                          "default": true
-                        },
-                        "reservaId": {
-                          "type": "string"
+                          "type": "boolean"
                         },
                         "bloqueado": {
-                          "type": "boolean",
-                          "default": false
+                          "type": "boolean"
                         },
-                        "motivo": {
+                        "reservaId": {
                           "type": "string"
                         }
                       }
@@ -5573,17 +5797,22 @@
                   }
                 },
                 "example": {
-                  "entidadId": "60f7a5b2c2a1e45d6f9e1234",
+                  "entidadId": "610c0f1f5a2d3b4c5d6e7f01",
                   "tipoEntidad": "oficina",
-                  "fechaDisponibilidad": "2025-05-01",
+                  "fechaDisponibilidad": "2025-05-10",
                   "franjas": [{
-                    "horaInicio": "09:00",
-                    "horaFin": "11:00",
-                    "disponible": true,
-                    "reservaId": null,
-                    "bloqueado": false,
-                    "motivo": null
-                  }]
+                      "horaInicio": "09:00",
+                      "horaFin": "10:00",
+                      "disponible": true,
+                      "bloqueado": false
+                    },
+                    {
+                      "horaInicio": "10:00",
+                      "horaFin": "11:00",
+                      "disponible": true,
+                      "bloqueado": false
+                    }
+                  ]
                 }
               }
             }
@@ -5724,33 +5953,51 @@
       }
     },
     "/v1/disponibilidades/entidad/{entidadId}/{tipoEntidad}": {
-      "parameters": [{
-          "name": "entidadId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "tipoEntidad",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string",
-            "enum": [
-              "oficina",
-              "sala_reunion",
-              "escritorio_flexible"
-            ]
-          }
-        }
-      ],
       "get": {
         "tags": [
           "Disponibilidades - Gestión de disponibilidades"
         ],
         "summary": "Obtener disponibilidades por entidad",
+        "parameters": [{
+            "name": "entidadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tipoEntidad",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "oficina",
+                "sala_reunion",
+                "escritorio_flexible"
+              ]
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a omitir (offset)",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Disponibilidades encontradas"
@@ -5815,51 +6062,69 @@
       }
     },
     "/v1/disponibilidades/rango": {
-      "parameters": [{
-          "name": "entidadId",
-          "in": "query",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "tipoEntidad",
-          "in": "query",
-          "required": true,
-          "schema": {
-            "type": "string",
-            "enum": [
-              "oficina",
-              "sala_reunion",
-              "escritorio_flexible"
-            ]
-          }
-        },
-        {
-          "name": "fechaInicio",
-          "in": "query",
-          "required": true,
-          "schema": {
-            "type": "string",
-            "format": "date"
-          }
-        },
-        {
-          "name": "fechaFin",
-          "in": "query",
-          "required": true,
-          "schema": {
-            "type": "string",
-            "format": "date"
-          }
-        }
-      ],
       "get": {
         "tags": [
           "Disponibilidades - Gestión de disponibilidades"
         ],
         "summary": "Obtener disponibilidades en un rango de fechas",
+        "parameters": [{
+            "name": "entidadId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tipoEntidad",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "oficina",
+                "sala_reunion",
+                "escritorio_flexible"
+              ]
+            }
+          },
+          {
+            "name": "fechaInicio",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "fechaFin",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a omitir (offset)",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Disponibilidades encontradas"
@@ -6422,9 +6687,33 @@
         "tags": [
           "Servicios Adicionales - Gestión de servicios adicionales"
         ],
+        "parameters": [{
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a omitir (offset); entero ≥ 0",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar; entero ≥ 1",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de servicios obtenida exitosamente"
+          },
+          "400": {
+            "description": "Bad Request (parámetro inválido)"
           },
           "500": {
             "description": "Error interno del servidor"
@@ -6982,9 +7271,33 @@
         "tags": [
           "Promociones - Gestión de promociones"
         ],
+        "parameters": [{
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a omitir (offset); entero ≥ 0",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar; entero ≥ 1",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de promociones obtenida exitosamente"
+          },
+          "400": {
+            "description": "Bad Request (parámetro inválido)"
           },
           "500": {
             "description": "Internal Server Error"
@@ -7520,9 +7833,33 @@
         "tags": [
           "Reservas - Gestión de reservas"
         ],
+        "parameters": [{
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a omitir (offset); entero ≥ 0",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar; entero ≥ 1",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de reservas obtenida exitosamente"
+          },
+          "400": {
+            "description": "Bad Request (parámetro inválido)"
           },
           "500": {
             "description": "Internal Server Error"
@@ -8087,9 +8424,33 @@
         "tags": [
           "Reservas de Servicio - Gestión de reservas de servicio"
         ],
+        "parameters": [{
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a omitir (offset); entero ≥ 0",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar; entero ≥ 1",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de reservas obtenida exitosamente"
+          },
+          "400": {
+            "description": "Bad Request (parámetro inválido)"
           },
           "500": {
             "description": "Internal Server Error"
@@ -8680,9 +9041,33 @@
         "tags": [
           "Pagos - Gestión de pagos"
         ],
+        "parameters": [{
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a omitir (offset); entero ≥ 0",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar; entero ≥ 1",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de pagos obtenida exitosamente"
+          },
+          "400": {
+            "description": "Bad Request (parámetro inválido)"
           },
           "500": {
             "description": "Internal Server Error"
@@ -9229,9 +9614,33 @@
         "tags": [
           "Facturas - Gestión de facturación"
         ],
+        "parameters": [{
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a omitir (offset); entero ≥ 0",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar; entero ≥ 1",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de facturas obtenida exitosamente"
+          },
+          "400": {
+            "description": "Bad Request (parámetro inválido)"
           },
           "500": {
             "description": "Internal Server Error"
@@ -9270,7 +9679,7 @@
                 "metodoPago": "Transferencia bancaria",
                 "pdfUrl": "https://cdn.miempresa.com/facturas/FAC-2025-0042.pdf",
                 "pagosIds": [
-                  "60e6d2b4f8a9c1d2e3f4g5h6"
+                  "681bd88d0a15097dbac6e06f"
                 ]
               }
             }
@@ -9801,67 +10210,130 @@
         }
       }
     },
-    "/v1/resenas": {
-      "get": {
-        "summary": "Obtener todas las reseñas",
-        "tags": [
-          "Reseñas - Gestión de reseñas"
-        ],
-        "responses": {
-          "200": {
-            "description": "Lista de reseñas obtenida exitosamente"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
+"/v1/resenas": {
+  "get": {
+    "summary": "Obtener todas las reseñas",
+    "tags": [
+      "Reseñas - Gestión de reseñas"
+    ],
+    "parameters": [
+      {
+        "name": "skip",
+        "in": "query",
+        "description": "Número de reseñas a omitir (offset); entero ≥ 0",
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
         }
       },
-      "post": {
-        "summary": "Crear nueva reseña",
-        "tags": [
-          "Reseñas - Gestión de reseñas"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "example": {
-                "usuarioId": "60f7e2a4b5c6d7e8f9a0b1c2",
-                "entidadResenada": {
-                  "tipo": "oficina",
-                  "id": "680ea062cf6704bf2a60f954"
-                },
-                "reservaId": "680ff2323eef511ba5d95cbb",
-                "titulo": "Excelente experiencia",
-                "comentario": "La oficina superó mis expectativas en limpieza y ubicación.",
-                "calificacion": 5,
-                "aspectosEvaluados": {
-                  "limpieza": 5,
-                  "ubicacion": 4,
-                  "servicios": 5,
-                  "relacionCalidadPrecio": 4
-                },
-                "imagenes": [
-                  "https://cdn.miempresa.com/rese%C3%B1as/res-015-img1.jpg"
+      {
+        "name": "limit",
+        "in": "query",
+        "description": "Máximo de reseñas a retornar; entero ≥ 1",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 10
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Lista de reseñas obtenida exitosamente"
+      },
+      "400": {
+        "description": "Bad Request (parámetro inválido)"
+      },
+      "500": {
+        "description": "Internal Server Error"
+      }
+    }
+  },
+  "post": {
+    "summary": "Crear nueva reseña",
+    "tags": [
+      "Reseñas - Gestión de reseñas"
+    ],
+    "requestBody": {
+      "required": true,
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "required": [
+              "usuarioId",
+              "reservaId",
+              "entidadResenada",
+              "calificacion"
+            ],
+            "properties": {
+              "usuarioId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "reservaId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "entidadResenada": {
+                "type": "object",
+                "required": [
+                  "tipo",
+                  "id"
                 ],
-                "estado": "pendiente"
+                "properties": {
+                  "tipo": {
+                    "type": "string",
+                    "enum": [
+                      "oficina",
+                      "sala_reunion",
+                      "escritorio_flexible",
+                      "servicio"
+                    ]
+                  },
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              },
+              "calificacion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5
+              },
+              "comentario": {
+                "type": "string"
               }
             }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Reseña creada exitosamente"
           },
-          "400": {
-            "description": "Bad Request"
-          },
-          "500": {
-            "description": "Internal Server Error"
+          "example": {
+            "usuarioId": "60f7e2a4b5c6d7e8f9a0b1c2",
+            "reservaId": "680ff2323eef511ba5d95cbb",
+            "entidadResenada": {
+              "tipo": "oficina",
+              "id": "610c0f1f5a2d3b4c5d6e7f01"
+            },
+            "calificacion": 5,
+            "comentario": "Excelente espacio, muy cómodo y limpio."
           }
         }
       }
     },
+    "responses": {
+      "201": {
+        "description": "Reseña creada exitosamente"
+      },
+      "400": {
+        "description": "Bad Request (datos inválidos o faltantes)"
+      },
+      "500": {
+        "description": "Internal Server Error"
+      }
+    }
+  }
+},
     "/v1/resenas/{id}": {
       "parameters": [{
         "name": "id",
@@ -10214,9 +10686,33 @@
         "tags": [
           "Notificaciones - Gestión de notificaciones"
         ],
+        "parameters": [{
+            "name": "skip",
+            "in": "query",
+            "description": "Número de registros a omitir (offset); entero ≥ 0",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de registros a retornar; entero ≥ 1",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de notificaciones obtenida exitosamente"
+          },
+          "400": {
+            "description": "Bad Request (parámetro inválido)"
           },
           "500": {
             "description": "Internal Server Error"

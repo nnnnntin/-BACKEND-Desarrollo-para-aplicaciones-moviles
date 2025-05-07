@@ -22,14 +22,31 @@ const {
 } = require("../routes/validations/edificio.validation");
 
 const getEdificiosController = async (req, res) => {
+  const { skip = "0", limit = "10", ...filtros } = req.query;
+  const skipNum = parseInt(skip, 10);
+  const limitNum = parseInt(limit, 10);
+
+  if (isNaN(skipNum) || skipNum < 0) {
+    return res.status(400).json({
+      message: "Parámetro inválido",
+      details: "`skip` debe ser un entero ≥ 0",
+    });
+  }
+  if (isNaN(limitNum) || limitNum < 1) {
+    return res.status(400).json({
+      message: "Parámetro inválido",
+      details: "`limit` debe ser un entero ≥ 1",
+    });
+  }
+
   try {
-    const edificios = await getEdificios();
+    const edificios = await getEdificios(filtros, skipNum, limitNum);
     res.status(200).json(edificios);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ 
-      message: "Error al obtener los edificios", 
-      details: error.message 
+    res.status(500).json({
+      message: "Error al obtener los edificios",
+      details: error.message,
     });
   }
 };

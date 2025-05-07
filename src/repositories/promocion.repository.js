@@ -2,7 +2,8 @@ const Promocion = require("../models/promocion.model");
 const connectToRedis = require("../services/redis.service");
 
 const _getPromocionRedisKey = (id) => `id:${id}-promocion`;
-const _getPromocionesFilterRedisKey = (filtros) => `promociones:${JSON.stringify(filtros)}`;
+const _getPromocionesFilterRedisKey = (filtros, skip, limit) =>
+  `promociones:${JSON.stringify(filtros)}:skip=${skip}:limit=${limit}`;
 const _getPromocionByCodigoRedisKey = (codigo) => `promocion:codigo:${codigo}`;
 const _getPromocionesActivasRedisKey = () => `promociones:activas`;
 const _getPromocionesPorTipoRedisKey = (tipo) => `promociones:tipo:${tipo}`;
@@ -10,37 +11,38 @@ const _getPromocionesPorEntidadRedisKey = (entidad, entidadId) => `promociones:e
 const _getPromocionesPorRangoDeFechasRedisKey = (fechaInicio, fechaFin) => `promociones:fechas:${fechaInicio}-${fechaFin}`;
 const _getPromocionesProximasAExpirarRedisKey = (diasRestantes) => `promociones:proximas-expiracion:${diasRestantes}`;
 
-const getPromociones = async (filtros = {}) => {
+const getPromociones = async (filtros = {}, skip = 0, limit = 10) => {
   const redisClient = connectToRedis();
-  const key = _getPromocionesFilterRedisKey(filtros);
-  
+  const key = _getPromocionesFilterRedisKey(filtros, skip, limit);
+
   try {
-    const exists = await redisClient.exists(key);
-    
-    if (exists) {
+    if (await redisClient.exists(key)) {
       const cached = await redisClient.get(key);
-      
-      if (typeof cached === 'object' && cached !== null) {
+      if (typeof cached === "string") {
+        try { return JSON.parse(cached); }
+        catch { /* parse fallido, seguimos a Mongo */ }
+      } else if (cached) {
         return cached;
       }
-      
-      if (typeof cached === 'string') {
-        try {
-          return JSON.parse(cached);
-        } catch (parseError) {}
-      }
     }
-    
+
+    console.log("[Mongo] getPromociones con skip/limit");
     const result = await Promocion.find(filtros)
       .sort({ fechaInicio: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
-    
-    await redisClient.set(key, result, { ex: 3600 });
-    
+
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
     return result;
-  } catch (error) {
+
+  } catch (err) {
+    console.log("[Error Redis] fallback a Mongo sin cache", err);
+    // Directamente de Mongo
     return await Promocion.find(filtros)
       .sort({ fechaInicio: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
   }
 };

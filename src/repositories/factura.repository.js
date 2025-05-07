@@ -3,8 +3,8 @@ const Usuario = require("../models/usuario.model");
 const connectToRedis = require("../services/redis.service");
 
 const _getFacturaRedisKey = (id) => `id:${id}-factura`;
-const _getFacturasFilterRedisKey = (filtros) =>
-  `facturas:${JSON.stringify(filtros)}`;
+const _getFacturasFilterRedisKey = (filtros, skip, limit) =>
+  `facturas:${JSON.stringify(filtros)}:skip=${skip}:limit=${limit}`;
 const _getFacturaByNumeroRedisKey = (numeroFactura) =>
   `factura:numero:${numeroFactura}`;
 const _getFacturasByUsuarioRedisKey = (usuarioId) =>
@@ -16,43 +16,51 @@ const _getFacturasPorRangoFechasRedisKey = (fechaInicio, fechaFin) =>
 const _getFacturasPorRangoMontoRedisKey = (montoMin, montoMax) =>
   `facturas:monto:${montoMin}-${montoMax}`;
 
-const getFacturas = async (filtros = {}) => {
+const getFacturas = async (filtros = {}, skip = 0, limit = 10) => {
   const redisClient = connectToRedis();
-  const key = _getFacturasFilterRedisKey(filtros);
+  const key = _getFacturasFilterRedisKey(filtros, skip, limit);
 
   try {
     const exists = await redisClient.exists(key);
-
     if (exists) {
       const cached = await redisClient.get(key);
-
-      if (typeof cached === "object" && cached !== null) {
-        return cached;
-      }
-
       if (typeof cached === "string") {
         try {
           return JSON.parse(cached);
-        } catch (parseError) {}
+        } catch (parseError) {
+          // si falla el parseo, seguimos al fetch de Mongo
+        }
+      } else if (cached) {
+        return cached;
       }
     }
 
-    console.log("[Leyendo getFacturas desde MongoDB]");
+    console.log("[Mongo] getFacturas con paginación");
     const result = await Factura.find(filtros)
       .populate("usuarioId", "nombre email")
       .populate("pagosIds")
       .sort({ fechaEmision: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
-    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
 
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
     return result;
+
   } catch (error) {
-    console.log("[Error en Redis, leyendo desde MongoDB]", error);
-    return await Factura.find(filtros)
-      .populate("usuarioId", "nombre email")
-      .populate("pagosIds")
-      .sort({ fechaEmision: -1 })
-      .lean();
+    console.log("[Error Redis] leyendo facturas desde MongoDB sin cache", error);
+    try {
+      return await Factura.find(filtros)
+        .populate("usuarioId", "nombre email")
+        .populate("pagosIds")
+        .sort({ fechaEmision: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+    } catch (mongoError) {
+      console.error("[Error Mongo] al obtener facturas", mongoError);
+      throw mongoError;
+    }
   }
 };
 
@@ -465,12 +473,41 @@ const marcarFacturaComoCancelada = async (id, motivo = "") => {
 };
 
 const agregarPagoFactura = async (id, pagoId) => {
+  if (!mongoose.Types.ObjectId.isValid(pagoId)) {
+    const err = new Error("El ID de pago no tiene un formato válido");
+    err.code = "INVALID_PAYMENT_ID";
+    throw err;
+  }
+
+  const pagoExistente = await Pago.findById(pagoId);
+  if (!pagoExistente) {
+    const err = new Error(`No existe ningún pago con id: ${pagoId}`);
+    err.code = "PAYMENT_NOT_FOUND";
+    throw err;
+  }
+
   const redisClient = connectToRedis();
-  const updated = await Factura.findByIdAndUpdate(
-    id,
-    { $addToSet: { pagosIds: pagoId } },
-    { new: true }
-  );
+  let updated;
+  try {
+    updated = await Factura.findByIdAndUpdate(
+      id,
+      { $addToSet: { pagosIds: pagoId } },
+      { new: true }
+    );
+  } catch (error) {
+    if (error.name === "CastError") {
+      const err = new Error("El ID de factura no tiene un formato válido");
+      err.code = "INVALID_FACTURA_ID";
+      throw err;
+    }
+    throw error;
+  }
+
+  if (!updated) {
+    const err = new Error(`No se ha encontrado la factura con id: ${id}`);
+    err.code = "FACTURA_NOT_FOUND";
+    throw err;
+  }
 
   await redisClient.del(_getFacturaRedisKey(id));
   if (updated.usuarioId) {

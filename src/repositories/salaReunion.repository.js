@@ -2,7 +2,8 @@ const SalaReunion = require("../models/salaReunion.model");
 const connectToRedis = require("../services/redis.service");
 
 const _getSalasReunionRedisKey = (id) => `id:${id}-salasReunion`;
-const _getSalasReunionFilterRedisKey = (filtros) => `salasReunion:${JSON.stringify(filtros)}`;
+const _getSalasReunionFilterRedisKey = (filtros, skip, limit) =>
+  `salasReunion:${JSON.stringify(filtros)}:skip=${skip}:limit=${limit}`;
 const _getSalaReunionByCodigoRedisKey = (codigo) => `salaReunion:codigo:${codigo}`;
 const _getSalasByEdificioRedisKey = (edificioId) => `edificio:${edificioId}-salasReunion`;
 const _getSalasByCapacidadRedisKey = (capacidadMinima) => `salasReunion:capacidad-min:${capacidadMinima}`;
@@ -12,41 +13,40 @@ const _getSalasByPropietarioRedisKey = (propietarioId) => `propietario:${propiet
 const _getSalasByRangoPrecioRedisKey = (precioMin, precioMax, tipoPrecio) => `salasReunion:precio:${tipoPrecio}:${precioMin}-${precioMax}`;
 const _getSalasDisponiblesRedisKey = (fecha, horaInicio, horaFin) => `salasReunion:disponibles:${fecha}:${horaInicio}-${horaFin}`;
 
-const getSalasReunion = async (filtros = {}) => {
+const getSalasReunion = async (filtros = {}, skip = 0, limit = 10) => {
   const redisClient = connectToRedis();
-  const key = _getSalasReunionFilterRedisKey(filtros);
-  
+  const key = _getSalasReunionFilterRedisKey(filtros, skip, limit);
+
   try {
-    const exists = await redisClient.exists(key);
-    
-    if (exists) {
+    if (await redisClient.exists(key)) {
       const cached = await redisClient.get(key);
-      
-      if (typeof cached === 'object' && cached !== null) {
+      if (typeof cached === "string") {
+        try { return JSON.parse(cached); } catch {}
+      } else if (cached) {
         return cached;
       }
-      
-      if (typeof cached === 'string') {
-        try {
-          return JSON.parse(cached);
-        } catch (parseError) {}
-      }
     }
-    
+
+    console.log("[Mongo] getSalasReunion con skip/limit");
     const result = await SalaReunion.find(filtros)
-      .populate('ubicacion.edificioId')
-      .populate('propietarioId', 'nombre email')
-      .populate('empresaInmobiliariaId', 'nombre')
+      .populate("ubicacion.edificioId")
+      .populate("propietarioId", "nombre email")
+      .populate("empresaInmobiliariaId", "nombre")
+      .skip(skip)
+      .limit(limit)
       .lean();
-    
-    await redisClient.set(key, result, { ex: 3600 });
-    
+
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
     return result;
-  } catch (error) {
+
+  } catch (err) {
+    console.log("[Error Redis] fallback a Mongo sin cache", err);
     return await SalaReunion.find(filtros)
-      .populate('ubicacion.edificioId')
-      .populate('propietarioId', 'nombre email')
-      .populate('empresaInmobiliariaId', 'nombre')
+      .populate("ubicacion.edificioId")
+      .populate("propietarioId", "nombre email")
+      .populate("empresaInmobiliariaId", "nombre")
+      .skip(skip)
+      .limit(limit)
       .lean();
   }
 };

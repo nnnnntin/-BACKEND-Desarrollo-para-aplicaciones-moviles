@@ -2,7 +2,8 @@ const ServicioAdicional = require("../models/servicioAdicional.model");
 const connectToRedis = require("../services/redis.service");
 
 const _getServiciosAdicionalesRedisKey = (id) => `id:${id}-serviciosAdicionales`;
-const _getServiciosAdicionalesFilterRedisKey = (filtros) => `serviciosAdicionales:${JSON.stringify(filtros)}`;
+const _getServiciosAdicionalesFilterRedisKey = (filtros, skip, limit) =>
+  `serviciosAdicionales:${JSON.stringify(filtros)}:skip=${skip}:limit=${limit}`;
 const _getServiciosByTipoRedisKey = (tipo) => `serviciosAdicionales:tipo:${tipo}`;
 const _getServiciosByProveedorRedisKey = (proveedorId) => `proveedor:${proveedorId}-serviciosAdicionales`;
 const _getServiciosByEspacioRedisKey = (espacioId) => `espacio:${espacioId}-serviciosAdicionales`;
@@ -11,43 +12,40 @@ const _getServiciosByUnidadPrecioRedisKey = (unidadPrecio) => `serviciosAdiciona
 const _getServiciosDisponiblesEnFechaRedisKey = (fecha, diaSemana) => `serviciosAdicionales:disponibles:${fecha}:${diaSemana}`;
 const _getServiciosConAprobacionRedisKey = () => `serviciosAdicionales:requiereAprobacion`;
 
-const getServiciosAdicionales = async (filtros = {}) => {
+const getServiciosAdicionales = async (filtros = {}, skip = 0, limit = 10) => {
   const redisClient = connectToRedis();
-  const key = _getServiciosAdicionalesFilterRedisKey(filtros);
-  
+  const key = _getServiciosAdicionalesFilterRedisKey(filtros, skip, limit);
+
   try {
-    const exists = await redisClient.exists(key);
-    
-    if (exists) {
+    if (await redisClient.exists(key)) {
       const cached = await redisClient.get(key);
-      
-      if (typeof cached === 'object' && cached !== null) {
+      if (typeof cached === "string") {
+        try { return JSON.parse(cached); } catch {}
+      } else if (cached) {
         return cached;
       }
-      
-      if (typeof cached === 'string') {
-        try {
-          return JSON.parse(cached);
-        } catch (parseError) {}
-      }
     }
-    
+
+    console.log("[Mongo] getServiciosAdicionales con skip/limit");
     const result = await ServicioAdicional.find(filtros)
-      .populate('proveedorId', 'nombre contacto')
-      .populate('espaciosDisponibles')
+      .populate("proveedorId", "nombre contacto")
+      .populate("espaciosDisponibles")
+      .skip(skip)
+      .limit(limit)
       .lean();
-    
-    await redisClient.set(key, result, { ex: 3600 });
-    
+
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
     return result;
-  } catch (error) {
+  } catch (err) {
+    console.log("[Error Redis] fallback a Mongo sin cache", err);
     return await ServicioAdicional.find(filtros)
-      .populate('proveedorId', 'nombre contacto')
-      .populate('espaciosDisponibles')
+      .populate("proveedorId", "nombre contacto")
+      .populate("espaciosDisponibles")
+      .skip(skip)
+      .limit(limit)
       .lean();
   }
 };
-
 const findServicioAdicionalById = async (id) => {
   const redisClient = connectToRedis();
   const key = _getServiciosAdicionalesRedisKey(id);

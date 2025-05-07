@@ -22,12 +22,32 @@ const {
 } = require("../routes/validations/pago.validation");
 
 const getPagosController = async (req, res) => {
+  // 1) extraer skip, limit y filtros
+  const { skip = "0", limit = "10", ...filtros } = req.query;
+  const skipNum = parseInt(skip, 10);
+  const limitNum = parseInt(limit, 10);
+
+  // 2) validación
+  if (isNaN(skipNum) || skipNum < 0) {
+    return res.status(400).json({
+      message: "Parámetro inválido",
+      details: "`skip` debe ser un entero ≥ 0"
+    });
+  }
+  if (isNaN(limitNum) || limitNum < 1) {
+    return res.status(400).json({
+      message: "Parámetro inválido",
+      details: "`limit` debe ser un entero ≥ 1"
+    });
+  }
+
   try {
-    const pagos = await getPagos();
-    res.status(200).json(pagos);
+    // 3) llamar al repositorio
+    const pagos = await getPagos(filtros, skipNum, limitNum);
+    return res.status(200).json(pagos);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
+    console.error("[Controller] Error al obtener pagos", error);
+    return res.status(500).json({
       message: "Error al obtener los pagos",
       details: error.message
     });

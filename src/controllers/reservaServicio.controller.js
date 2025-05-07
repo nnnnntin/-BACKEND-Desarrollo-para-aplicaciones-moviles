@@ -27,12 +27,29 @@ const { findServicioAdicionalById } = require("../repositories/servicioAdicional
 const { findReservaById } = require("../repositories/reserva.repository");
 
 const getReservasServicioController = async (req, res) => {
+  const { skip = "0", limit = "10", ...filtros } = req.query;
+  const skipNum  = parseInt(skip,  10);
+  const limitNum = parseInt(limit, 10);
+
+  if (isNaN(skipNum) || skipNum < 0) {
+    return res.status(400).json({
+      message: "Parámetro inválido",
+      details: "`skip` debe ser un entero ≥ 0"
+    });
+  }
+  if (isNaN(limitNum) || limitNum < 1) {
+    return res.status(400).json({
+      message: "Parámetro inválido",
+      details: "`limit` debe ser un entero ≥ 1"
+    });
+  }
+
   try {
-    const reservas = await getReservasServicio();
-    res.status(200).json(reservas);
+    const reservas = await getReservasServicio(filtros, skipNum, limitNum);
+    return res.status(200).json(reservas);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
+    console.error("[Controller] Error al obtener reservas de servicio", error);
+    return res.status(500).json({
       message: "Error al obtener las reservas de servicio",
       details: error.message
     });
@@ -214,6 +231,7 @@ const getReservasPorRangoFechasController = async (req, res) => {
 };
 
 const createReservaServicioController = async (req, res) => {
+  // 1. Validación de esquema Joi
   const { error, value } = createReservaServicioSchema.validate(req.body);
   if (error) {
     return res.status(400).json({
@@ -223,104 +241,76 @@ const createReservaServicioController = async (req, res) => {
     });
   }
 
-  const { usuarioId } = value;
+  const { usuarioId, servicioId, reservaEspacioId } = value;
+
+  // 2. Validar existencia de usuario, servicio y (opcional) reserva de espacio
   try {
     const usuario = await findUsuarioById(usuarioId);
     if (!usuario) {
       return res.status(404).json({
         message: "Usuario no encontrado",
-        details: `No se ha encontrado el usuario con id: ${usuarioId}`
+        details: `No existe un usuario con id: ${usuarioId}`
       });
     }
-  } catch (error) {
-    return res.status(400).json({ message: `Error al obtener el usuario: ${error.message}`, details: error.details });
-  }
 
-  const { servicioId } = value;
-  try {
     const servicio = await findServicioAdicionalById(servicioId);
     if (!servicio) {
       return res.status(404).json({
         message: "Servicio no encontrado",
-        details: `No se ha encontrado el servicio con id: ${servicioId}`
+        details: `No existe un servicio con id: ${servicioId}`
       });
     }
-  } catch (error) {
-    return res.status(400).json({ message: `Error al obtener el servicio: ${error.message}`, details: error.details });
-  }
 
-  const { reservaEspacioId } = value;
-  try {
-    const reservaEspacio = await findReservaById(reservaEspacioId);
-    if (!reservaEspacio) {
-      return res.status(404).json({
-        message: "Reserva de espacio no encontrada",
-        details: `No se ha encontrado la reserva de espacio con id: ${reservaEspacioId}`
-      });
-    }
-  } catch (error) {
-    return res.status(400).json({ message: `Error al obtener la reserva de espacio: ${error.message}`, details: error.details });
-  }
-
-  try {
-    // Validate that the user exists
-    await validateUserId(usuarioId);
-
-    // Validate that the service exists
-    await validateServiceId(servicioId);
-
-    // If reservaEspacioId is provided, validate it exists
     if (reservaEspacioId) {
-      await validateReservationId(reservaEspacioId);
+      const reservaEspacio = await findReservaById(reservaEspacioId);
+      if (!reservaEspacio) {
+        return res.status(404).json({
+          message: "Reserva de espacio no encontrada",
+          details: `No existe una reserva de espacio con id: ${reservaEspacioId}`
+        });
+      }
     }
+  } catch (err) {
+    console.error("[Controller] Error al validar entidades:", err);
+    return res.status(500).json({
+      message: "Error al validar existencia de entidades",
+      details: err.message
+    });
+  }
 
+  // 3. Crear la reserva de servicio
+  try {
     const reserva = await createReservaServicio(value);
-    res.status(201).json({ message: "Reserva de servicio creada correctamente", reserva });
-  } catch (error) {
-    console.error(error);
+    return res.status(201).json({
+      message: "Reserva de servicio creada correctamente",
+      reserva
+    });
+  } catch (err) {
+    console.error("[Controller] Error al crear reserva:", err);
 
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => err.message);
+    if (err.name === "ValidationError") {
+      const errors = Object.values(err.errors).map(e => e.message);
       return res.status(400).json({
         message: "Error de validación en modelo",
         details: errors
       });
     }
 
-    if (error.message && error.message.includes('usuario no encontrado') || error.message.includes('user not found')) {
-      return res.status(404).json({
-        message: "Usuario no encontrado",
-        details: "El usuario especificado no existe"
-      });
-    }
-
-    if (error.message && error.message.includes('servicio no encontrado') || error.message.includes('service not found')) {
-      return res.status(404).json({
-        message: "Servicio no encontrado",
-        details: "El servicio especificado no existe"
-      });
-    }
-
-    if (error.message && error.message.includes('reserva espacio no encontrada') || error.message.includes('space booking not found')) {
-      return res.status(404).json({
-        message: "Reserva de espacio no encontrada",
-        details: "La reserva de espacio especificada no existe"
-      });
-    }
-
-    if (error.message && error.message.includes('no disponible') || error.message.includes('not available')) {
+    // Manejo de errores de disponibilidad, pagos, etc.
+    if (err.message.includes("not available")) {
       return res.status(400).json({
         message: "Servicio no disponible",
         details: "El servicio no está disponible en la fecha y hora seleccionadas"
       });
     }
 
-    res.status(500).json({
+    return res.status(500).json({
       message: "Error al crear la reserva de servicio",
-      details: error.message
+      details: err.message
     });
   }
 };
+
 
 const updateReservaServicioController = async (req, res) => {
   const { id } = req.params;

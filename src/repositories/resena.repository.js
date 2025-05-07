@@ -2,50 +2,51 @@ const Resena = require("../models/resena.model");
 const connectToRedis = require("../services/redis.service");
 
 const _getResenasRedisKey = (id) => `id:${id}-resenas`;
-const _getResenasFilterRedisKey = (filtros) => `resenas:${JSON.stringify(filtros)}`;
+const _getResenasFilterRedisKey = (filtros, skip, limit) =>
+  `resenas:${JSON.stringify(filtros)}:skip=${skip}:limit=${limit}`;
 const _getResenasByUsuarioRedisKey = (usuarioId) => `usuario:${usuarioId}-resenas`;
 const _getResenasByEntidadRedisKey = (tipoEntidad, entidadId) => `entidad:${tipoEntidad}:${entidadId}-resenas`;
 const _getResenasByReservaRedisKey = (reservaId) => `reserva:${reservaId}-resenas`;
 const _getResenasPorCalificacionRedisKey = (calificacionMinima) => `resenas:calificacion-min:${calificacionMinima}`;
 const _getPromedioCalificacionEntidadRedisKey = (tipoEntidad, entidadId) => `entidad:${tipoEntidad}:${entidadId}-promedio-calificacion`;
 
-const getResenas = async (filtros = {}) => {
+const getResenas = async (filtros = {}, skip = 0, limit = 10) => {
   const redisClient = connectToRedis();
-  const key = _getResenasFilterRedisKey(filtros);
-  
+  const key = _getResenasFilterRedisKey(filtros, skip, limit);
+
   try {
-    const exists = await redisClient.exists(key);
-    
-    if (exists) {
+    if (await redisClient.exists(key)) {
       const cached = await redisClient.get(key);
-      
-      if (typeof cached === 'object' && cached !== null) {
+      if (typeof cached === "string") {
+        try { return JSON.parse(cached); }
+        catch { /* parse fallido, sigue a Mongo */ }
+      } else if (cached) {
         return cached;
       }
-      
-      if (typeof cached === 'string') {
-        try {
-          return JSON.parse(cached);
-        } catch (parseError) {}
-      }
     }
-    
+
+    console.log("[Mongo] getResenas con skip/limit");
     const result = await Resena.find(filtros)
-      .populate('usuarioId', 'nombre email')
-      .populate('reservaId')
-      .populate('respuesta.usuarioId', 'nombre email')
+      .populate("usuarioId", "nombre email")
+      .populate("reservaId")
+      .populate("respuesta.usuarioId", "nombre email")
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
-    
-    await redisClient.set(key, result, { ex: 3600 });
-    
+
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
     return result;
-  } catch (error) {
+
+  } catch (err) {
+    console.log("[Error Redis] fallback a Mongo sin cache", err);
     return await Resena.find(filtros)
-      .populate('usuarioId', 'nombre email')
-      .populate('reservaId')
-      .populate('respuesta.usuarioId', 'nombre email')
+      .populate("usuarioId", "nombre email")
+      .populate("reservaId")
+      .populate("respuesta.usuarioId", "nombre email")
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
   }
 };

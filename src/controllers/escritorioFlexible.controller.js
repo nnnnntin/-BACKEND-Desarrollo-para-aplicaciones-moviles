@@ -22,12 +22,29 @@ const {
 } = require("../routes/validations/escritorioFlexible.validation");
 
 const getEscritoriosFlexiblesController = async (req, res) => {
+  const { skip = "0", limit = "10", ...filtros } = req.query;
+  const skipNum = parseInt(skip, 10);
+  const limitNum = parseInt(limit, 10);
+
+  if (isNaN(skipNum) || skipNum < 0) {
+    return res.status(400).json({
+      message: "Parámetro inválido",
+      details: "`skip` debe ser un entero ≥ 0"
+    });
+  }
+  if (isNaN(limitNum) || limitNum < 1) {
+    return res.status(400).json({
+      message: "Parámetro inválido",
+      details: "`limit` debe ser un entero ≥ 1"
+    });
+  }
+
   try {
-    const escritorios = await getEscritoriosFlexibles();
-    res.status(200).json(escritorios);
+    const escritorios = await getEscritoriosFlexibles(filtros, skipNum, limitNum);
+    return res.status(200).json(escritorios);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
+    console.error("[Error Controller] al obtener escritorios flexibles", error);
+    return res.status(500).json({
       message: "Error al obtener los escritorios flexibles",
       details: error.message
     });

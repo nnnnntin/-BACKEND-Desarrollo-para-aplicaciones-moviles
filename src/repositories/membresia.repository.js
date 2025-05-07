@@ -2,7 +2,8 @@ const Membresia = require("../models/membresia.model");
 const connectToRedis = require("../services/redis.service");
 
 const _getMembresiaRedisKey = (id) => `id:${id}-membresia`;
-const _getMembresiasFilterRedisKey = (filtros) => `membresias:${JSON.stringify(filtros)}`;
+const _getMembresiasFilterRedisKey = (filtros, skip, limit) =>
+  `membresias:${JSON.stringify(filtros)}:skip=${skip}:limit=${limit}`;
 const _getMembresiaByTipoRedisKey = (tipo) => `membresia:tipo:${tipo}`;
 const _getMembresiasActivasRedisKey = () => `membresias:activas`;
 const _getMembresiasOrdenadasRedisKey = (campo, orden) => `membresias:ordenadas:${campo}:${orden}`;
@@ -10,33 +11,45 @@ const _getMembresiasWithBeneficioRedisKey = (tipoBeneficio) => `membresias:benef
 const _getMembresiasParaEmpresaRedisKey = () => `membresias:para-empresa`;
 const _getMembresiasPorRangoPrecioRedisKey = (precioMin, precioMax) => `membresias:precio:${precioMin}-${precioMax}`;
 
-const getMembresias = async (filtros = {}) => {
+const getMembresias = async (filtros = {}, skip = 0, limit = 10) => {
   const redisClient = connectToRedis();
-  const key = _getMembresiasFilterRedisKey(filtros);
-  
+  const key = _getMembresiasFilterRedisKey(filtros, skip, limit);
+
   try {
     const exists = await redisClient.exists(key);
-    
     if (exists) {
       const cached = await redisClient.get(key);
-      
-      if (typeof cached === 'object' && cached !== null) {
-        return cached;
-      }
-      
-      if (typeof cached === 'string') {
+      if (typeof cached === "string") {
         try {
           return JSON.parse(cached);
-        } catch (parseError) {}
+        } catch {
+          // si falla el parseo, seguimos al fetch de Mongo
+        }
+      } else if (cached) {
+        return cached;
       }
     }
-    
-    const result = await Membresia.find({ ...filtros, activo: true }).lean();
-    await redisClient.set(key, result, { ex: 3600 });
-    
+
+    console.log("[Mongo] getMembresias con paginación");
+    const result = await Membresia.find({ ...filtros, activo: true })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
     return result;
+
   } catch (error) {
-    return await Membresia.find({ ...filtros, activo: true }).lean();
+    console.log("[Error Redis] leyendo membresías desde MongoDB sin cache", error);
+    try {
+      return await Membresia.find({ ...filtros, activo: true })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+    } catch (mongoError) {
+      console.error("[Error Mongo] al obtener membresías", mongoError);
+      throw mongoError;
+    }
   }
 };
 

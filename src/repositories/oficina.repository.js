@@ -2,7 +2,8 @@ const Oficina = require("../models/oficina.model");
 const connectToRedis = require("../services/redis.service");
 
 const _getOficinaRedisKey = (id) => `id:${id}-oficina`;
-const _getOficinasFilterRedisKey = (filtros) => `oficinas:${JSON.stringify(filtros)}`;
+const _getOficinasFilterRedisKey = (filtros, skip, limit) =>
+  `oficinas:${JSON.stringify(filtros)}:skip=${skip}:limit=${limit}`;
 const _getOficinaByCodigoRedisKey = (codigo) => `oficina:codigo:${codigo}`;
 const _getOficinasByEdificioRedisKey = (edificioId) => `edificio:${edificioId}-oficinas`;
 const _getOficinasByTipoRedisKey = (tipo) => `oficinas:tipo:${tipo}`;
@@ -12,41 +13,44 @@ const _getOficinasByCapacidadRedisKey = (capacidadMinima) => `oficinas:capacidad
 const _getOficinasByRangoPrecioRedisKey = (precioMin, precioMax, tipoPrecio) => `oficinas:precio:${tipoPrecio}:${precioMin}-${precioMax}`;
 const _getOficinasDisponiblesRedisKey = (fecha, horaInicio, horaFin) => `oficinas:disponibles:${fecha}:${horaInicio}-${horaFin}`;
 
-const getOficinas = async (filtros = {}) => {
+const getOficinas = async (filtros = {}, skip = 0, limit = 10) => {
   const redisClient = connectToRedis();
-  const key = _getOficinasFilterRedisKey(filtros);
-  
+  const key = _getOficinasFilterRedisKey(filtros, skip, limit);
+
   try {
-    const exists = await redisClient.exists(key);
-    
-    if (exists) {
+    // 1) intenta servir desde cache
+    if (await redisClient.exists(key)) {
       const cached = await redisClient.get(key);
-      
-      if (typeof cached === 'object' && cached !== null) {
+      if (typeof cached === "string") {
+        try { return JSON.parse(cached); }
+        catch { /* parse fallido */ }
+      } else if (cached) {
         return cached;
       }
-      
-      if (typeof cached === 'string') {
-        try {
-          return JSON.parse(cached);
-        } catch (parseError) {}
-      }
     }
-    
+
+    // 2) va a Mongo con paginación
+    console.log("[Mongo] getOficinas con skip/limit");
     const result = await Oficina.find(filtros)
-      .populate('ubicacion.edificioId')
-      .populate('propietarioId', 'nombre email')
-      .populate('empresaInmobiliariaId', 'nombre')
+      .populate("ubicacion.edificioId")
+      .populate("propietarioId", "nombre email")
+      .populate("empresaInmobiliariaId", "nombre")
+      .skip(skip)
+      .limit(limit)
       .lean();
-    
-    await redisClient.set(key, result, { ex: 3600 });
-    
+
+    // 3) guarda en cache
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
     return result;
-  } catch (error) {
+
+  } catch (err) {
+    console.log("[Error Redis] fallback a Mongo sin cache", err);
     return await Oficina.find(filtros)
-      .populate('ubicacion.edificioId')
-      .populate('propietarioId', 'nombre email')
-      .populate('empresaInmobiliariaId', 'nombre')
+      .populate("ubicacion.edificioId")
+      .populate("propietarioId", "nombre email")
+      .populate("empresaInmobiliariaId", "nombre")
+      .skip(skip)
+      .limit(limit)
       .lean();
   }
 };

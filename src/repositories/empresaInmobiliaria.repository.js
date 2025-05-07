@@ -2,45 +2,54 @@ const EmpresaInmobiliaria = require("../models/empresaInmobiliaria.model");
 const connectToRedis = require("../services/redis.service");
 
 const _getEmpresaRedisKey = (id) => `id:${id}-empresa`;
-const _getEmpresasFilterRedisKey = (filtros) => `empresas:${JSON.stringify(filtros)}`;
+const _getEmpresasFilterRedisKey = (filtros, skip, limit) =>
+  `empresas:${JSON.stringify(filtros)}:skip=${skip}:limit=${limit}`;
 const _getEmpresasByTipoRedisKey = (tipo) => `empresas:tipo:${tipo}`;
 const _getEmpresasVerificadasRedisKey = () => `empresas:verificadas`;
 const _getEmpresasByCiudadRedisKey = (ciudad) => `empresas:ciudad:${ciudad}`;
 const _getEmpresasConMasEspaciosRedisKey = (limite) => `empresas:mas-espacios:${limite}`;
 
-const getEmpresasInmobiliarias = async (filtros = {}) => {
+const getEmpresasInmobiliarias = async (filtros = {}, skip = 0, limit = 10) => {
   const redisClient = connectToRedis();
-  const key = _getEmpresasFilterRedisKey(filtros);
-  
+  const key = _getEmpresasFilterRedisKey(filtros, skip, limit);
+
   try {
     const exists = await redisClient.exists(key);
-    
     if (exists) {
       const cached = await redisClient.get(key);
-      
-      if (typeof cached === 'object' && cached !== null) {
-        return cached;
-      }
-      
-      if (typeof cached === 'string') {
+      if (typeof cached === "string") {
         try {
           return JSON.parse(cached);
-        } catch (parseError) {}
+        } catch (parseError) {
+          // fallo parse, seguimos a Mongo
+        }
+      } else if (cached) {
+        return cached;
       }
     }
-    
-    console.log("[Leyendo getEmpresasInmobiliarias desde MongoDB]");
+
+    console.log("[Mongo] getEmpresasInmobiliarias con paginación");
     const result = await EmpresaInmobiliaria.find(filtros)
-      .populate('espacios')
+      .populate("espacios")
+      .skip(skip)
+      .limit(limit)
       .lean();
+
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-    
     return result;
+
   } catch (error) {
-    console.log("[Error en Redis, leyendo desde MongoDB]", error);
-    return await EmpresaInmobiliaria.find(filtros)
-      .populate('espacios')
-      .lean();
+    console.log("[Error Redis] leyendo desde MongoDB sin cache", error);
+    try {
+      return await EmpresaInmobiliaria.find(filtros)
+        .populate("espacios")
+        .skip(skip)
+        .limit(limit)
+        .lean();
+    } catch (mongoError) {
+      console.error("[Error Mongo] al obtener empresas inmobiliarias", mongoError);
+      throw mongoError;
+    }
   }
 };
 

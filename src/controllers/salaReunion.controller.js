@@ -22,6 +22,10 @@ const {
   updateSalaReunionSchema,
   filtrarSalasReunionSchema
 } = require("../routes/validations/salaReunion.validation");
+const { findUsuarioById } = require("../repositories/usuario.repository");
+const { findReservaById } = require("../repositories/reserva.repository");
+const { findEdificioById } = require("../repositories/edificio.repository");
+const { findEmpresaInmobiliariaById } = require("../repositories/empresaInmobiliaria.repository");
 
 const getSalasReunionController = async (req, res) => {
   try {
@@ -259,6 +263,62 @@ const createSalaReunionController = async (req, res) => {
       details: error.details[0].message,
       field: error.details[0].context.key
     });
+  }
+
+  const { propietarioId } = value;
+  if (propietarioId) {
+    try {
+      const usuario = await findUsuarioById(propietarioId);
+      const propietario = usuario || await findEmpresaInmobiliariaById(propietarioId);
+
+      if (!propietario) {
+        return res.status(404).json({
+          message: "Propietario no encontrado",
+          details: `No se ha encontrado el propietario con id: ${propietarioId}`
+        });
+      }
+    } catch (error) {
+      return res.status(400).json({
+        message: `Error al obtener el usuario: ${error.message}`,
+        details: error.details
+      });
+    }
+  }
+
+  const { edificioId } = value.ubicacion;
+  if (edificioId) {
+    try {
+      const edificio = await findEdificioById(edificioId);
+      if (!edificio) {
+        return res.status(404).json({
+          message: "Edificio no encontrado",
+          details: `No se ha encontrado el edificio con id: ${edificioId}`
+        });
+      }
+    } catch (error) {
+      return res.status(400).json({
+        message: `Error al obtener el edificio: ${error.message}`,
+        details: error.details
+      });
+    }
+  }
+
+  const { empresaInmobiliariaId } = value;
+  if (empresaInmobiliariaId) {
+    try {
+      const empresa = await findEmpresaInmobiliariaById(empresaInmobiliariaId);
+      if (!empresa) {
+        return res.status(404).json({
+          message: "Empresa inmobiliaria no encontrada",
+          details: `No se ha encontrado la empresa inmobiliaria con id: ${empresaInmobiliariaId}`
+        });
+      }
+    } catch (error) {
+      return res.status(400).json({
+        message: `Error al obtener la empresa inmobiliaria: ${error.message}`,
+        details: error.details
+      });
+    }
   }
 
   try {

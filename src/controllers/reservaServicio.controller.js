@@ -22,6 +22,9 @@ const {
   aprobarRechazarReservaServicioSchema,
   filtrarReservasServicioSchema
 } = require("../routes/validations/reservaServicio.validation");
+const { findUsuarioById } = require("../repositories/usuario.repository");
+const { findServicioAdicionalById } = require("../repositories/servicioAdicional.repository");
+const { findReservaById } = require("../repositories/reserva.repository");
 
 const getReservasServicioController = async (req, res) => {
   try {
@@ -220,7 +223,57 @@ const createReservaServicioController = async (req, res) => {
     });
   }
 
+  const { usuarioId } = value;
   try {
+    const usuario = await findUsuarioById(usuarioId);
+    if (!usuario) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: `No se ha encontrado el usuario con id: ${usuarioId}`
+      });
+    }
+  } catch (error) {
+    return res.status(400).json({ message: `Error al obtener el usuario: ${error.message}`, details: error.details });
+  }
+
+  const { servicioId } = value;
+  try {
+    const servicio = await findServicioAdicionalById(servicioId);
+    if (!servicio) {
+      return res.status(404).json({
+        message: "Servicio no encontrado",
+        details: `No se ha encontrado el servicio con id: ${servicioId}`
+      });
+    }
+  } catch (error) {
+    return res.status(400).json({ message: `Error al obtener el servicio: ${error.message}`, details: error.details });
+  }
+
+  const { reservaEspacioId } = value;
+  try {
+    const reservaEspacio = await findReservaById(reservaEspacioId);
+    if (!reservaEspacio) {
+      return res.status(404).json({
+        message: "Reserva de espacio no encontrada",
+        details: `No se ha encontrado la reserva de espacio con id: ${reservaEspacioId}`
+      });
+    }
+  } catch (error) {
+    return res.status(400).json({ message: `Error al obtener la reserva de espacio: ${error.message}`, details: error.details });
+  }
+
+  try {
+    // Validate that the user exists
+    await validateUserId(usuarioId);
+
+    // Validate that the service exists
+    await validateServiceId(servicioId);
+
+    // If reservaEspacioId is provided, validate it exists
+    if (reservaEspacioId) {
+      await validateReservationId(reservaEspacioId);
+    }
+
     const reserva = await createReservaServicio(value);
     res.status(201).json({ message: "Reserva de servicio creada correctamente", reserva });
   } catch (error) {

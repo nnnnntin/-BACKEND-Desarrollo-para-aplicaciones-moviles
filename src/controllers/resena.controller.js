@@ -23,7 +23,7 @@ const { findOficinaById } = require("../repositories/oficina.repository");
 const { findSalaReunionById } = require("../repositories/salaReunion.repository");
 const { findEscritorioFlexibleById } = require("../repositories/escritorioFlexible.repository");
 const { findServicioAdicionalById } = require("../repositories/servicioAdicional.repository");
-const { findMembresiaById } = require("../repositories/membresia.repository");
+const { findReservaById } = require("../repositories/reserva.repository");
 
 const getResenasController = async (req, res) => {
   try {
@@ -174,6 +174,19 @@ const createResenaController = async (req, res) => {
       details: error.details[0].message,
       field: error.details[0].context.key
     });
+  }
+
+  const { reservaId } = value;
+  try {
+    const reserva = await findReservaById(reservaId);
+    if (!reserva) {
+      return res.status(404).json({
+        message: "Reserva no encontrada",
+        details: `No se ha encontrado la reserva con id: ${reservaId}`
+      });
+    }
+  } catch (error) {
+    return res.status(400).json({ message: `Error al obtener la reserva: ${error.message}`, details: error.details });
   }
 
   const { tipo, id } = value.entidadResenada;

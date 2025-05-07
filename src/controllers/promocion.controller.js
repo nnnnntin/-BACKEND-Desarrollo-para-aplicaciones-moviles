@@ -191,9 +191,6 @@ const createPromocionController = async (req, res) => {
 
   const { entidad, ids } = value.aplicableA;
   try {
-
-    console.log(entidad, ids);
-
     const entidadMap = {
       'oficina': findOficinaById,
       'sala_reunion': findSalaReunionById,

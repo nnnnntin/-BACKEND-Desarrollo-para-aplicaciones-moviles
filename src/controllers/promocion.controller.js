@@ -21,6 +21,13 @@ const {
   validarCodigoPromocionSchema,
   filtrarPromocionesSchema
 } = require("../routes/validations/promocion.validation");
+const { findOficinaById } = require("../repositories/oficina.repository");
+const { findSalaReunionById } = require("../repositories/salaReunion.repository");
+const { findEscritorioFlexibleById } = require("../repositories/escritorioFlexible.repository");
+const { findMembresiaById } = require("../repositories/membresia.repository");
+const { findServicioAdicionalById } = require("../repositories/servicioAdicional.repository");
+
+
 
 const getPromocionesController = async (req, res) => {
   try {
@@ -180,6 +187,35 @@ const createPromocionController = async (req, res) => {
       details: error.details[0].message,
       field: error.details[0].context.key
     });
+  }
+
+  const { entidad, ids } = value.aplicableA;
+  try {
+
+    console.log(entidad, ids);
+
+    const entidadMap = {
+      'oficina': findOficinaById,
+      'sala_reunion': findSalaReunionById,
+      'escritorio_flexible': findEscritorioFlexibleById,
+      'membresia': findMembresiaById,
+      'servicio': findServicioAdicionalById
+    };
+
+    const findEntidadById = entidadMap[entidad];
+    if (!findEntidadById) {
+      return res.status(400).json({ message: `Entidad no válida: ${entidad}` });
+    }
+
+    for (const id of ids) {
+      console.log(`${entidad.toUpperCase()} CON ID: ${id}`);
+      const entidadObtenida = await findEntidadById(id);
+      if (!entidadObtenida) {
+        return res.status(404).json({ message: `No se ha encontrado la ${entidad} con id: ${id}` });
+      }
+    }
+  } catch (error) {
+    return res.status(400).json({ message: `Error al obtener las entidades: ${error.message}` });
   }
 
   try {

@@ -183,15 +183,6 @@ const createPromocionController = async (req, res) => {
   }
 
   try {
-    const promocionExistente = await findPromocionByCodigo(value.codigo);
-    if (promocionExistente) {
-      return res.status(400).json({
-        message: "Código de promoción duplicado",
-        details: "El código de promoción ya está en uso",
-        field: "codigo"
-      });
-    }
-
     const promocion = await createPromocion(value);
     res.status(201).json({ message: "Promoción creada correctamente", promocion });
   } catch (error) {

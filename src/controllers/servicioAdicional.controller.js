@@ -20,6 +20,8 @@ const {
   updateServicioAdicionalSchema,
   filtrarServiciosAdicionalesSchema
 } = require("../routes/validations/servicioAdicional.validation");
+const { findProveedorById } = require("../repositories/proveedor.repository");
+const { findEspacioById } = require("../repositories/espacio.repository");
 
 const getServiciosAdicionalesController = async (req, res) => {
   try {
@@ -250,6 +252,39 @@ const createServicioAdicionalController = async (req, res) => {
       field: error.details[0].context.key
     });
   }
+
+  const { proveedorId } = value;
+  if (proveedorId) {
+    try {
+      const proveedor = await findProveedorById(proveedorId);
+      if (!proveedor) {
+        return res.status(404).json({ message: `No se ha encontrado el proveedor con id: ${proveedorId}` });
+      }
+    } catch (error) {
+      return res.status(400).json({
+        message: `Error al obtener el proveedor: ${error.message}`,
+        details: error.details
+      });
+    }
+  }
+
+  const { espaciosDisponibles } = value;
+  if (espaciosDisponibles) {
+    try {
+      for (const espacioId of espaciosDisponibles) {
+        const espacio = await findEspacioById(espacioId);
+        if (!espacio) {
+          return res.status(404).json({ message: `No se ha encontrado el espacio con id: ${espacioId}` });
+        }
+      }
+    } catch (error) {
+      return res.status(400).json({
+        message: `Error al obtener el espacio: ${error.message}`,
+        details: error.details
+      });
+    }
+  }
+
 
   try {
     const servicio = await createServicioAdicional(value);

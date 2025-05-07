@@ -19,6 +19,11 @@ const {
   responderResenaSchema,
   moderarResenaSchema
 } = require("../routes/validations/resena.validation");
+const { findOficinaById } = require("../repositories/oficina.repository");
+const { findSalaReunionById } = require("../repositories/salaReunion.repository");
+const { findEscritorioFlexibleById } = require("../repositories/escritorioFlexible.repository");
+const { findServicioAdicionalById } = require("../repositories/servicioAdicional.repository");
+const { findReservaById } = require("../repositories/reserva.repository");
 
 const getResenasController = async (req, res) => {
   try {
@@ -171,7 +176,56 @@ const createResenaController = async (req, res) => {
     });
   }
 
+  const { reservaId } = value;
   try {
+    const reserva = await findReservaById(reservaId);
+    if (!reserva) {
+      return res.status(404).json({
+        message: "Reserva no encontrada",
+        details: `No se ha encontrado la reserva con id: ${reservaId}`
+      });
+    }
+  } catch (error) {
+    return res.status(400).json({ message: `Error al obtener la reserva: ${error.message}`, details: error.details });
+  }
+
+  const { tipo, id } = value.entidadResenada;
+  try {
+    const entidadMap = {
+      'oficina': findOficinaById,
+      'espacio': async (id) => {
+        const salaReunion = await findSalaReunionById(id);
+        if (salaReunion) return salaReunion;
+
+        const escritorioFlexible = await findEscritorioFlexibleById(id);
+        if (escritorioFlexible) return escritorioFlexible;
+
+        return null;
+      },
+      'servicio': findServicioAdicionalById
+    };
+
+    const findEntidadById = entidadMap[tipo];
+    if (!findEntidadById) {
+      return res.status(400).json({
+        message: "Tipo de entidad no válido",
+        details: `El tipo '${tipo}' no es válido para crear una reseña`
+      });
+    }
+
+    const entidadObtenida = await findEntidadById(id);
+    if (!entidadObtenida) {
+      return res.status(404).json({
+        message: "Entidad no encontrada",
+        details: `No se ha encontrado la entidad de tipo ${tipo} con id: ${id}`
+      });
+    }
+  } catch (error) {
+    return res.status(400).json({ message: `Error al obtener la entidad: ${error.message}`, details: error.details });
+  }
+
+  try {
+
     const resena = await createResena(value);
 
     try {

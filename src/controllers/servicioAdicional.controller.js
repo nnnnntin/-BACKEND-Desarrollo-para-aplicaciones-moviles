@@ -20,8 +20,9 @@ const {
   updateServicioAdicionalSchema,
   filtrarServiciosAdicionalesSchema
 } = require("../routes/validations/servicioAdicional.validation");
-const { findProveedorById } = require("../repositories/proveedor.repository");
-const { findEspacioById } = require("../repositories/espacio.repository");
+
+const Usuario = require("../models/usuario.model");
+const Espacio = require("../models/espacio.model");
 
 const getServiciosAdicionalesController = async (req, res) => {
   const { skip = "0", limit = "10", ...filtros } = req.query;
@@ -270,44 +271,58 @@ const createServicioAdicionalController = async (req, res) => {
     });
   }
 
-  const { proveedorId } = value;
-  if (proveedorId) {
-    try {
-      const proveedor = await findProveedorById(proveedorId);
-      if (!proveedor) {
-        return res.status(404).json({ message: `No se ha encontrado el proveedor con id: ${proveedorId}` });
+  try {
+        if (value.proveedorId) {
+      const proveedorExiste = await Usuario.findById(value.proveedorId);
+      if (!proveedorExiste) {
+        return res.status(404).json({
+          message: "Proveedor no encontrado",
+          details: `No existe un usuario con id: ${value.proveedorId}`,
+          field: "proveedorId"
+        });
       }
-    } catch (error) {
-      return res.status(400).json({
-        message: `Error al obtener el proveedor: ${error.message}`,
-        details: error.details
-      });
-    }
-  }
 
-  const { espaciosDisponibles } = value;
-  if (espaciosDisponibles) {
-    try {
-      for (const espacioId of espaciosDisponibles) {
-        const espacio = await findEspacioById(espacioId);
-        if (!espacio) {
-          return res.status(404).json({ message: `No se ha encontrado el espacio con id: ${espacioId}` });
+            if (!proveedorExiste.activo) {
+        return res.status(400).json({
+          message: "Proveedor inactivo",
+          details: "El proveedor especificado no está activo",
+          field: "proveedorId"
+        });
+      }
+    }
+
+        if (value.espaciosDisponibles && Array.isArray(value.espaciosDisponibles)) {
+      for (const espacioId of value.espaciosDisponibles) {
+        const espacioExiste = await Espacio.findById(espacioId);
+        if (!espacioExiste) {
+          return res.status(404).json({
+            message: "Espacio no encontrado",
+            details: `No existe un espacio con id: ${espacioId}`,
+            field: "espaciosDisponibles"
+          });
+        }
+
+                if (!espacioExiste.activo) {
+          return res.status(400).json({
+            message: "Espacio inactivo",
+            details: `El espacio con id ${espacioId} no está activo`,
+            field: "espaciosDisponibles"
+          });
         }
       }
-    } catch (error) {
-      return res.status(400).json({
-        message: `Error al obtener el espacio: ${error.message}`,
-        details: error.details
-      });
     }
-  }
 
-
-  try {
     const servicio = await createServicioAdicional(value);
     res.status(201).json({ message: "Servicio adicional creado correctamente", servicio });
   } catch (error) {
     console.error(error);
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: "ID inválido",
+        details: `El formato del ID no es válido`
+      });
+    }
 
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
@@ -323,13 +338,6 @@ const createServicioAdicionalController = async (req, res) => {
         message: "Error de duplicación",
         details: `Ya existe un servicio con el mismo ${field}`,
         field
-      });
-    }
-
-    if (error.message && error.message.includes('proveedor no encontrado') || error.message.includes('provider not found')) {
-      return res.status(404).json({
-        message: "Proveedor no encontrado",
-        details: "El proveedor especificado no existe"
       });
     }
 
@@ -352,6 +360,46 @@ const updateServicioAdicionalController = async (req, res) => {
   }
 
   try {
+        if (value.proveedorId) {
+      const proveedorExiste = await Usuario.findById(value.proveedorId);
+      if (!proveedorExiste) {
+        return res.status(404).json({
+          message: "Proveedor no encontrado",
+          details: `No existe un usuario con id: ${value.proveedorId}`,
+          field: "proveedorId"
+        });
+      }
+
+            if (!proveedorExiste.activo) {
+        return res.status(400).json({
+          message: "Proveedor inactivo",
+          details: "El proveedor especificado no está activo",
+          field: "proveedorId"
+        });
+      }
+    }
+
+        if (value.espaciosDisponibles && Array.isArray(value.espaciosDisponibles)) {
+      for (const espacioId of value.espaciosDisponibles) {
+        const espacioExiste = await Espacio.findById(espacioId);
+        if (!espacioExiste) {
+          return res.status(404).json({
+            message: "Espacio no encontrado",
+            details: `No existe un espacio con id: ${espacioId}`,
+            field: "espaciosDisponibles"
+          });
+        }
+
+                if (!espacioExiste.activo) {
+          return res.status(400).json({
+            message: "Espacio inactivo",
+            details: `El espacio con id ${espacioId} no está activo`,
+            field: "espaciosDisponibles"
+          });
+        }
+      }
+    }
+
     const servicio = await updateServicioAdicional(id, value);
     if (!servicio) {
       return res.status(404).json({ message: `No se ha encontrado el servicio adicional con id: ${id}` });
@@ -362,8 +410,8 @@ const updateServicioAdicionalController = async (req, res) => {
 
     if (error.name === 'CastError') {
       return res.status(400).json({
-        message: "ID de servicio inválido",
-        details: `El formato del ID '${id}' no es válido`
+        message: "ID inválido",
+        details: `El formato del ID no es válido`
       });
     }
 
@@ -469,11 +517,29 @@ const asignarEspacioController = async (req, res) => {
   if (!espacioId) {
     return res.status(400).json({
       message: "Datos incompletos",
-      details: "Se requiere un ID de espacio"
+      details: "Se requiere un ID de espacio",
+      field: "espacioId"
     });
   }
 
   try {
+        const espacioExiste = await Espacio.findById(espacioId);
+    if (!espacioExiste) {
+      return res.status(404).json({
+        message: "Espacio no encontrado",
+        details: `No existe un espacio con id: ${espacioId}`,
+        field: "espacioId"
+      });
+    }
+
+        if (!espacioExiste.activo) {
+      return res.status(400).json({
+        message: "Espacio inactivo",
+        details: "El espacio especificado no está activo",
+        field: "espacioId"
+      });
+    }
+
     const servicio = await asignarEspacio(id, espacioId);
     if (!servicio) {
       return res.status(404).json({ message: `No se ha encontrado el servicio adicional con id: ${id}` });
@@ -483,17 +549,9 @@ const asignarEspacioController = async (req, res) => {
     console.error(error);
 
     if (error.name === 'CastError') {
-      const field = error.path === 'id' ? 'servicio' : 'espacio';
       return res.status(400).json({
-        message: `ID de ${field} inválido`,
+        message: "ID inválido",
         details: `El formato del ID no es válido`
-      });
-    }
-
-    if (error.message && error.message.includes('espacio no encontrado') || error.message.includes('space not found')) {
-      return res.status(404).json({
-        message: "Espacio no encontrado",
-        details: `No se encontró el espacio con id: ${espacioId}`
       });
     }
 

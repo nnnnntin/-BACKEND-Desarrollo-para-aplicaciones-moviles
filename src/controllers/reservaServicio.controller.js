@@ -22,9 +22,12 @@ const {
   aprobarRechazarReservaServicioSchema,
   filtrarReservasServicioSchema
 } = require("../routes/validations/reservaServicio.validation");
-const { findUsuarioById } = require("../repositories/usuario.repository");
-const { findServicioAdicionalById } = require("../repositories/servicioAdicional.repository");
-const { findReservaById } = require("../repositories/reserva.repository");
+
+const Usuario = require("../models/usuario.model");
+const ServicioAdicional = require("../models/servicioAdicional.model");
+const Reserva = require("../models/reserva.model");
+const ReservaServicio = require("../models/reservaServicio.model");
+const Pago = require("../models/pago.model");
 
 const getReservasServicioController = async (req, res) => {
   const { skip = "0", limit = "10", ...filtros } = req.query;
@@ -240,60 +243,88 @@ const createReservaServicioController = async (req, res) => {
     });
   }
 
-  const { usuarioId, servicioId, reservaEspacioId } = value;
-
   try {
-    const usuario = await findUsuarioById(usuarioId);
-    if (!usuario) {
-      return res.status(404).json({
-        message: "Usuario no encontrado",
-        details: `No existe un usuario con id: ${usuarioId}`
-      });
-    }
-
-    const servicio = await findServicioAdicionalById(servicioId);
-    if (!servicio) {
-      return res.status(404).json({
-        message: "Servicio no encontrado",
-        details: `No existe un servicio con id: ${servicioId}`
-      });
-    }
-
-    if (reservaEspacioId) {
-      const reservaEspacio = await findReservaById(reservaEspacioId);
-      if (!reservaEspacio) {
+        if (value.usuarioId) {
+      const usuarioExiste = await Usuario.findById(value.usuarioId);
+      if (!usuarioExiste) {
         return res.status(404).json({
-          message: "Reserva de espacio no encontrada",
-          details: `No existe una reserva de espacio con id: ${reservaEspacioId}`
+          message: "Usuario no encontrado",
+          details: `No existe un usuario con id: ${value.usuarioId}`,
+          field: "usuarioId"
+        });
+      }
+
+            if (!usuarioExiste.activo) {
+        return res.status(400).json({
+          message: "Usuario inactivo",
+          details: "El usuario especificado no está activo",
+          field: "usuarioId"
         });
       }
     }
-  } catch (err) {
-    console.error("[Controller] Error al validar entidades:", err);
-    return res.status(500).json({
-      message: "Error al validar existencia de entidades",
-      details: err.message
-    });
-  }
 
-  try {
+        if (value.servicioId) {
+      const servicioExiste = await ServicioAdicional.findById(value.servicioId);
+      if (!servicioExiste) {
+        return res.status(404).json({
+          message: "Servicio adicional no encontrado",
+          details: `No existe un servicio adicional con id: ${value.servicioId}`,
+          field: "servicioId"
+        });
+      }
+
+            if (!servicioExiste.activo) {
+        return res.status(400).json({
+          message: "Servicio adicional inactivo",
+          details: "El servicio adicional especificado no está activo",
+          field: "servicioId"
+        });
+      }
+    }
+
+        if (value.reservaEspacioId) {
+      const reservaEspacioExiste = await Reserva.findById(value.reservaEspacioId);
+      if (!reservaEspacioExiste) {
+        return res.status(404).json({
+          message: "Reserva de espacio no encontrada",
+          details: `No existe una reserva de espacio con id: ${value.reservaEspacioId}`,
+          field: "reservaEspacioId"
+        });
+      }
+
+            if (!['confirmada', 'pendiente'].includes(reservaEspacioExiste.estado)) {
+        return res.status(400).json({
+          message: "Reserva de espacio en estado inválido",
+          details: "Solo se pueden vincular servicios a reservas confirmadas o pendientes",
+          field: "reservaEspacioId"
+        });
+      }
+    }
+
     const reserva = await createReservaServicio(value);
     return res.status(201).json({
       message: "Reserva de servicio creada correctamente",
       reserva
     });
-  } catch (err) {
-    console.error("[Controller] Error al crear reserva:", err);
+  } catch (error) {
+    console.error("[Controller] Error al crear reserva:", error);
 
-    if (err.name === "ValidationError") {
-      const errors = Object.values(err.errors).map(e => e.message);
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: "ID inválido",
+        details: `El formato del ID no es válido`
+      });
+    }
+
+    if (error.name === "ValidationError") {
+      const errors = Object.values(error.errors).map(e => e.message);
       return res.status(400).json({
         message: "Error de validación en modelo",
         details: errors
       });
     }
 
-    if (err.message.includes("not available")) {
+    if (error.message.includes("not available")) {
       return res.status(400).json({
         message: "Servicio no disponible",
         details: "El servicio no está disponible en la fecha y hora seleccionadas"
@@ -302,11 +333,10 @@ const createReservaServicioController = async (req, res) => {
 
     return res.status(500).json({
       message: "Error al crear la reserva de servicio",
-      details: err.message
+      details: error.message
     });
   }
 };
-
 
 const updateReservaServicioController = async (req, res) => {
   const { id } = req.params;
@@ -320,6 +350,63 @@ const updateReservaServicioController = async (req, res) => {
   }
 
   try {
+        if (value.usuarioId) {
+      const usuarioExiste = await Usuario.findById(value.usuarioId);
+      if (!usuarioExiste) {
+        return res.status(404).json({
+          message: "Usuario no encontrado",
+          details: `No existe un usuario con id: ${value.usuarioId}`,
+          field: "usuarioId"
+        });
+      }
+
+            if (!usuarioExiste.activo) {
+        return res.status(400).json({
+          message: "Usuario inactivo",
+          details: "El usuario especificado no está activo",
+          field: "usuarioId"
+        });
+      }
+    }
+
+        if (value.servicioId) {
+      const servicioExiste = await ServicioAdicional.findById(value.servicioId);
+      if (!servicioExiste) {
+        return res.status(404).json({
+          message: "Servicio adicional no encontrado",
+          details: `No existe un servicio adicional con id: ${value.servicioId}`,
+          field: "servicioId"
+        });
+      }
+
+            if (!servicioExiste.activo) {
+        return res.status(400).json({
+          message: "Servicio adicional inactivo",
+          details: "El servicio adicional especificado no está activo",
+          field: "servicioId"
+        });
+      }
+    }
+
+        if (value.reservaEspacioId) {
+      const reservaEspacioExiste = await Reserva.findById(value.reservaEspacioId);
+      if (!reservaEspacioExiste) {
+        return res.status(404).json({
+          message: "Reserva de espacio no encontrada",
+          details: `No existe una reserva de espacio con id: ${value.reservaEspacioId}`,
+          field: "reservaEspacioId"
+        });
+      }
+
+            if (!['confirmada', 'pendiente'].includes(reservaEspacioExiste.estado)) {
+        return res.status(400).json({
+          message: "Reserva de espacio en estado inválido",
+          details: "Solo se pueden vincular servicios a reservas confirmadas o pendientes",
+          field: "reservaEspacioId"
+        });
+      }
+    }
+
     const reserva = await updateReservaServicio(id, value);
     if (!reserva) {
       return res.status(404).json({ message: `No se ha encontrado la reserva de servicio con id: ${id}` });
@@ -330,8 +417,8 @@ const updateReservaServicioController = async (req, res) => {
 
     if (error.name === 'CastError') {
       return res.status(400).json({
-        message: "ID de reserva inválido",
-        details: `El formato del ID '${id}' no es válido`
+        message: "ID inválido",
+        details: `El formato del ID no es válido`
       });
     }
 
@@ -579,11 +666,38 @@ const vincularPagoController = async (req, res) => {
   if (!pagoId) {
     return res.status(400).json({
       message: "Datos incompletos",
-      details: "Se requiere ID del pago"
+      details: "Se requiere ID del pago",
+      field: "pagoId"
     });
   }
 
   try {
+        const pagoExiste = await Pago.findById(pagoId);
+    if (!pagoExiste) {
+      return res.status(404).json({
+        message: "Pago no encontrado",
+        details: `No existe un pago con id: ${pagoId}`,
+        field: "pagoId"
+      });
+    }
+
+        if (pagoExiste.estado !== 'completado') {
+      return res.status(400).json({
+        message: "Pago no completado",
+        details: "Solo se pueden vincular pagos en estado completado",
+        field: "pagoId"
+      });
+    }
+
+        const pagoYaVinculado = await ReservaServicio.findOne({ pagoId: pagoId });
+    if (pagoYaVinculado && pagoYaVinculado._id.toString() !== id) {
+      return res.status(400).json({
+        message: "Pago ya vinculado",
+        details: "El pago ya está vinculado a otra reserva de servicio",
+        field: "pagoId"
+      });
+    }
+
     const reserva = await vincularPago(id, pagoId);
     if (!reserva) {
       return res.status(404).json({ message: `No se ha encontrado la reserva de servicio con id: ${id}` });
@@ -593,24 +707,9 @@ const vincularPagoController = async (req, res) => {
     console.error(error);
 
     if (error.name === 'CastError') {
-      const field = error.path === 'id' ? 'reserva' : 'pago';
       return res.status(400).json({
-        message: `ID de ${field} inválido`,
+        message: "ID inválido",
         details: `El formato del ID no es válido`
-      });
-    }
-
-    if (error.message && error.message.includes('pago no encontrado') || error.message.includes('payment not found')) {
-      return res.status(404).json({
-        message: "Pago no encontrado",
-        details: `No se encontró el pago con id: ${pagoId}`
-      });
-    }
-
-    if (error.message && error.message.includes('ya vinculado') || error.message.includes('already linked')) {
-      return res.status(400).json({
-        message: "Pago ya vinculado",
-        details: "El pago ya está vinculado a esta u otra reserva"
       });
     }
 
@@ -686,6 +785,23 @@ const aprobarRechazarReservaServicioController = async (req, res) => {
   }
 
   try {
+        const reservaExiste = await ReservaServicio.findById(reservaServicioId);
+    if (!reservaExiste) {
+      return res.status(404).json({
+        message: "Reserva de servicio no encontrada",
+        details: `No existe una reserva de servicio con id: ${reservaServicioId}`,
+        field: "reservaServicioId"
+      });
+    }
+
+        if (reservaExiste.estado !== 'pendiente') {
+      return res.status(400).json({
+        message: "Reserva no pendiente",
+        details: "Solo se pueden aprobar o rechazar reservas en estado pendiente",
+        field: "reservaServicioId"
+      });
+    }
+
     let reserva;
 
     if (accion === 'aprobar') {
@@ -709,13 +825,6 @@ const aprobarRechazarReservaServicioController = async (req, res) => {
       return res.status(400).json({
         message: "ID de reserva inválido",
         details: `El formato del ID '${reservaServicioId}' no es válido`
-      });
-    }
-
-    if (error.message && error.message.includes('no pendiente') || error.message.includes('not pending')) {
-      return res.status(400).json({
-        message: "Reserva no pendiente",
-        details: "Solo se pueden aprobar o rechazar reservas en estado pendiente"
       });
     }
 

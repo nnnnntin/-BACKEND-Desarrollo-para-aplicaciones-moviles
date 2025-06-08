@@ -21,6 +21,9 @@ const {
   filtrarEdificiosSchema
 } = require("../routes/validations/edificio.validation");
 
+const Usuario = require("../models/usuario.model");
+const EmpresaInmobiliaria = require("../models/empresaInmobiliaria.model");
+
 const getEdificiosController = async (req, res) => {
   const { skip = "0", limit = "10", ...filtros } = req.query;
   const skipNum = parseInt(skip, 10);
@@ -187,10 +190,51 @@ const createEdificioController = async (req, res) => {
   }
   
   try {
+        if (value.propietarioId) {
+      const propietarioExiste = await Usuario.findById(value.propietarioId);
+      if (!propietarioExiste) {
+        return res.status(404).json({ 
+          message: "Propietario no encontrado", 
+          details: `No existe un usuario con id: ${value.propietarioId}`
+        });
+      }
+      
+            if (!propietarioExiste.activo) {
+        return res.status(400).json({ 
+          message: "Propietario inactivo", 
+          details: "El propietario especificado no está activo"
+        });
+      }
+    }
+
+        if (value.empresaInmobiliariaId) {
+      const empresaExiste = await EmpresaInmobiliaria.findById(value.empresaInmobiliariaId);
+      if (!empresaExiste) {
+        return res.status(404).json({ 
+          message: "Empresa inmobiliaria no encontrada", 
+          details: `No existe una empresa inmobiliaria con id: ${value.empresaInmobiliariaId}`
+        });
+      }
+      
+            if (!empresaExiste.activo) {
+        return res.status(400).json({ 
+          message: "Empresa inmobiliaria inactiva", 
+          details: "La empresa inmobiliaria especificada no está activa"
+        });
+      }
+    }
+    
     const edificio = await createEdificio(value);
     res.status(201).json({ message: "Edificio creado correctamente", edificio });
   } catch (error) {
     console.error(error);
+    
+    if (error.name === 'CastError') {
+      return res.status(400).json({ 
+        message: "ID inválido", 
+        details: `El formato del ID no es válido`
+      });
+    }
     
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
@@ -206,20 +250,6 @@ const createEdificioController = async (req, res) => {
         message: "Error de duplicación", 
         details: `Ya existe un edificio con el mismo ${field}`,
         field
-      });
-    }
-    
-    if (error.message && (error.message.includes('propietario no encontrado') || error.message.includes('owner not found'))) {
-      return res.status(404).json({ 
-        message: "Propietario no encontrado", 
-        details: "El propietario especificado no existe"
-      });
-    }
-    
-    if (error.message && (error.message.includes('empresa no encontrada') || error.message.includes('company not found'))) {
-      return res.status(404).json({ 
-        message: "Empresa no encontrada", 
-        details: "La empresa inmobiliaria especificada no existe"
       });
     }
     
@@ -249,6 +279,40 @@ const updateEdificioController = async (req, res) => {
   }
   
   try {
+        if (value.propietarioId) {
+      const propietarioExiste = await Usuario.findById(value.propietarioId);
+      if (!propietarioExiste) {
+        return res.status(404).json({ 
+          message: "Propietario no encontrado", 
+          details: `No existe un usuario con id: ${value.propietarioId}`
+        });
+      }
+      
+            if (!propietarioExiste.activo) {
+        return res.status(400).json({ 
+          message: "Propietario inactivo", 
+          details: "El propietario especificado no está activo"
+        });
+      }
+    }
+
+        if (value.empresaInmobiliariaId) {
+      const empresaExiste = await EmpresaInmobiliaria.findById(value.empresaInmobiliariaId);
+      if (!empresaExiste) {
+        return res.status(404).json({ 
+          message: "Empresa inmobiliaria no encontrada", 
+          details: `No existe una empresa inmobiliaria con id: ${value.empresaInmobiliariaId}`
+        });
+      }
+      
+            if (!empresaExiste.activo) {
+        return res.status(400).json({ 
+          message: "Empresa inmobiliaria inactiva", 
+          details: "La empresa inmobiliaria especificada no está activa"
+        });
+      }
+    }
+    
     const edificio = await updateEdificio(id, value);
     if (!edificio) {
       return res.status(404).json({ message: `No se ha encontrado el edificio con id: ${id}` });
@@ -259,8 +323,8 @@ const updateEdificioController = async (req, res) => {
     
     if (error.name === 'CastError') {
       return res.status(400).json({ 
-        message: "ID de edificio inválido", 
-        details: `El formato del ID '${id}' no es válido`
+        message: "ID inválido", 
+        details: `El formato del ID no es válido`
       });
     }
     

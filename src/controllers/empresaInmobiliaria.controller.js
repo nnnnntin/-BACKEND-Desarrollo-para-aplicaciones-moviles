@@ -21,6 +21,7 @@ const {
   updateEmpresaInmobiliariaSchema,
   verificarEmpresaSchema
 } = require("../routes/validations/empresaInmobiliaria.validation");
+const { findEspacioById } = require("../repositories/espacio.repository");
 
 const getEmpresasInmobiliariasController = async (req, res) => {
   const { skip = "0", limit = "10", ...filtros } = req.query;
@@ -136,6 +137,45 @@ const createEmpresaInmobiliariaController = async (req, res) => {
     });
   }
 
+    const { espacios } = value;
+  if (espacios && espacios.length > 0) {
+    try {
+      for (const espacioId of espacios) {
+        const espacio = await findEspacioById(espacioId);
+        if (!espacio) {
+          return res.status(404).json({
+            message: "Espacio no encontrado",
+            details: `No se ha encontrado el espacio con id: ${espacioId}`,
+            field: "espacios"
+          });
+        }
+        
+                if (!espacio.activo) {
+          return res.status(400).json({
+            message: "Espacio inactivo",
+            details: `El espacio con id: ${espacioId} no está activo`,
+            field: "espacios"
+          });
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      
+      if (error.name === 'CastError') {
+        return res.status(400).json({
+          message: "ID de espacio inválido",
+          details: "Uno o más IDs de espacios tienen formato inválido",
+          field: "espacios"
+        });
+      }
+      
+      return res.status(400).json({
+        message: "Error al verificar espacios",
+        details: error.message
+      });
+    }
+  }
+
   try {
     const empresa = await createEmpresaInmobiliaria(value);
     res.status(201).json({ message: "Empresa inmobiliaria creada correctamente", empresa });
@@ -183,6 +223,45 @@ const updateEmpresaInmobiliariaController = async (req, res) => {
       details: error.details[0].message,
       field: error.details[0].context.key
     });
+  }
+
+    const { espacios } = value;
+  if (espacios && espacios.length > 0) {
+    try {
+      for (const espacioId of espacios) {
+        const espacio = await findEspacioById(espacioId);
+        if (!espacio) {
+          return res.status(404).json({
+            message: "Espacio no encontrado",
+            details: `No se ha encontrado el espacio con id: ${espacioId}`,
+            field: "espacios"
+          });
+        }
+        
+        if (!espacio.activo) {
+          return res.status(400).json({
+            message: "Espacio inactivo",
+            details: `El espacio con id: ${espacioId} no está activo`,
+            field: "espacios"
+          });
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      
+      if (error.name === 'CastError') {
+        return res.status(400).json({
+          message: "ID de espacio inválido",
+          details: "Uno o más IDs de espacios tienen formato inválido",
+          field: "espacios"
+        });
+      }
+      
+      return res.status(400).json({
+        message: "Error al verificar espacios",
+        details: error.message
+      });
+    }
   }
 
   try {
@@ -296,9 +375,20 @@ const verificarEmpresaController = async (req, res) => {
   const { empresaId, documentosVerificacion, notas } = value;
 
   try {
-    const empresaExiste = await findEmpresaInmobiliariaById(empresaId);
+        const empresaExiste = await findEmpresaInmobiliariaById(empresaId);
     if (!empresaExiste) {
-      return res.status(404).json({ message: `No se ha encontrado la empresa inmobiliaria con id: ${empresaId}` });
+      return res.status(404).json({ 
+        message: "Empresa no encontrada",
+        details: `No se ha encontrado la empresa inmobiliaria con id: ${empresaId}`,
+        field: "empresaId"
+      });
+    }
+
+        if (empresaExiste.verificado) {
+      return res.status(400).json({
+        message: "Empresa ya verificada",
+        details: "La empresa ya ha sido verificada anteriormente"
+      });
     }
 
     const empresa = await verificarEmpresa(empresaId);
@@ -379,6 +469,31 @@ const agregarEspacioController = async (req, res) => {
   }
 
   try {
+        const espacio = await findEspacioById(espacioId);
+    if (!espacio) {
+      return res.status(404).json({
+        message: "Espacio no encontrado",
+        details: `No se ha encontrado el espacio con id: ${espacioId}`,
+        field: "espacioId"
+      });
+    }
+
+        if (!espacio.activo) {
+      return res.status(400).json({
+        message: "Espacio inactivo",
+        details: `El espacio con id: ${espacioId} no está activo`,
+        field: "espacioId"
+      });
+    }
+
+        if (espacio.empresaInmobiliariaId && espacio.empresaInmobiliariaId.toString() !== id) {
+      return res.status(400).json({
+        message: "Espacio ya asignado",
+        details: `El espacio ya está asignado a otra empresa inmobiliaria`,
+        field: "espacioId"
+      });
+    }
+
     const empresa = await agregarEspacio(id, espacioId);
     if (!empresa) {
       return res.status(404).json({ message: `No se ha encontrado la empresa inmobiliaria con id: ${id}` });
@@ -391,13 +506,6 @@ const agregarEspacioController = async (req, res) => {
       return res.status(400).json({
         message: "ID inválido",
         details: "El formato del ID de empresa o espacio no es válido"
-      });
-    }
-
-    if (error.message && error.message.includes('not found') || error.message.includes('no encontrado')) {
-      return res.status(404).json({
-        message: "Espacio no encontrado",
-        details: `No se encontró el espacio con id: ${espacioId}`
       });
     }
 

@@ -13,6 +13,9 @@ const {
   getMembresiasPorRangoPrecio,
   actualizarBeneficios
 } = require("../repositories/membresia.repository");
+
+const { findUsuarioById } = require("../repositories/usuario.repository");
+
 const {
   createMembresiaSchema,
   updateMembresiaSchema,
@@ -479,7 +482,16 @@ const suscribirMembresiaController = async (req, res) => {
   const { usuarioId, membresiaId, fechaInicio, metodoPagoId, renovacionAutomatica, codigoPromocional } = value;
 
   try {
-    const membresia = await findMembresiaById(membresiaId);
+        const usuario = await findUsuarioById(usuarioId);
+    if (!usuario) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: `No se ha encontrado el usuario con id: ${usuarioId}`,
+        field: "usuarioId"
+      });
+    }
+
+        const membresia = await findMembresiaById(membresiaId);
     if (!membresia) {
       return res.status(404).json({
         message: "Membresía no encontrada",
@@ -536,14 +548,6 @@ const suscribirMembresiaController = async (req, res) => {
       });
     }
 
-    if (error.message && error.message.includes('usuario no encontrado')) {
-      return res.status(404).json({
-        message: "Usuario no encontrado",
-        details: `No existe un usuario con id: ${usuarioId}`,
-        field: "usuarioId"
-      });
-    }
-
     if (error.message && error.message.includes('método de pago no encontrado')) {
       return res.status(404).json({
         message: "Método de pago no encontrado",
@@ -588,7 +592,16 @@ const cancelarMembresiaController = async (req, res) => {
   const { usuarioId, membresiaId, motivo, fechaCancelacion, reembolsoParcial } = value;
 
   try {
-    const membresia = await findMembresiaById(membresiaId);
+        const usuario = await findUsuarioById(usuarioId);
+    if (!usuario) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: `No se ha encontrado el usuario con id: ${usuarioId}`,
+        field: "usuarioId"
+      });
+    }
+
+        const membresia = await findMembresiaById(membresiaId);
     if (!membresia) {
       return res.status(404).json({
         message: "Membresía no encontrada",
@@ -629,14 +642,6 @@ const cancelarMembresiaController = async (req, res) => {
         message: `ID de ${field} inválido`,
         details: `El formato del ID no es válido`,
         field
-      });
-    }
-
-    if (error.message && error.message.includes('usuario no encontrado')) {
-      return res.status(404).json({
-        message: "Usuario no encontrado",
-        details: `No existe un usuario con id: ${usuarioId}`,
-        field: "usuarioId"
       });
     }
 

@@ -21,15 +21,114 @@ const {
   validarCodigoPromocionSchema,
   filtrarPromocionesSchema
 } = require("../routes/validations/promocion.validation");
+
 const { findOficinaById } = require("../repositories/oficina.repository");
 const { findSalaReunionById } = require("../repositories/salaReunion.repository");
 const { findEscritorioFlexibleById } = require("../repositories/escritorioFlexible.repository");
 const { findMembresiaById } = require("../repositories/membresia.repository");
 const { findServicioAdicionalById } = require("../repositories/servicioAdicional.repository");
+const { findUsuarioById } = require("../repositories/usuario.repository"); 
+const ENTIDAD_REPOSITORY_MAP = {
+  'oficina': findOficinaById,
+  'sala_reunion': findSalaReunionById,
+  'escritorio_flexible': findEscritorioFlexibleById,
+  'membresia': findMembresiaById,
+  'servicio': findServicioAdicionalById
+};
+
+const ENTIDADES_VALIDAS = ['oficina', 'sala_reunion', 'escritorio_flexible', 'membresia', 'servicio'];
+const TIPOS_PROMOCION_VALIDOS = ['porcentaje', 'monto_fijo', 'gratuito'];
+
+/**
+ * Valida que las entidades especificadas en aplicableA existan
+ * @param {string} entidad - Tipo de entidad
+ * @param {Array} ids - Array de IDs a validar
+ * @returns {Promise<Object>} - { valid: boolean, invalidIds: Array, message: string }
+ */
+const validarEntidadesExisten = async (entidad, ids) => {
+  const findEntidadById = ENTIDAD_REPOSITORY_MAP[entidad];
+  
+  if (!findEntidadById) {
+    return {
+      valid: false,
+      invalidIds: [],
+      message: `Entidad no válida: ${entidad}. Debe ser una de: ${ENTIDADES_VALIDAS.join(', ')}`
+    };
+  }
+
+  const invalidIds = [];
+  
+  for (const id of ids) {
+    try {
+      const entidadObtenida = await findEntidadById(id);
+      if (!entidadObtenida) {
+        invalidIds.push(id);
+      }
+    } catch (error) {
+            if (error.name === 'CastError') {
+        invalidIds.push(id);
+      } else {
+        throw error;       }
+    }
+  }
+
+  return {
+    valid: invalidIds.length === 0,
+    invalidIds,
+    message: invalidIds.length > 0 
+      ? `No se encontraron las siguientes ${entidad}s con los IDs: ${invalidIds.join(', ')}`
+      : 'Todas las entidades son válidas'
+  };
+};
+
+/**
+ * Valida una entidad específica por su tipo e ID
+ * @param {string} entidadTipo - Tipo de entidad
+ * @param {string} entidadId - ID de la entidad
+ * @returns {Promise<Object>} - { valid: boolean, entity: Object|null, message: string }
+ */
+const validarEntidadEspecifica = async (entidadTipo, entidadId) => {
+  const findEntidadById = ENTIDAD_REPOSITORY_MAP[entidadTipo];
+  
+  if (!findEntidadById) {
+    return {
+      valid: false,
+      entity: null,
+      message: `Tipo de entidad no válido: ${entidadTipo}. Debe ser una de: ${ENTIDADES_VALIDAS.join(', ')}`
+    };
+  }
+
+  try {
+    const entidad = await findEntidadById(entidadId);
+    
+    if (!entidad) {
+      return {
+        valid: false,
+        entity: null,
+        message: `No se encontró la ${entidadTipo} con ID: ${entidadId}`
+      };
+    }
+
+    return {
+      valid: true,
+      entity: entidad,
+      message: 'Entidad válida'
+    };
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return {
+        valid: false,
+        entity: null,
+        message: `Formato de ID inválido para ${entidadTipo}: ${entidadId}`
+      };
+    }
+    throw error;
+  }
+};
 
 const getPromocionesController = async (req, res) => {
   const { skip = "0", limit = "10", ...filtros } = req.query;
-  const skipNum  = parseInt(skip, 10);
+  const skipNum = parseInt(skip, 10);
   const limitNum = parseInt(limit, 10);
 
   if (isNaN(skipNum) || skipNum < 0) {
@@ -59,10 +158,13 @@ const getPromocionesController = async (req, res) => {
 
 const getPromocionByIdController = async (req, res) => {
   const { id } = req.params;
+  
   try {
     const promocion = await findPromocionById(id);
     if (!promocion) {
-      return res.status(404).json({ message: `No se ha encontrado la promoción con id: ${id}` });
+      return res.status(404).json({ 
+        message: `No se ha encontrado la promoción con id: ${id}` 
+      });
     }
     res.status(200).json(promocion);
   } catch (error) {
@@ -84,10 +186,13 @@ const getPromocionByIdController = async (req, res) => {
 
 const getPromocionByCodigoController = async (req, res) => {
   const { codigo } = req.params;
+  
   try {
     const promocion = await findPromocionByCodigo(codigo);
     if (!promocion) {
-      return res.status(404).json({ message: `No se ha encontrado la promoción con código: ${codigo}` });
+      return res.status(404).json({ 
+        message: `No se ha encontrado la promoción con código: ${codigo}` 
+      });
     }
     res.status(200).json(promocion);
   } catch (error) {
@@ -115,10 +220,10 @@ const getPromocionesActivasController = async (req, res) => {
 const getPromocionesPorTipoController = async (req, res) => {
   const { tipo } = req.params;
 
-  if (!['porcentaje', 'monto_fijo', 'gratuito'].includes(tipo)) {
+  if (!TIPOS_PROMOCION_VALIDOS.includes(tipo)) {
     return res.status(400).json({
       message: "Tipo de promoción no válido",
-      details: "El tipo debe ser 'porcentaje', 'monto_fijo' o 'gratuito'"
+      details: `El tipo debe ser una de: ${TIPOS_PROMOCION_VALIDOS.join(', ')}`
     });
   }
 
@@ -137,26 +242,28 @@ const getPromocionesPorTipoController = async (req, res) => {
 const getPromocionesPorEntidadController = async (req, res) => {
   const { entidad, entidadId } = req.query;
 
-  if (!entidad || !['oficina', 'sala_reunion', 'escritorio_flexible', 'membresia', 'servicio'].includes(entidad)) {
+  if (!entidad || !ENTIDADES_VALIDAS.includes(entidad)) {
     return res.status(400).json({
       message: "Tipo de entidad no válido",
-      details: "La entidad debe ser 'oficina', 'sala_reunion', 'escritorio_flexible', 'membresia' o 'servicio'"
+      details: `La entidad debe ser una de: ${ENTIDADES_VALIDAS.join(', ')}`
     });
   }
 
   try {
+        if (entidadId) {
+      const validacion = await validarEntidadEspecifica(entidad, entidadId);
+      if (!validacion.valid) {
+        return res.status(400).json({
+          message: "Entidad no válida",
+          details: validacion.message
+        });
+      }
+    }
+
     const promociones = await getPromocionesPorEntidad(entidad, entidadId);
     res.status(200).json(promociones);
   } catch (error) {
     console.error(error);
-
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        message: "ID de entidad inválido",
-        details: `El formato del ID '${entidadId}' no es válido`
-      });
-    }
-
     res.status(500).json({
       message: "Error al obtener promociones por entidad",
       details: error.message
@@ -175,18 +282,27 @@ const getPromocionesPorRangoDeFechasController = async (req, res) => {
   }
 
   try {
-    const promociones = await getPromocionesPorRangoDeFechas(new Date(fechaInicio), new Date(fechaFin));
-    res.status(200).json(promociones);
-  } catch (error) {
-    console.error(error);
+    const fechaInicioDate = new Date(fechaInicio);
+    const fechaFinDate = new Date(fechaFin);
 
-    if (error instanceof RangeError || error.message.includes('fecha') || error.message.includes('date')) {
+    if (isNaN(fechaInicioDate.getTime()) || isNaN(fechaFinDate.getTime())) {
       return res.status(400).json({
-        message: "Error en formato de fechas",
-        details: "Las fechas proporcionadas no son válidas"
+        message: "Formato de fechas inválido",
+        details: "Las fechas deben estar en formato válido (ISO 8601)"
       });
     }
 
+    if (fechaInicioDate > fechaFinDate) {
+      return res.status(400).json({
+        message: "Rango de fechas inválido",
+        details: "La fecha de inicio debe ser anterior a la fecha de fin"
+      });
+    }
+
+    const promociones = await getPromocionesPorRangoDeFechas(fechaInicioDate, fechaFinDate);
+    res.status(200).json(promociones);
+  } catch (error) {
+    console.error(error);
     res.status(500).json({
       message: "Error al obtener promociones por rango de fechas",
       details: error.message
@@ -204,35 +320,42 @@ const createPromocionController = async (req, res) => {
     });
   }
 
-  const { entidad, ids } = value.aplicableA;
-  try {
-    const entidadMap = {
-      'oficina': findOficinaById,
-      'sala_reunion': findSalaReunionById,
-      'escritorio_flexible': findEscritorioFlexibleById,
-      'membresia': findMembresiaById,
-      'servicio': findServicioAdicionalById
-    };
+    const fechaInicio = new Date(value.fechaInicio);
+  const fechaFin = new Date(value.fechaFin);
+  const fechaActual = new Date();
 
-    const findEntidadById = entidadMap[entidad];
-    if (!findEntidadById) {
-      return res.status(400).json({ message: `Entidad no válida: ${entidad}` });
-    }
-
-    for (const id of ids) {
-      console.log(`${entidad.toUpperCase()} CON ID: ${id}`);
-      const entidadObtenida = await findEntidadById(id);
-      if (!entidadObtenida) {
-        return res.status(404).json({ message: `No se ha encontrado la ${entidad} con id: ${id}` });
-      }
-    }
-  } catch (error) {
-    return res.status(400).json({ message: `Error al obtener las entidades: ${error.message}` });
+  if (fechaInicio >= fechaFin) {
+    return res.status(400).json({
+      message: "Error en las fechas de la promoción",
+      details: "La fecha de inicio debe ser anterior a la fecha de fin"
+    });
   }
 
+  if (fechaFin <= fechaActual) {
+    return res.status(400).json({
+      message: "Error en las fechas de la promoción",
+      details: "La fecha de fin debe ser posterior a la fecha actual"
+    });
+  }
+
+    const { entidad, ids } = value.aplicableA;
+  
   try {
+    const validacion = await validarEntidadesExisten(entidad, ids);
+    
+    if (!validacion.valid) {
+      return res.status(400).json({
+        message: "Entidades no válidas en aplicableA",
+        details: validacion.message,
+        invalidIds: validacion.invalidIds
+      });
+    }
+
     const promocion = await createPromocion(value);
-    res.status(201).json({ message: "Promoción creada correctamente", promocion });
+    res.status(201).json({ 
+      message: "Promoción creada correctamente", 
+      promocion 
+    });
   } catch (error) {
     console.error(error);
 
@@ -252,13 +375,6 @@ const createPromocionController = async (req, res) => {
       });
     }
 
-    if (error.message && error.message.includes('fechas')) {
-      return res.status(400).json({
-        message: "Error en las fechas de la promoción",
-        details: error.message
-      });
-    }
-
     res.status(500).json({
       message: "Error al crear la promoción",
       details: error.message
@@ -269,6 +385,7 @@ const createPromocionController = async (req, res) => {
 const updatePromocionController = async (req, res) => {
   const { id } = req.params;
   const { error, value } = updatePromocionSchema.validate(req.body);
+  
   if (error) {
     return res.status(400).json({
       message: "Error de validación en los datos de actualización",
@@ -278,10 +395,40 @@ const updatePromocionController = async (req, res) => {
   }
 
   try {
-    const promocion = await updatePromocion(id, value);
-    if (!promocion) {
-      return res.status(404).json({ message: `No se ha encontrado la promoción con id: ${id}` });
+        const promocionExistente = await findPromocionById(id);
+    if (!promocionExistente) {
+      return res.status(404).json({ 
+        message: `No se ha encontrado la promoción con id: ${id}` 
+      });
     }
+
+        if (value.fechaInicio || value.fechaFin) {
+      const fechaInicio = new Date(value.fechaInicio || promocionExistente.fechaInicio);
+      const fechaFin = new Date(value.fechaFin || promocionExistente.fechaFin);
+
+      if (fechaInicio >= fechaFin) {
+        return res.status(400).json({
+          message: "Error en las fechas de la promoción",
+          details: "La fecha de inicio debe ser anterior a la fecha de fin"
+        });
+      }
+    }
+
+        if (value.aplicableA) {
+      const { entidad, ids } = value.aplicableA;
+      
+      const validacion = await validarEntidadesExisten(entidad, ids);
+      
+      if (!validacion.valid) {
+        return res.status(400).json({
+          message: "Entidades no válidas en aplicableA",
+          details: validacion.message,
+          invalidIds: validacion.invalidIds
+        });
+      }
+    }
+
+    const promocion = await updatePromocion(id, value);
     res.status(200).json(promocion);
   } catch (error) {
     console.error(error);
@@ -310,13 +457,6 @@ const updatePromocionController = async (req, res) => {
       });
     }
 
-    if (error.message && error.message.includes('fechas')) {
-      return res.status(400).json({
-        message: "Error en las fechas de la promoción",
-        details: error.message
-      });
-    }
-
     res.status(500).json({
       message: "Error al actualizar la promoción",
       details: error.message
@@ -326,10 +466,13 @@ const updatePromocionController = async (req, res) => {
 
 const deletePromocionController = async (req, res) => {
   const { id } = req.params;
+  
   try {
     const promocion = await deletePromocion(id);
     if (!promocion) {
-      return res.status(404).json({ message: `No se ha encontrado la promoción con id: ${id}` });
+      return res.status(404).json({ 
+        message: `No se ha encontrado la promoción con id: ${id}` 
+      });
     }
     res.status(200).json({ message: "Promoción desactivada correctamente" });
   } catch (error) {
@@ -342,13 +485,6 @@ const deletePromocionController = async (req, res) => {
       });
     }
 
-    if (error.message && (error.message.includes('en uso') || error.message.includes('in use'))) {
-      return res.status(400).json({
-        message: "No se puede eliminar la promoción",
-        details: "La promoción está siendo utilizada actualmente"
-      });
-    }
-
     res.status(500).json({
       message: "Error al desactivar la promoción",
       details: error.message
@@ -358,12 +494,18 @@ const deletePromocionController = async (req, res) => {
 
 const activarPromocionController = async (req, res) => {
   const { id } = req.params;
+  
   try {
     const promocion = await activarPromocion(id);
     if (!promocion) {
-      return res.status(404).json({ message: `No se ha encontrado la promoción con id: ${id}` });
+      return res.status(404).json({ 
+        message: `No se ha encontrado la promoción con id: ${id}` 
+      });
     }
-    res.status(200).json({ message: "Promoción activada correctamente", promocion });
+    res.status(200).json({ 
+      message: "Promoción activada correctamente", 
+      promocion 
+    });
   } catch (error) {
     console.error(error);
 
@@ -371,13 +513,6 @@ const activarPromocionController = async (req, res) => {
       return res.status(400).json({
         message: "ID de promoción inválido",
         details: `El formato del ID '${id}' no es válido`
-      });
-    }
-
-    if (error.message && error.message.includes('expirada')) {
-      return res.status(400).json({
-        message: "No se puede activar la promoción",
-        details: "La promoción ya ha expirado"
       });
     }
 
@@ -390,12 +525,18 @@ const activarPromocionController = async (req, res) => {
 
 const incrementarUsosController = async (req, res) => {
   const { id } = req.params;
+  
   try {
     const promocion = await incrementarUsos(id);
     if (!promocion) {
-      return res.status(404).json({ message: `No se ha encontrado la promoción con id: ${id}` });
+      return res.status(404).json({ 
+        message: `No se ha encontrado la promoción con id: ${id}` 
+      });
     }
-    res.status(200).json({ message: "Usos incrementados correctamente", promocion });
+    res.status(200).json({ 
+      message: "Usos incrementados correctamente", 
+      promocion 
+    });
   } catch (error) {
     console.error(error);
 
@@ -410,13 +551,6 @@ const incrementarUsosController = async (req, res) => {
       return res.status(400).json({
         message: "Límite de usos alcanzado",
         details: "La promoción ha alcanzado su límite máximo de usos"
-      });
-    }
-
-    if (error.message && error.message.includes('activa')) {
-      return res.status(400).json({
-        message: "Promoción inactiva",
-        details: "No se pueden incrementar usos en una promoción inactiva"
       });
     }
 
@@ -437,10 +571,60 @@ const validarPromocionController = async (req, res) => {
     });
   }
 
-  const { codigo, usuarioId, entidadTipo, entidadId, fecha } = value;
+  const { codigo, usuarioId, entidadTipo, entidadId } = value;
 
   try {
-    const resultado = await validarPromocion(codigo, usuarioId, entidadTipo, entidadId);
+        const promocion = await findPromocionByCodigo(codigo);
+    
+    if (!promocion) {
+      return res.status(404).json({
+        message: "Código de promoción no encontrado",
+        details: `No existe una promoción con el código: ${codigo}`
+      });
+    }
+
+    if (!promocion.activo) {
+      return res.status(400).json({
+        message: "Promoción inactiva",
+        details: "La promoción no está activa"
+      });
+    }
+
+        const fechaActual = new Date();
+    if (fechaActual < new Date(promocion.fechaInicio) || fechaActual > new Date(promocion.fechaFin)) {
+      return res.status(400).json({
+        message: "Promoción expirada o no vigente",
+        details: "La promoción no está dentro del rango de fechas válido"
+      });
+    }
+
+        const usuario = await findUsuarioById(usuarioId);
+    if (!usuario) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: `No existe un usuario con ID: ${usuarioId}`
+      });
+    }
+
+        const validacionEntidad = await validarEntidadEspecifica(entidadTipo, entidadId);
+    if (!validacionEntidad.valid) {
+      return res.status(400).json({
+        message: "Entidad no válida",
+        details: validacionEntidad.message
+      });
+    }
+
+        const aplicableAEntidad = promocion.aplicableA.entidad === entidadTipo;
+    const aplicableAId = promocion.aplicableA.ids.some(id => id.toString() === entidadId);
+
+    if (!aplicableAEntidad || !aplicableAId) {
+      return res.status(400).json({
+        message: "Promoción no aplicable",
+        details: `La promoción no es aplicable a la ${entidadTipo} especificada`
+      });
+    }
+
+        const resultado = await validarPromocion(codigo, usuarioId, entidadTipo, entidadId);
 
     if (!resultado.valido) {
       return res.status(400).json({
@@ -451,32 +635,16 @@ const validarPromocionController = async (req, res) => {
 
     res.status(200).json({
       message: "Código de promoción válido",
-      promocion: resultado.promocion
+      promocion: resultado.promocion,
+      entidadValidada: validacionEntidad.entity,
+      usuario: {
+        id: usuario._id,
+        nombre: usuario.nombre,
+        email: usuario.email
+      }
     });
   } catch (error) {
     console.error(error);
-
-    if (error.message && error.message.includes('no encontrado') || error.message.includes('not found')) {
-      return res.status(404).json({
-        message: "Código no encontrado",
-        details: `No existe una promoción con el código: ${codigo}`
-      });
-    }
-
-    if (error.message && error.message.includes('expirado')) {
-      return res.status(400).json({
-        message: "Promoción expirada",
-        details: "La fecha de validez de la promoción ha expirado"
-      });
-    }
-
-    if (error.message && error.message.includes('usado')) {
-      return res.status(400).json({
-        message: "Promoción ya utilizada",
-        details: "Este usuario ya ha utilizado esta promoción anteriormente"
-      });
-    }
-
     res.status(500).json({
       message: "Error al validar la promoción",
       details: error.message
@@ -488,20 +656,19 @@ const getPromocionesProximasAExpirarController = async (req, res) => {
   const { diasRestantes } = req.query;
 
   try {
-    const promociones = await getPromocionesProximasAExpirar(
-      diasRestantes ? parseInt(diasRestantes) : 7
-    );
-    res.status(200).json(promociones);
-  } catch (error) {
-    console.error(error);
-
-    if (error.message && error.message.includes('formato') || error.message.includes('número')) {
+    const dias = diasRestantes ? parseInt(diasRestantes) : 7;
+    
+    if (isNaN(dias) || dias < 0) {
       return res.status(400).json({
         message: "Formato inválido para días restantes",
         details: "El valor para días restantes debe ser un número entero positivo"
       });
     }
 
+    const promociones = await getPromocionesProximasAExpirar(dias);
+    res.status(200).json(promociones);
+  } catch (error) {
+    console.error(error);
     res.status(500).json({
       message: "Error al obtener promociones próximas a expirar",
       details: error.message
@@ -514,26 +681,43 @@ const actualizarAplicabilidadController = async (req, res) => {
   const { aplicableA } = req.body;
   const { entidad, ids } = aplicableA || {};
 
-  if (!entidad || !['oficina', 'sala_reunion', 'escritorio_flexible', 'membresia', 'servicio'].includes(entidad)) {
+  if (!entidad || !ENTIDADES_VALIDAS.includes(entidad)) {
     return res.status(400).json({
       message: "Tipo de entidad no válido",
-      details: "La entidad debe ser 'oficina', 'sala_reunion', 'escritorio_flexible', 'membresia' o 'servicio'"
+      details: `La entidad debe ser una de: ${ENTIDADES_VALIDAS.join(', ')}`
     });
   }
 
-  if (!ids || !Array.isArray(ids) || ids.some(id => typeof id !== 'string')) {
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return res.status(400).json({
-      message: "Formato inválido de IDs",
-      details: "Se requiere un array de IDs válidos (strings)"
+      message: "IDs requeridos",
+      details: "Se requiere un array de IDs válidos"
     });
   }
 
   try {
-    const promocion = await actualizarAplicabilidad(id, entidad, ids);
-    if (!promocion) {
-      return res.status(404).json({ message: `No se ha encontrado la promoción con id: ${id}` });
+        const promocionExistente = await findPromocionById(id);
+    if (!promocionExistente) {
+      return res.status(404).json({ 
+        message: `No se ha encontrado la promoción con id: ${id}` 
+      });
     }
-    res.status(200).json({ message: "Aplicabilidad actualizada correctamente", promocion });
+
+        const validacion = await validarEntidadesExisten(entidad, ids);
+    
+    if (!validacion.valid) {
+      return res.status(400).json({
+        message: "Entidades no válidas",
+        details: validacion.message,
+        invalidIds: validacion.invalidIds
+      });
+    }
+
+    const promocion = await actualizarAplicabilidad(id, entidad, ids);
+    res.status(200).json({ 
+      message: "Aplicabilidad actualizada correctamente", 
+      promocion 
+    });
   } catch (error) {
     console.error(error);
 
@@ -541,13 +725,6 @@ const actualizarAplicabilidadController = async (req, res) => {
       return res.status(400).json({
         message: "Error en formato de ID",
         details: "El formato de uno o más IDs no es válido"
-      });
-    }
-
-    if (error.message && (error.message.includes('no existe') || error.message.includes('not found'))) {
-      return res.status(404).json({
-        message: "Entidades no encontradas",
-        details: "Uno o más IDs de entidades no existen en el sistema"
       });
     }
 
@@ -580,20 +757,31 @@ const filtrarPromocionesController = async (req, res) => {
       filtros.fechaInicio = { $lte: fechaActual };
       filtros.fechaFin = { $gte: fechaActual };
     }
-    if (value.fechaDesde) filtros.fechaInicio = { $gte: new Date(value.fechaDesde) };
-    if (value.fechaHasta) filtros.fechaFin = { $lte: new Date(value.fechaHasta) };
+    if (value.fechaDesde) {
+      const fechaDesde = new Date(value.fechaDesde);
+      if (isNaN(fechaDesde.getTime())) {
+        return res.status(400).json({
+          message: "Formato de fecha inválido",
+          details: "La fecha 'fechaDesde' no es válida"
+        });
+      }
+      filtros.fechaInicio = { $gte: fechaDesde };
+    }
+    if (value.fechaHasta) {
+      const fechaHasta = new Date(value.fechaHasta);
+      if (isNaN(fechaHasta.getTime())) {
+        return res.status(400).json({
+          message: "Formato de fecha inválido",
+          details: "La fecha 'fechaHasta' no es válida"
+        });
+      }
+      filtros.fechaFin = { $lte: fechaHasta };
+    }
 
     const promociones = await getPromociones(filtros);
     res.status(200).json(promociones);
   } catch (error) {
     console.error(error);
-
-    if (error instanceof RangeError || error.message.includes('fecha') || error.message.includes('date')) {
-      return res.status(400).json({
-        message: "Error en formato de fechas",
-        details: "Las fechas proporcionadas no son válidas"
-      });
-    }
 
     if (error.name === 'CastError') {
       return res.status(400).json({

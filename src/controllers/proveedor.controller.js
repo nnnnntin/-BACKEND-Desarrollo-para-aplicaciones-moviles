@@ -129,18 +129,38 @@ const createProveedorController = async (req, res) => {
   }
 
   const { serviciosOfrecidos } = value;
-  if (serviciosOfrecidos && serviciosOfrecidos.length > 0) {
+  
+    if (serviciosOfrecidos && serviciosOfrecidos.length > 0) {
     try {
       for (const servicioId of serviciosOfrecidos) {
         const servicio = await findServicioAdicionalById(servicioId);
         if (!servicio) {
           return res.status(404).json({
             message: "Servicio no encontrado",
-            details: `No se ha encontrado el servicio con id: ${servicioId}`
+            details: `No se ha encontrado el servicio con id: ${servicioId}`,
+            field: "serviciosOfrecidos"
+          });
+        }
+        
+                if (!servicio.activo) {
+          return res.status(400).json({
+            message: "Servicio inactivo",
+            details: `El servicio con id: ${servicioId} no está activo`,
+            field: "serviciosOfrecidos"
           });
         }
       }
     } catch (error) {
+      console.error(error);
+      
+      if (error.name === 'CastError') {
+        return res.status(400).json({
+          message: "ID de servicio inválido",
+          details: "Uno o más IDs de servicios tienen formato inválido",
+          field: "serviciosOfrecidos"
+        });
+      }
+      
       return res.status(400).json({
         message: "Error al verificar servicios",
         details: error.message
@@ -194,6 +214,45 @@ const updateProveedorController = async (req, res) => {
       details: error.details[0].message,
       field: error.details[0].context.key
     });
+  }
+
+    const { serviciosOfrecidos } = value;
+  if (serviciosOfrecidos && serviciosOfrecidos.length > 0) {
+    try {
+      for (const servicioId of serviciosOfrecidos) {
+        const servicio = await findServicioAdicionalById(servicioId);
+        if (!servicio) {
+          return res.status(404).json({
+            message: "Servicio no encontrado",
+            details: `No se ha encontrado el servicio con id: ${servicioId}`,
+            field: "serviciosOfrecidos"
+          });
+        }
+        
+        if (!servicio.activo) {
+          return res.status(400).json({
+            message: "Servicio inactivo",
+            details: `El servicio con id: ${servicioId} no está activo`,
+            field: "serviciosOfrecidos"
+          });
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      
+      if (error.name === 'CastError') {
+        return res.status(400).json({
+          message: "ID de servicio inválido",
+          details: "Uno o más IDs de servicios tienen formato inválido",
+          field: "serviciosOfrecidos"
+        });
+      }
+      
+      return res.status(400).json({
+        message: "Error al verificar servicios",
+        details: error.message
+      });
+    }
   }
 
   try {
@@ -306,9 +365,13 @@ const verificarProveedorController = async (req, res) => {
   const { proveedorId, documentosVerificacion, notas } = value;
 
   try {
-    const proveedorExiste = await findProveedorById(proveedorId);
+        const proveedorExiste = await findProveedorById(proveedorId);
     if (!proveedorExiste) {
-      return res.status(404).json({ message: `No se ha encontrado el proveedor con id: ${proveedorId}` });
+      return res.status(404).json({ 
+        message: "Proveedor no encontrado", 
+        details: `No se ha encontrado el proveedor con id: ${proveedorId}`,
+        field: "proveedorId"
+      });
     }
 
     if (proveedorExiste.verificado) {
@@ -389,6 +452,23 @@ const agregarServicioController = async (req, res) => {
   }
 
   try {
+        const servicio = await findServicioAdicionalById(servicioId);
+    if (!servicio) {
+      return res.status(404).json({
+        message: "Servicio no encontrado",
+        details: `No se ha encontrado el servicio con id: ${servicioId}`,
+        field: "servicioId"
+      });
+    }
+
+        if (!servicio.activo) {
+      return res.status(400).json({
+        message: "Servicio inactivo",
+        details: `El servicio con id: ${servicioId} no está activo`,
+        field: "servicioId"
+      });
+    }
+
     const proveedor = await agregarServicio(id, servicioId);
     if (!proveedor) {
       return res.status(404).json({ message: `No se ha encontrado el proveedor con id: ${id}` });
@@ -402,13 +482,6 @@ const agregarServicioController = async (req, res) => {
       return res.status(400).json({
         message: `ID de ${errorField} inválido`,
         details: `El formato del ID no es válido`
-      });
-    }
-
-    if (error.message && error.message.includes('servicio no encontrado') || error.message.includes('service not found')) {
-      return res.status(404).json({
-        message: "Servicio no encontrado",
-        details: `No se encontró el servicio con id: ${servicioId}`
       });
     }
 

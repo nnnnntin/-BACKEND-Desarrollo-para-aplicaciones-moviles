@@ -21,9 +21,148 @@ const {
   cancelarReservaSchema
 } = require("../routes/validations/reserva.validation");
 
+const { findUsuarioById } = require("../repositories/usuario.repository");
+const { findOficinaById } = require("../repositories/oficina.repository");
+const { findSalaReunionById } = require("../repositories/salaReunion.repository");
+const { findEscritorioFlexibleById } = require("../repositories/escritorioFlexible.repository");
+const { findServicioAdicionalById } = require("../repositories/servicioAdicional.repository");
+
+const ENTIDAD_RESERVABLE_MAP = {
+  'oficina': findOficinaById,
+  'sala_reunion': findSalaReunionById,
+  'escritorio_flexible': findEscritorioFlexibleById
+};
+
+const ENTIDADES_RESERVABLES_VALIDAS = ['oficina', 'sala_reunion', 'escritorio_flexible'];
+const ESTADOS_RESERVA_VALIDOS = ['pendiente', 'confirmada', 'cancelada', 'completada', 'no_asistio'];
+
+/**
+ * Valida que un usuario existe
+ * @param {string} usuarioId - ID del usuario a validar
+ * @returns {Promise<Object>} - { valid: boolean, user: Object|null, message: string }
+ */
+const validarUsuarioExiste = async (usuarioId) => {
+  try {
+    const usuario = await findUsuarioById(usuarioId);
+    
+    if (!usuario) {
+      return {
+        valid: false,
+        user: null,
+        message: `No se encontró el usuario con ID: ${usuarioId}`
+      };
+    }
+
+    return {
+      valid: true,
+      user: usuario,
+      message: 'Usuario válido'
+    };
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return {
+        valid: false,
+        user: null,
+        message: `Formato de ID de usuario inválido: ${usuarioId}`
+      };
+    }
+    throw error;
+  }
+};
+
+/**
+ * Valida que una entidad reservable existe
+ * @param {string} tipoEntidad - Tipo de entidad
+ * @param {string} entidadId - ID de la entidad
+ * @returns {Promise<Object>} - { valid: boolean, entity: Object|null, message: string }
+ */
+const validarEntidadReservableExiste = async (tipoEntidad, entidadId) => {
+  const findEntidadById = ENTIDAD_RESERVABLE_MAP[tipoEntidad];
+  
+  if (!findEntidadById) {
+    return {
+      valid: false,
+      entity: null,
+      message: `Tipo de entidad no válido: ${tipoEntidad}. Debe ser una de: ${ENTIDADES_RESERVABLES_VALIDAS.join(', ')}`
+    };
+  }
+
+  try {
+    const entidad = await findEntidadById(entidadId);
+    
+    if (!entidad) {
+      return {
+        valid: false,
+        entity: null,
+        message: `No se encontró la ${tipoEntidad} con ID: ${entidadId}`
+      };
+    }
+
+    return {
+      valid: true,
+      entity: entidad,
+      message: 'Entidad válida'
+    };
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return {
+        valid: false,
+        entity: null,
+        message: `Formato de ID inválido para ${tipoEntidad}: ${entidadId}`
+      };
+    }
+    throw error;
+  }
+};
+
+/**
+ * Valida que todos los servicios adicionales existen
+ * @param {Array} serviciosIds - Array de IDs de servicios adicionales
+ * @returns {Promise<Object>} - { valid: boolean, invalidIds: Array, services: Array, message: string }
+ */
+const validarServiciosAdicionalesExisten = async (serviciosIds) => {
+  if (!serviciosIds || !Array.isArray(serviciosIds) || serviciosIds.length === 0) {
+    return {
+      valid: true,
+      invalidIds: [],
+      services: [],
+      message: 'No hay servicios adicionales para validar'
+    };
+  }
+
+  const invalidIds = [];
+  const services = [];
+  
+  for (const servicioId of serviciosIds) {
+    try {
+      const servicio = await findServicioAdicionalById(servicioId);
+      if (!servicio) {
+        invalidIds.push(servicioId);
+      } else {
+        services.push(servicio);
+      }
+    } catch (error) {
+      if (error.name === 'CastError') {
+        invalidIds.push(servicioId);
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  return {
+    valid: invalidIds.length === 0,
+    invalidIds,
+    services,
+    message: invalidIds.length > 0 
+      ? `No se encontraron los siguientes servicios adicionales: ${invalidIds.join(', ')}`
+      : 'Todos los servicios adicionales son válidos'
+  };
+};
+
 const getReservasController = async (req, res) => {
   const { skip = "0", limit = "10", ...filtros } = req.query;
-  const skipNum  = parseInt(skip,  10);
+  const skipNum = parseInt(skip, 10);
   const limitNum = parseInt(limit, 10);
 
   if (isNaN(skipNum) || skipNum < 0) {
@@ -53,10 +192,13 @@ const getReservasController = async (req, res) => {
 
 const getReservaByIdController = async (req, res) => {
   const { id } = req.params;
+  
   try {
     const reserva = await findReservaById(id);
     if (!reserva) {
-      return res.status(404).json({ message: `No se ha encontrado la reserva con id: ${id}` });
+      return res.status(404).json({ 
+        message: `No se ha encontrado la reserva con id: ${id}` 
+      });
     }
     res.status(200).json(reserva);
   } catch (error) {
@@ -78,19 +220,20 @@ const getReservaByIdController = async (req, res) => {
 
 const getReservasByUsuarioController = async (req, res) => {
   const { usuarioId } = req.params;
+  
   try {
+        const validacionUsuario = await validarUsuarioExiste(usuarioId);
+    if (!validacionUsuario.valid) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: validacionUsuario.message
+      });
+    }
+
     const reservas = await getReservasByUsuario(usuarioId);
     res.status(200).json(reservas);
   } catch (error) {
     console.error(error);
-
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        message: "ID de usuario inválido",
-        details: `El formato del ID '${usuarioId}' no es válido`
-      });
-    }
-
     res.status(500).json({
       message: "Error al obtener reservas del usuario",
       details: error.message
@@ -100,11 +243,20 @@ const getReservasByUsuarioController = async (req, res) => {
 
 const getReservasByEntidadController = async (req, res) => {
   const { tipoEntidad, entidadId } = req.params;
+  
   try {
-    if (!['oficina', 'sala_reunion', 'escritorio_flexible', 'espacio'].includes(tipoEntidad)) {
+    if (!ENTIDADES_RESERVABLES_VALIDAS.includes(tipoEntidad)) {
       return res.status(400).json({
         message: "Tipo de entidad inválido",
-        details: "El tipo de entidad debe ser 'oficina', 'sala_reunion', 'escritorio_flexible' o 'espacio'"
+        details: `El tipo de entidad debe ser una de: ${ENTIDADES_RESERVABLES_VALIDAS.join(', ')}`
+      });
+    }
+
+        const validacionEntidad = await validarEntidadReservableExiste(tipoEntidad, entidadId);
+    if (!validacionEntidad.valid) {
+      return res.status(404).json({
+        message: "Entidad no encontrada",
+        details: validacionEntidad.message
       });
     }
 
@@ -112,21 +264,6 @@ const getReservasByEntidadController = async (req, res) => {
     res.status(200).json(reservas);
   } catch (error) {
     console.error(error);
-
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        message: "ID de entidad inválido",
-        details: `El formato del ID '${entidadId}' no es válido`
-      });
-    }
-
-    if (error.message && error.message.includes('no encontrada') || error.message.includes('not found')) {
-      return res.status(404).json({
-        message: "Entidad no encontrada",
-        details: `No se encontró la entidad de tipo ${tipoEntidad} con id: ${entidadId}`
-      });
-    }
-
     res.status(500).json({
       message: "Error al obtener reservas de la entidad",
       details: error.message
@@ -179,14 +316,6 @@ const getReservasPorFechaController = async (req, res) => {
     res.status(200).json(reservas);
   } catch (error) {
     console.error(error);
-
-    if (error instanceof RangeError || error.message.includes('fecha') || error.message.includes('date')) {
-      return res.status(400).json({
-        message: "Error en las fechas",
-        details: error.message
-      });
-    }
-
     res.status(500).json({
       message: "Error al obtener reservas por fecha",
       details: error.message
@@ -205,8 +334,74 @@ const createReservaController = async (req, res) => {
   }
 
   try {
+        const validacionUsuario = await validarUsuarioExiste(value.usuarioId);
+    if (!validacionUsuario.valid) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: validacionUsuario.message
+      });
+    }
+
+        const { tipo: tipoEntidad, id: entidadId } = value.entidadReservada;
+    const validacionEntidad = await validarEntidadReservableExiste(tipoEntidad, entidadId);
+    if (!validacionEntidad.valid) {
+      return res.status(404).json({
+        message: "Entidad reservable no encontrada",
+        details: validacionEntidad.message
+      });
+    }
+
+        if (value.serviciosAdicionales && value.serviciosAdicionales.length > 0) {
+      const validacionServicios = await validarServiciosAdicionalesExisten(value.serviciosAdicionales);
+      if (!validacionServicios.valid) {
+        return res.status(404).json({
+          message: "Servicios adicionales no encontrados",
+          details: validacionServicios.message,
+          invalidIds: validacionServicios.invalidIds
+        });
+      }
+    }
+
+        const fechaInicio = new Date(value.fechaInicio);
+    const fechaFin = new Date(value.fechaFin);
+    const fechaActual = new Date();
+
+    if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
+      return res.status(400).json({
+        message: "Formato de fecha inválido",
+        details: "Las fechas deben tener un formato válido"
+      });
+    }
+
+    if (fechaInicio >= fechaFin) {
+      return res.status(400).json({
+        message: "Error en las fechas de la reserva",
+        details: "La fecha de inicio debe ser anterior a la fecha de fin"
+      });
+    }
+
+    if (fechaInicio <= fechaActual) {
+      return res.status(400).json({
+        message: "Error en la fecha de inicio",
+        details: "La fecha de inicio debe ser posterior a la fecha actual"
+      });
+    }
+
     const reserva = await createReserva(value);
-    res.status(201).json({ message: "Reserva creada correctamente", reserva });
+    res.status(201).json({ 
+      message: "Reserva creada correctamente", 
+      reserva,
+      usuarioValidado: {
+        id: validacionUsuario.user._id,
+        nombre: validacionUsuario.user.nombre,
+        email: validacionUsuario.user.email
+      },
+      entidadValidada: {
+        tipo: tipoEntidad,
+        id: validacionEntidad.entity._id,
+        nombre: validacionEntidad.entity.nombre || validacionEntidad.entity.codigo
+      }
+    });
   } catch (error) {
     console.error(error);
 
@@ -218,31 +413,17 @@ const createReservaController = async (req, res) => {
       });
     }
 
-    if (error.message && error.message.includes('no disponible') || error.message.includes('not available')) {
+    if (error.message && (error.message.includes('no disponible') || error.message.includes('not available'))) {
       return res.status(400).json({
         message: "Espacio no disponible",
         details: "El espacio no está disponible en la fecha y hora seleccionadas"
       });
     }
 
-    if (error.message && error.message.includes('solapamiento') || error.message.includes('overlap')) {
+    if (error.message && (error.message.includes('solapamiento') || error.message.includes('overlap'))) {
       return res.status(400).json({
         message: "Conflicto de horarios",
         details: "La reserva se solapa con otra reserva existente"
-      });
-    }
-
-    if (error.message && error.message.includes('usuario no encontrado') || error.message.includes('user not found')) {
-      return res.status(404).json({
-        message: "Usuario no encontrado",
-        details: "El usuario especificado no existe"
-      });
-    }
-
-    if (error.message && error.message.includes('entidad no encontrada') || error.message.includes('entity not found')) {
-      return res.status(404).json({
-        message: "Entidad no encontrada",
-        details: "La entidad a reservar no existe"
       });
     }
 
@@ -256,6 +437,7 @@ const createReservaController = async (req, res) => {
 const updateReservaController = async (req, res) => {
   const { id } = req.params;
   const { error, value } = updateReservaSchema.validate(req.body);
+  
   if (error) {
     return res.status(400).json({
       message: "Error de validación",
@@ -265,10 +447,65 @@ const updateReservaController = async (req, res) => {
   }
 
   try {
-    const reserva = await updateReserva(id, value);
-    if (!reserva) {
-      return res.status(404).json({ message: `No se ha encontrado la reserva con id: ${id}` });
+        const reservaExistente = await findReservaById(id);
+    if (!reservaExistente) {
+      return res.status(404).json({ 
+        message: `No se ha encontrado la reserva con id: ${id}` 
+      });
     }
+
+        if (value.usuarioId) {
+      const validacionUsuario = await validarUsuarioExiste(value.usuarioId);
+      if (!validacionUsuario.valid) {
+        return res.status(404).json({
+          message: "Usuario no encontrado",
+          details: validacionUsuario.message
+        });
+      }
+    }
+
+        if (value.entidadReservada) {
+      const { tipo: tipoEntidad, id: entidadId } = value.entidadReservada;
+      const validacionEntidad = await validarEntidadReservableExiste(tipoEntidad, entidadId);
+      if (!validacionEntidad.valid) {
+        return res.status(404).json({
+          message: "Entidad reservable no encontrada",
+          details: validacionEntidad.message
+        });
+      }
+    }
+
+        if (value.serviciosAdicionales && value.serviciosAdicionales.length > 0) {
+      const validacionServicios = await validarServiciosAdicionalesExisten(value.serviciosAdicionales);
+      if (!validacionServicios.valid) {
+        return res.status(404).json({
+          message: "Servicios adicionales no encontrados",
+          details: validacionServicios.message,
+          invalidIds: validacionServicios.invalidIds
+        });
+      }
+    }
+
+        if (value.fechaInicio || value.fechaFin) {
+      const fechaInicio = new Date(value.fechaInicio || reservaExistente.fechaInicio);
+      const fechaFin = new Date(value.fechaFin || reservaExistente.fechaFin);
+
+      if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
+        return res.status(400).json({
+          message: "Formato de fecha inválido",
+          details: "Las fechas deben tener un formato válido"
+        });
+      }
+
+      if (fechaInicio >= fechaFin) {
+        return res.status(400).json({
+          message: "Error en las fechas de la reserva",
+          details: "La fecha de inicio debe ser anterior a la fecha de fin"
+        });
+      }
+    }
+
+    const reserva = await updateReserva(id, value);
     res.status(200).json(reserva);
   } catch (error) {
     console.error(error);
@@ -288,14 +525,14 @@ const updateReservaController = async (req, res) => {
       });
     }
 
-    if (error.message && error.message.includes('no modificable') || error.message.includes('cannot be modified')) {
+    if (error.message && (error.message.includes('no modificable') || error.message.includes('cannot be modified'))) {
       return res.status(400).json({
         message: "Reserva no modificable",
         details: "La reserva no puede ser modificada en su estado actual"
       });
     }
 
-    if (error.message && error.message.includes('solapamiento') || error.message.includes('overlap')) {
+    if (error.message && (error.message.includes('solapamiento') || error.message.includes('overlap'))) {
       return res.status(400).json({
         message: "Conflicto de horarios",
         details: "La reserva modificada se solapa con otra reserva existente"
@@ -311,10 +548,13 @@ const updateReservaController = async (req, res) => {
 
 const deleteReservaController = async (req, res) => {
   const { id } = req.params;
+  
   try {
     const reserva = await deleteReserva(id);
     if (!reserva) {
-      return res.status(404).json({ message: `No se ha encontrado la reserva con id: ${id}` });
+      return res.status(404).json({ 
+        message: `No se ha encontrado la reserva con id: ${id}` 
+      });
     }
     res.status(200).json({ message: "Reserva eliminada correctamente" });
   } catch (error) {
@@ -327,14 +567,14 @@ const deleteReservaController = async (req, res) => {
       });
     }
 
-    if (error.message && error.message.includes('no eliminable') || error.message.includes('cannot be deleted')) {
+    if (error.message && (error.message.includes('no eliminable') || error.message.includes('cannot be deleted'))) {
       return res.status(400).json({
         message: "Reserva no eliminable",
         details: "La reserva no puede ser eliminada en su estado actual"
       });
     }
 
-    if (error.message && error.message.includes('pagos asociados') || error.message.includes('associated payments')) {
+    if (error.message && (error.message.includes('pagos asociados') || error.message.includes('associated payments'))) {
       return res.status(400).json({
         message: "Reserva con pagos",
         details: "La reserva tiene pagos asociados y no puede ser eliminada directamente"
@@ -352,19 +592,26 @@ const cambiarEstadoReservaController = async (req, res) => {
   const { id } = req.params;
   const { estado } = req.body;
 
-  if (!['pendiente', 'confirmada', 'cancelada', 'completada', 'no_asistio'].includes(estado)) {
+  if (!ESTADOS_RESERVA_VALIDOS.includes(estado)) {
     return res.status(400).json({
       message: "Estado no válido",
-      details: "El estado debe ser 'pendiente', 'confirmada', 'cancelada', 'completada' o 'no_asistio'"
+      details: `El estado debe ser uno de: ${ESTADOS_RESERVA_VALIDOS.join(', ')}`
     });
   }
 
   try {
-    const reserva = await cambiarEstadoReserva(id, estado);
-    if (!reserva) {
-      return res.status(404).json({ message: `No se ha encontrado la reserva con id: ${id}` });
+        const reservaExistente = await findReservaById(id);
+    if (!reservaExistente) {
+      return res.status(404).json({ 
+        message: `No se ha encontrado la reserva con id: ${id}` 
+      });
     }
-    res.status(200).json({ message: "Estado actualizado correctamente", reserva });
+
+    const reserva = await cambiarEstadoReserva(id, estado);
+    res.status(200).json({ 
+      message: "Estado actualizado correctamente", 
+      reserva 
+    });
   } catch (error) {
     console.error(error);
 
@@ -375,10 +622,10 @@ const cambiarEstadoReservaController = async (req, res) => {
       });
     }
 
-    if (error.message && error.message.includes('transición no permitida') || error.message.includes('transition not allowed')) {
+    if (error.message && (error.message.includes('transición no permitida') || error.message.includes('transition not allowed'))) {
       return res.status(400).json({
         message: "Cambio de estado no permitido",
-        details: `No se permite cambiar el estado de '${error.currentState}' a '${estado}'`
+        details: `No se permite cambiar el estado actual a '${estado}'`
       });
     }
 
@@ -401,33 +648,45 @@ const aprobarReservaController = async (req, res) => {
   }
 
   try {
-    const reserva = await aprobarReserva(id, aprobadorId, notas);
-    if (!reserva) {
-      return res.status(404).json({ message: `No se ha encontrado la reserva con id: ${id}` });
+        const reservaExistente = await findReservaById(id);
+    if (!reservaExistente) {
+      return res.status(404).json({ 
+        message: `No se ha encontrado la reserva con id: ${id}` 
+      });
     }
-    res.status(200).json({ message: "Reserva aprobada correctamente", reserva });
+
+        const validacionAprobador = await validarUsuarioExiste(aprobadorId);
+    if (!validacionAprobador.valid) {
+      return res.status(404).json({
+        message: "Aprobador no encontrado",
+        details: validacionAprobador.message
+      });
+    }
+
+    const reserva = await aprobarReserva(id, aprobadorId, notas);
+    res.status(200).json({ 
+      message: "Reserva aprobada correctamente", 
+      reserva,
+      aprobador: {
+        id: validacionAprobador.user._id,
+        nombre: validacionAprobador.user.nombre,
+        email: validacionAprobador.user.email
+      }
+    });
   } catch (error) {
     console.error(error);
 
     if (error.name === 'CastError') {
-      const field = error.path === 'id' ? 'reserva' : 'aprobador';
       return res.status(400).json({
-        message: `ID de ${field} inválido`,
-        details: `El formato del ID no es válido`
+        message: "Formato de ID inválido",
+        details: "El formato de uno de los IDs no es válido"
       });
     }
 
-    if (error.message && error.message.includes('no pendiente') || error.message.includes('not pending')) {
+    if (error.message && (error.message.includes('no pendiente') || error.message.includes('not pending'))) {
       return res.status(400).json({
         message: "Reserva no pendiente",
         details: "Solo se pueden aprobar reservas en estado pendiente"
-      });
-    }
-
-    if (error.message && error.message.includes('aprobador no autorizado') || error.message.includes('not authorized')) {
-      return res.status(403).json({
-        message: "Aprobador no autorizado",
-        details: "El usuario no tiene permisos para aprobar reservas"
       });
     }
 
@@ -450,24 +709,38 @@ const rechazarReservaController = async (req, res) => {
   }
 
   try {
-    const reserva = await rechazarReserva(id, aprobadorId, motivo);
-    if (!reserva) {
+        const reservaExistente = await findReservaById(id);
+    if (!reservaExistente) {
       return res.status(404).json({
         message: `No se ha encontrado la reserva con id: ${id}`
       });
     }
+
+        const validacionAprobador = await validarUsuarioExiste(aprobadorId);
+    if (!validacionAprobador.valid) {
+      return res.status(404).json({
+        message: "Aprobador no encontrado",
+        details: validacionAprobador.message
+      });
+    }
+
+    const reserva = await rechazarReserva(id, aprobadorId, motivo);
     return res.status(200).json({
       message: "Reserva rechazada correctamente",
-      reserva
+      reserva,
+      aprobador: {
+        id: validacionAprobador.user._id,
+        nombre: validacionAprobador.user.nombre,
+        email: validacionAprobador.user.email
+      }
     });
   } catch (error) {
     console.error(error);
 
     if (error.name === 'CastError') {
-      const field = error.path === 'id' ? 'reserva' : 'aprobador';
       return res.status(400).json({
-        message: `ID de ${field} inválido`,
-        details: `El formato del ID no es válido`
+        message: "Formato de ID inválido",
+        details: "El formato de uno de los IDs no es válido"
       });
     }
 
@@ -475,13 +748,6 @@ const rechazarReservaController = async (req, res) => {
       return res.status(400).json({
         message: "Reserva no pendiente",
         details: "Solo se pueden rechazar reservas en estado pendiente"
-      });
-    }
-
-    if (error.message && (error.message.includes('aprobador no autorizado') || error.message.includes('not authorized'))) {
-      return res.status(403).json({
-        message: "Aprobador no autorizado",
-        details: "El usuario no tiene permisos para rechazar reservas"
       });
     }
 
@@ -517,37 +783,43 @@ const vincularPagoReservaController = async (req, res) => {
   }
 
   try {
-    const reserva = await vincularPagoReserva(id, pagoId);
-    if (!reserva) {
-      return res.status(404).json({ message: `No se ha encontrado la reserva con id: ${id}` });
+        const reservaExistente = await findReservaById(id);
+    if (!reservaExistente) {
+      return res.status(404).json({ 
+        message: `No se ha encontrado la reserva con id: ${id}` 
+      });
     }
-    res.status(200).json({ message: "Pago vinculado correctamente", reserva });
+
+    const reserva = await vincularPagoReserva(id, pagoId);
+    res.status(200).json({ 
+      message: "Pago vinculado correctamente", 
+      reserva 
+    });
   } catch (error) {
     console.error(error);
 
     if (error.name === 'CastError') {
-      const field = error.path === 'id' ? 'reserva' : 'pago';
       return res.status(400).json({
-        message: `ID de ${field} inválido`,
-        details: `El formato del ID no es válido`
+        message: "Formato de ID inválido",
+        details: "El formato de uno de los IDs no es válido"
       });
     }
 
-    if (error.message && error.message.includes('pago no encontrado') || error.message.includes('payment not found')) {
+    if (error.message && (error.message.includes('pago no encontrado') || error.message.includes('payment not found'))) {
       return res.status(404).json({
         message: "Pago no encontrado",
         details: `No se encontró el pago con id: ${pagoId}`
       });
     }
 
-    if (error.message && error.message.includes('ya vinculado') || error.message.includes('already linked')) {
+    if (error.message && (error.message.includes('ya vinculado') || error.message.includes('already linked'))) {
       return res.status(400).json({
         message: "Pago ya vinculado",
         details: "El pago ya está vinculado a esta u otra reserva"
       });
     }
 
-    if (error.message && error.message.includes('estado incorrecto') || error.message.includes('wrong state')) {
+    if (error.message && (error.message.includes('estado incorrecto') || error.message.includes('wrong state'))) {
       return res.status(400).json({
         message: "Estado de reserva incorrecto",
         details: "La reserva debe estar en estado confirmada o pendiente para vincular un pago"
@@ -574,10 +846,14 @@ const cancelarReservaController = async (req, res) => {
   const { reservaId, motivo, solicitarReembolso } = value;
 
   try {
-    const reserva = await cambiarEstadoReserva(reservaId, 'cancelada');
-    if (!reserva) {
-      return res.status(404).json({ message: `No se ha encontrado la reserva con id: ${reservaId}` });
+        const reservaExistente = await findReservaById(reservaId);
+    if (!reservaExistente) {
+      return res.status(404).json({ 
+        message: `No se ha encontrado la reserva con id: ${reservaId}` 
+      });
     }
+
+    const reserva = await cambiarEstadoReserva(reservaId, 'cancelada');
 
     try {
       const reservaActualizada = await updateReserva(reservaId, {
@@ -586,7 +862,10 @@ const cancelarReservaController = async (req, res) => {
         reembolsoSolicitado: solicitarReembolso
       });
 
-      res.status(200).json({ message: "Reserva cancelada correctamente", reserva: reservaActualizada });
+      res.status(200).json({ 
+        message: "Reserva cancelada correctamente", 
+        reserva: reservaActualizada 
+      });
     } catch (updateError) {
       console.error("Error al actualizar detalles de cancelación:", updateError);
       res.status(200).json({
@@ -605,14 +884,14 @@ const cancelarReservaController = async (req, res) => {
       });
     }
 
-    if (error.message && error.message.includes('no se puede cancelar') || error.message.includes('cannot cancel')) {
+    if (error.message && (error.message.includes('no se puede cancelar') || error.message.includes('cannot cancel'))) {
       return res.status(400).json({
         message: "Reserva no cancelable",
         details: "La reserva no puede ser cancelada en su estado actual o ha pasado el plazo para cancelación"
       });
     }
 
-    if (error.message && error.message.includes('políticas de cancelación') || error.message.includes('cancellation policy')) {
+    if (error.message && (error.message.includes('políticas de cancelación') || error.message.includes('cancellation policy'))) {
       return res.status(400).json({
         message: "Fuera de plazo de cancelación",
         details: "Ha excedido el plazo permitido para cancelaciones con reembolso"
@@ -639,10 +918,47 @@ const filtrarReservasController = async (req, res) => {
   try {
     const filtros = {};
 
-    if (value.usuarioId) filtros.usuarioId = value.usuarioId;
-    if (value.tipoEntidad) filtros['entidadReservada.tipo'] = value.tipoEntidad;
-    if (value.entidadId) filtros['entidadReservada.id'] = value.entidadId;
-    if (value.estado) filtros.estado = value.estado;
+        if (value.usuarioId) {
+      const validacionUsuario = await validarUsuarioExiste(value.usuarioId);
+      if (!validacionUsuario.valid) {
+        return res.status(404).json({
+          message: "Usuario no encontrado en filtros",
+          details: validacionUsuario.message
+        });
+      }
+      filtros.usuarioId = value.usuarioId;
+    }
+
+        if (value.tipoEntidad) {
+      if (!ENTIDADES_RESERVABLES_VALIDAS.includes(value.tipoEntidad)) {
+        return res.status(400).json({
+          message: "Tipo de entidad inválido en filtros",
+          details: `El tipo de entidad debe ser una de: ${ENTIDADES_RESERVABLES_VALIDAS.join(', ')}`
+        });
+      }
+      filtros['entidadReservada.tipo'] = value.tipoEntidad;
+
+      if (value.entidadId) {
+        const validacionEntidad = await validarEntidadReservableExiste(value.tipoEntidad, value.entidadId);
+        if (!validacionEntidad.valid) {
+          return res.status(404).json({
+            message: "Entidad no encontrada en filtros",
+            details: validacionEntidad.message
+          });
+        }
+        filtros['entidadReservada.id'] = value.entidadId;
+      }
+    }
+
+    if (value.estado) {
+      if (!ESTADOS_RESERVA_VALIDOS.includes(value.estado)) {
+        return res.status(400).json({
+          message: "Estado inválido en filtros",
+          details: `El estado debe ser uno de: ${ESTADOS_RESERVA_VALIDOS.join(', ')}`
+        });
+      }
+      filtros.estado = value.estado;
+    }
 
     if (value.fechaInicio) {
       const fechaInicio = new Date(value.fechaInicio);
@@ -674,15 +990,6 @@ const filtrarReservasController = async (req, res) => {
     res.status(200).json(reservas);
   } catch (error) {
     console.error(error);
-
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        message: "Error en formato de ID",
-        details: `El valor '${error.value}' no es válido para el campo '${error.path}'`,
-        field: error.path
-      });
-    }
-
     res.status(500).json({
       message: "Error al filtrar reservas",
       details: error.message

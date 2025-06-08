@@ -17,6 +17,137 @@ const {
   filtrarNotificacionesSchema
 } = require("../routes/validations/notificacion.validation");
 
+const { findUsuarioById } = require("../repositories/usuario.repository");
+const { findReservaById } = require("../repositories/reserva.repository");
+const { findPagoById } = require("../repositories/pago.repository");
+const { findOficinaById } = require("../repositories/oficina.repository");
+const { findMembresiaById } = require("../repositories/membresia.repository");
+
+const ENTIDAD_MAP = {
+  'reserva': findReservaById,
+  'pago': findPagoById,
+  'oficina': findOficinaById,
+  'usuario': findUsuarioById,
+  'membresia': findMembresiaById
+};
+
+const TIPOS_ENTIDAD_VALIDOS = ['reserva', 'pago', 'oficina', 'usuario', 'membresia'];
+const TIPOS_NOTIFICACION_VALIDOS = ['reserva', 'pago', 'sistema', 'recordatorio', 'promocion'];
+const PRIORIDADES_VALIDAS = ['baja', 'media', 'alta'];
+
+/**
+ * Valida que un usuario existe
+ * @param {string} usuarioId - ID del usuario a validar
+ * @returns {Promise<Object>} - { valid: boolean, user: Object|null, message: string }
+ */
+const validarUsuarioExiste = async (usuarioId) => {
+  try {
+    const usuario = await findUsuarioById(usuarioId);
+    
+    if (!usuario) {
+      return {
+        valid: false,
+        user: null,
+        message: `No se encontró el usuario con ID: ${usuarioId}`
+      };
+    }
+
+    return {
+      valid: true,
+      user: usuario,
+      message: 'Usuario válido'
+    };
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return {
+        valid: false,
+        user: null,
+        message: `Formato de ID de usuario inválido: ${usuarioId}`
+      };
+    }
+    throw error;
+  }
+};
+
+/**
+ * Valida que una entidad relacionada existe
+ * @param {string} tipo - Tipo de entidad
+ * @param {string} id - ID de la entidad
+ * @returns {Promise<Object>} - { valid: boolean, entity: Object|null, message: string }
+ */
+const validarEntidadRelacionadaExiste = async (tipo, id) => {
+  if (!TIPOS_ENTIDAD_VALIDOS.includes(tipo)) {
+    return {
+      valid: false,
+      entity: null,
+      message: `Tipo de entidad no válido: ${tipo}. Debe ser uno de: ${TIPOS_ENTIDAD_VALIDOS.join(', ')}`
+    };
+  }
+
+  const findEntidadById = ENTIDAD_MAP[tipo];
+  
+  try {
+    const entidad = await findEntidadById(id);
+    
+    if (!entidad) {
+      return {
+        valid: false,
+        entity: null,
+        message: `No se encontró la entidad de tipo ${tipo} con ID: ${id}`
+      };
+    }
+
+    return {
+      valid: true,
+      entity: entidad,
+      message: 'Entidad válida'
+    };
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return {
+        valid: false,
+        entity: null,
+        message: `Formato de ID inválido para ${tipo}: ${id}`
+      };
+    }
+    throw error;
+  }
+};
+
+/**
+ * Valida que una notificación existe
+ * @param {string} notificacionId - ID de la notificación a validar
+ * @returns {Promise<Object>} - { valid: boolean, notificacion: Object|null, message: string }
+ */
+const validarNotificacionExiste = async (notificacionId) => {
+  try {
+    const notificacion = await findNotificacionById(notificacionId);
+    
+    if (!notificacion) {
+      return {
+        valid: false,
+        notificacion: null,
+        message: `No se encontró la notificación con ID: ${notificacionId}`
+      };
+    }
+
+    return {
+      valid: true,
+      notificacion: notificacion,
+      message: 'Notificación válida'
+    };
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return {
+        valid: false,
+        notificacion: null,
+        message: `Formato de ID de notificación inválido: ${notificacionId}`
+      };
+    }
+    throw error;
+  }
+};
+
 const getNotificacionesController = async (req, res) => {
   const { skip = "0", limit = "10", ...filtros } = req.query;
   const skipNum = parseInt(skip, 10);
@@ -80,6 +211,14 @@ const getNotificacionesByUsuarioController = async (req, res) => {
   const { leidas } = req.query;
 
   try {
+        const validacionUsuario = await validarUsuarioExiste(usuarioId);
+    if (!validacionUsuario.valid) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: validacionUsuario.message
+      });
+    }
+
     let leidasBoolean = null;
 
     if (leidas !== undefined) {
@@ -100,21 +239,6 @@ const getNotificacionesByUsuarioController = async (req, res) => {
     res.status(200).json(notificaciones);
   } catch (error) {
     console.error(error);
-
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        message: "ID de usuario inválido",
-        details: `El formato del ID '${usuarioId}' no es válido`
-      });
-    }
-
-    if (error.message && error.message.includes('usuario no encontrado')) {
-      return res.status(404).json({
-        message: "Usuario no encontrado",
-        details: `No existe un usuario con id: ${usuarioId}`
-      });
-    }
-
     res.status(500).json({
       message: "Error al obtener notificaciones del usuario",
       details: error.message
@@ -127,34 +251,28 @@ const getNotificacionesPorTipoController = async (req, res) => {
   const { destinatarioId } = req.query;
 
   try {
-    const tiposValidos = ['sistema', 'reserva', 'pago', 'mensaje', 'alerta'];
-    if (!tiposValidos.includes(tipo)) {
+    if (!TIPOS_NOTIFICACION_VALIDOS.includes(tipo)) {
       return res.status(400).json({
         message: "Tipo de notificación inválido",
-        details: `Los tipos válidos son: ${tiposValidos.join(', ')}`,
+        details: `Los tipos válidos son: ${TIPOS_NOTIFICACION_VALIDOS.join(', ')}`,
         field: "tipo"
       });
+    }
+
+        if (destinatarioId) {
+      const validacionDestinatario = await validarUsuarioExiste(destinatarioId);
+      if (!validacionDestinatario.valid) {
+        return res.status(404).json({
+          message: "Destinatario no encontrado",
+          details: validacionDestinatario.message
+        });
+      }
     }
 
     const notificaciones = await getNotificacionesPorTipo(tipo, destinatarioId);
     res.status(200).json(notificaciones);
   } catch (error) {
     console.error(error);
-
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        message: "ID de destinatario inválido",
-        details: `El formato del ID no es válido`
-      });
-    }
-
-    if (error.message && error.message.includes('destinatario no encontrado')) {
-      return res.status(404).json({
-        message: "Destinatario no encontrado",
-        details: `No existe un destinatario con id: ${destinatarioId}`
-      });
-    }
-
     res.status(500).json({
       message: "Error al obtener notificaciones por tipo",
       details: error.message
@@ -173,8 +291,78 @@ const createNotificacionController = async (req, res) => {
   }
 
   try {
+        const validacionDestinatario = await validarUsuarioExiste(value.destinatarioId);
+    if (!validacionDestinatario.valid) {
+      return res.status(404).json({
+        message: "Destinatario no encontrado",
+        details: validacionDestinatario.message
+      });
+    }
+
+        if (value.remitenteId) {
+      const validacionRemitente = await validarUsuarioExiste(value.remitenteId);
+      if (!validacionRemitente.valid) {
+        return res.status(404).json({
+          message: "Remitente no encontrado",
+          details: validacionRemitente.message
+        });
+      }
+    }
+
+        if (value.entidadRelacionada && value.entidadRelacionada.tipo && value.entidadRelacionada.id) {
+      const { tipo, id } = value.entidadRelacionada;
+      const validacionEntidad = await validarEntidadRelacionadaExiste(tipo, id);
+      if (!validacionEntidad.valid) {
+        return res.status(404).json({
+          message: "Entidad relacionada no encontrada",
+          details: validacionEntidad.message
+        });
+      }
+    }
+
+        if (!TIPOS_NOTIFICACION_VALIDOS.includes(value.tipoNotificacion)) {
+      return res.status(400).json({
+        message: "Tipo de notificación inválido",
+        details: `El tipo debe ser uno de: ${TIPOS_NOTIFICACION_VALIDOS.join(', ')}`
+      });
+    }
+
+        if (value.prioridad && !PRIORIDADES_VALIDAS.includes(value.prioridad)) {
+      return res.status(400).json({
+        message: "Prioridad inválida",
+        details: `La prioridad debe ser una de: ${PRIORIDADES_VALIDAS.join(', ')}`
+      });
+    }
+
+        if (value.expirar) {
+      const fechaExpiracion = new Date(value.expirar);
+      const fechaActual = new Date();
+      
+      if (isNaN(fechaExpiracion.getTime())) {
+        return res.status(400).json({
+          message: "Formato de fecha inválido",
+          details: "La fecha de expiración debe tener un formato válido"
+        });
+      }
+
+      if (fechaExpiracion <= fechaActual) {
+        return res.status(400).json({
+          message: "Fecha de expiración inválida",
+          details: "La fecha de expiración debe ser posterior a la fecha actual"
+        });
+      }
+    }
+
     const notificacion = await createNotificacion(value);
-    res.status(201).json({ message: "Notificación creada correctamente", notificacion });
+    res.status(201).json({ 
+      message: "Notificación creada correctamente", 
+      notificacion,
+      destinatarioValidado: {
+        id: validacionDestinatario.user._id,
+        nombre: validacionDestinatario.user.nombre,
+        email: validacionDestinatario.user.email
+      }
+    });
   } catch (error) {
     console.error(error);
 
@@ -183,30 +371,6 @@ const createNotificacionController = async (req, res) => {
       return res.status(400).json({
         message: "Error de validación en modelo",
         details: errors
-      });
-    }
-
-    if (error.message && error.message.includes('destinatario no encontrado')) {
-      return res.status(404).json({
-        message: "Destinatario no encontrado",
-        details: "El destinatario especificado no existe",
-        field: "destinatarioId"
-      });
-    }
-
-    if (error.message && error.message.includes('entidad no encontrada')) {
-      return res.status(404).json({
-        message: "Entidad no encontrada",
-        details: "La entidad relacionada no existe",
-        field: "entidadId"
-      });
-    }
-
-    if (error.message && error.message.includes('tipo de notificación')) {
-      return res.status(400).json({
-        message: "Tipo de notificación inválido",
-        details: error.message,
-        field: "tipoNotificacion"
       });
     }
 
@@ -229,14 +393,90 @@ const updateNotificacionController = async (req, res) => {
   }
 
   try {
-    const notificacion = await updateNotificacion(id, value);
-    if (!notificacion) {
+        const notificacionExistente = await findNotificacionById(id);
+    if (!notificacionExistente) {
       return res.status(404).json({
         message: "Notificación no encontrada",
         details: `No se ha encontrado la notificación con id: ${id}`
       });
     }
-    res.status(200).json(notificacion);
+
+        if (notificacionExistente.leido) {
+      return res.status(400).json({
+        message: "Notificación no modificable",
+        details: "No se puede modificar una notificación que ya ha sido leída"
+      });
+    }
+
+        if (value.destinatarioId && value.destinatarioId !== notificacionExistente.destinatarioId.toString()) {
+      const validacionDestinatario = await validarUsuarioExiste(value.destinatarioId);
+      if (!validacionDestinatario.valid) {
+        return res.status(404).json({
+          message: "Destinatario no encontrado",
+          details: validacionDestinatario.message
+        });
+      }
+    }
+
+        if (value.remitenteId) {
+      const validacionRemitente = await validarUsuarioExiste(value.remitenteId);
+      if (!validacionRemitente.valid) {
+        return res.status(404).json({
+          message: "Remitente no encontrado",
+          details: validacionRemitente.message
+        });
+      }
+    }
+
+        if (value.entidadRelacionada && value.entidadRelacionada.tipo && value.entidadRelacionada.id) {
+      const { tipo, id: entidadId } = value.entidadRelacionada;
+      const validacionEntidad = await validarEntidadRelacionadaExiste(tipo, entidadId);
+      if (!validacionEntidad.valid) {
+        return res.status(404).json({
+          message: "Entidad relacionada no encontrada",
+          details: validacionEntidad.message
+        });
+      }
+    }
+
+        if (value.tipoNotificacion && !TIPOS_NOTIFICACION_VALIDOS.includes(value.tipoNotificacion)) {
+      return res.status(400).json({
+        message: "Tipo de notificación inválido",
+        details: `El tipo debe ser uno de: ${TIPOS_NOTIFICACION_VALIDOS.join(', ')}`
+      });
+    }
+
+        if (value.prioridad && !PRIORIDADES_VALIDAS.includes(value.prioridad)) {
+      return res.status(400).json({
+        message: "Prioridad inválida",
+        details: `La prioridad debe ser una de: ${PRIORIDADES_VALIDAS.join(', ')}`
+      });
+    }
+
+        if (value.expirar) {
+      const fechaExpiracion = new Date(value.expirar);
+      const fechaActual = new Date();
+      
+      if (isNaN(fechaExpiracion.getTime())) {
+        return res.status(400).json({
+          message: "Formato de fecha inválido",
+          details: "La fecha de expiración debe tener un formato válido"
+        });
+      }
+
+      if (fechaExpiracion <= fechaActual) {
+        return res.status(400).json({
+          message: "Fecha de expiración inválida",
+          details: "La fecha de expiración debe ser posterior a la fecha actual"
+        });
+      }
+    }
+
+    const notificacion = await updateNotificacion(id, value);
+    res.status(200).json({
+      message: "Notificación actualizada correctamente",
+      notificacion
+    });
   } catch (error) {
     console.error(error);
 
@@ -255,22 +495,6 @@ const updateNotificacionController = async (req, res) => {
       });
     }
 
-    if (error.message && error.message.includes('notificación leída')) {
-      return res.status(400).json({
-        message: "Notificación no modificable",
-        details: "No se puede modificar una notificación que ya ha sido leída",
-        field: "leido"
-      });
-    }
-
-    if (error.message && error.message.includes('tipo de notificación')) {
-      return res.status(400).json({
-        message: "Tipo de notificación inválido",
-        details: error.message,
-        field: "tipoNotificacion"
-      });
-    }
-
     res.status(500).json({
       message: "Error al actualizar la notificación",
       details: error.message
@@ -281,13 +505,22 @@ const updateNotificacionController = async (req, res) => {
 const deleteNotificacionController = async (req, res) => {
   const { id } = req.params;
   try {
-    const notificacion = await deleteNotificacion(id);
-    if (!notificacion) {
+        const notificacionExistente = await findNotificacionById(id);
+    if (!notificacionExistente) {
       return res.status(404).json({
         message: "Notificación no encontrada",
         details: `No se ha encontrado la notificación con id: ${id}`
       });
     }
+
+        if (notificacionExistente.tipoNotificacion === 'sistema' && !notificacionExistente.leido) {
+      return res.status(400).json({
+        message: "Notificación no eliminable",
+        details: "No se pueden eliminar notificaciones de sistema no leídas"
+      });
+    }
+
+    const notificacion = await deleteNotificacion(id);
     res.status(200).json({ message: "Notificación eliminada correctamente" });
   } catch (error) {
     console.error(error);
@@ -296,13 +529,6 @@ const deleteNotificacionController = async (req, res) => {
       return res.status(400).json({
         message: "ID de notificación inválido",
         details: `El formato del ID '${id}' no es válido`
-      });
-    }
-
-    if (error.message && error.message.includes('no eliminable')) {
-      return res.status(400).json({
-        message: "Notificación no eliminable",
-        details: error.message
       });
     }
 
@@ -326,31 +552,28 @@ const marcarComoLeidaController = async (req, res) => {
   const { notificacionId } = value;
 
   try {
-    const notificacion = await marcarComoLeida(notificacionId);
-    if (!notificacion) {
+        const validacionNotificacion = await validarNotificacionExiste(notificacionId);
+    if (!validacionNotificacion.valid) {
       return res.status(404).json({
         message: "Notificación no encontrada",
-        details: `No se ha encontrado la notificación con id: ${notificacionId}`
-      });
-    }
-    res.status(200).json({ message: "Notificación marcada como leída", notificacion });
-  } catch (error) {
-    console.error(error);
-
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        message: "ID de notificación inválido",
-        details: `El formato del ID '${notificacionId}' no es válido`
+        details: validacionNotificacion.message
       });
     }
 
-    if (error.message && error.message.includes('ya leída')) {
+        if (validacionNotificacion.notificacion.leido) {
       return res.status(400).json({
         message: "Notificación ya leída",
         details: "La notificación ya fue marcada como leída anteriormente"
       });
     }
 
+    const notificacion = await marcarComoLeida(notificacionId);
+    res.status(200).json({ 
+      message: "Notificación marcada como leída", 
+      notificacion 
+    });
+  } catch (error) {
+    console.error(error);
     res.status(500).json({
       message: "Error al marcar la notificación como leída",
       details: error.message
@@ -362,6 +585,14 @@ const marcarTodasComoLeidasController = async (req, res) => {
   const { usuarioId } = req.params;
 
   try {
+        const validacionUsuario = await validarUsuarioExiste(usuarioId);
+    if (!validacionUsuario.valid) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: validacionUsuario.message
+      });
+    }
+
     const resultado = await marcarTodasComoLeidas(usuarioId);
 
     if (resultado.modifiedCount === 0) {
@@ -373,25 +604,15 @@ const marcarTodasComoLeidasController = async (req, res) => {
 
     res.status(200).json({
       message: "Notificaciones marcadas como leídas",
-      cantidad: resultado.modifiedCount
+      cantidad: resultado.modifiedCount,
+      usuario: {
+        id: validacionUsuario.user._id,
+        nombre: validacionUsuario.user.nombre,
+        email: validacionUsuario.user.email
+      }
     });
   } catch (error) {
     console.error(error);
-
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        message: "ID de usuario inválido",
-        details: `El formato del ID '${usuarioId}' no es válido`
-      });
-    }
-
-    if (error.message && error.message.includes('usuario no encontrado')) {
-      return res.status(404).json({
-        message: "Usuario no encontrado",
-        details: `No existe un usuario con id: ${usuarioId}`
-      });
-    }
-
     res.status(500).json({
       message: "Error al marcar todas las notificaciones como leídas",
       details: error.message
@@ -402,35 +623,27 @@ const marcarTodasComoLeidasController = async (req, res) => {
 const getNotificacionesPorEntidadController = async (req, res) => {
   const { tipoEntidad, entidadId } = req.params;
 
-  const tiposEntidadValidos = ['reserva', 'pago', 'factura', 'oficina', 'usuario', 'edificio', 'membresia'];
-  if (!tiposEntidadValidos.includes(tipoEntidad)) {
+  if (!TIPOS_ENTIDAD_VALIDOS.includes(tipoEntidad)) {
     return res.status(400).json({
       message: "Tipo de entidad inválido",
-      details: `Los tipos de entidad válidos son: ${tiposEntidadValidos.join(', ')}`,
+      details: `Los tipos de entidad válidos son: ${TIPOS_ENTIDAD_VALIDOS.join(', ')}`,
       field: "tipoEntidad"
     });
   }
 
   try {
+        const validacionEntidad = await validarEntidadRelacionadaExiste(tipoEntidad, entidadId);
+    if (!validacionEntidad.valid) {
+      return res.status(404).json({
+        message: "Entidad no encontrada",
+        details: validacionEntidad.message
+      });
+    }
+
     const notificaciones = await getNotificacionesPorEntidad(tipoEntidad, entidadId);
     res.status(200).json(notificaciones);
   } catch (error) {
     console.error(error);
-
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        message: "ID de entidad inválido",
-        details: `El formato del ID '${entidadId}' no es válido`
-      });
-    }
-
-    if (error.message && error.message.includes('entidad no encontrada')) {
-      return res.status(404).json({
-        message: "Entidad no encontrada",
-        details: `No existe una entidad de tipo ${tipoEntidad} con id: ${entidadId}`
-      });
-    }
-
     res.status(500).json({
       message: "Error al obtener notificaciones por entidad",
       details: error.message
@@ -451,14 +664,22 @@ const filtrarNotificacionesController = async (req, res) => {
   try {
     const filtros = {};
 
-    if (value.destinatarioId) filtros.destinatarioId = value.destinatarioId;
+        if (value.destinatarioId) {
+      const validacionDestinatario = await validarUsuarioExiste(value.destinatarioId);
+      if (!validacionDestinatario.valid) {
+        return res.status(404).json({
+          message: "Destinatario no encontrado en filtros",
+          details: validacionDestinatario.message
+        });
+      }
+      filtros.destinatarioId = value.destinatarioId;
+    }
 
     if (value.tipoNotificacion) {
-      const tiposValidos = ['sistema', 'reserva', 'pago', 'mensaje', 'alerta'];
-      if (!tiposValidos.includes(value.tipoNotificacion)) {
+      if (!TIPOS_NOTIFICACION_VALIDOS.includes(value.tipoNotificacion)) {
         return res.status(400).json({
           message: "Tipo de notificación inválido",
-          details: `Los tipos válidos son: ${tiposValidos.join(', ')}`,
+          details: `Los tipos válidos son: ${TIPOS_NOTIFICACION_VALIDOS.join(', ')}`,
           field: "tipoNotificacion"
         });
       }
@@ -484,11 +705,10 @@ const filtrarNotificacionesController = async (req, res) => {
     }
 
     if (value.prioridad) {
-      const prioridadesValidas = ['alta', 'media', 'baja'];
-      if (!prioridadesValidas.includes(value.prioridad)) {
+      if (!PRIORIDADES_VALIDAS.includes(value.prioridad)) {
         return res.status(400).json({
           message: "Prioridad inválida",
-          details: `Las prioridades válidas son: ${prioridadesValidas.join(', ')}`,
+          details: `Las prioridades válidas son: ${PRIORIDADES_VALIDAS.join(', ')}`,
           field: "prioridad"
         });
       }

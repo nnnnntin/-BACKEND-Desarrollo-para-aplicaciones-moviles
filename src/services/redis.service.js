@@ -10,6 +10,7 @@ const connectToRedis = () => {
     const connectionOpts = {
       url: REDIS_URL,
       token: REDIS_TOKEN,
+      tls: {},
     };
     redisClient = new Redis(connectionOpts);
   }

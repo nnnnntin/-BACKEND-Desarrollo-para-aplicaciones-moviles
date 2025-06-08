@@ -19,11 +19,177 @@ const {
   responderResenaSchema,
   moderarResenaSchema
 } = require("../routes/validations/resena.validation");
+
+const { findUsuarioById } = require("../repositories/usuario.repository");
 const { findOficinaById } = require("../repositories/oficina.repository");
 const { findSalaReunionById } = require("../repositories/salaReunion.repository");
 const { findEscritorioFlexibleById } = require("../repositories/escritorioFlexible.repository");
 const { findServicioAdicionalById } = require("../repositories/servicioAdicional.repository");
 const { findReservaById } = require("../repositories/reserva.repository");
+
+const ENTIDAD_MAP = {
+  'oficina': findOficinaById,
+  'espacio': async (id) => {
+        const salaReunion = await findSalaReunionById(id);
+    if (salaReunion) return salaReunion;
+    
+    const escritorioFlexible = await findEscritorioFlexibleById(id);
+    if (escritorioFlexible) return escritorioFlexible;
+    
+    return null;
+  },
+  'servicio': findServicioAdicionalById
+};
+
+const TIPOS_ENTIDAD_VALIDOS = ['oficina', 'espacio', 'servicio'];
+const ESTADOS_RESENA_VALIDOS = ['pendiente', 'aprobada', 'rechazada'];
+
+/**
+ * Valida que un usuario existe
+ * @param {string} usuarioId - ID del usuario a validar
+ * @returns {Promise<Object>} - { valid: boolean, user: Object|null, message: string }
+ */
+const validarUsuarioExiste = async (usuarioId) => {
+  try {
+    const usuario = await findUsuarioById(usuarioId);
+    
+    if (!usuario) {
+      return {
+        valid: false,
+        user: null,
+        message: `No se encontró el usuario con ID: ${usuarioId}`
+      };
+    }
+
+    return {
+      valid: true,
+      user: usuario,
+      message: 'Usuario válido'
+    };
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return {
+        valid: false,
+        user: null,
+        message: `Formato de ID de usuario inválido: ${usuarioId}`
+      };
+    }
+    throw error;
+  }
+};
+
+/**
+ * Valida que una entidad reseñable existe
+ * @param {string} tipo - Tipo de entidad
+ * @param {string} id - ID de la entidad
+ * @returns {Promise<Object>} - { valid: boolean, entity: Object|null, message: string }
+ */
+const validarEntidadResenableExiste = async (tipo, id) => {
+  if (!TIPOS_ENTIDAD_VALIDOS.includes(tipo)) {
+    return {
+      valid: false,
+      entity: null,
+      message: `Tipo de entidad no válido: ${tipo}. Debe ser uno de: ${TIPOS_ENTIDAD_VALIDOS.join(', ')}`
+    };
+  }
+
+  const findEntidadById = ENTIDAD_MAP[tipo];
+  
+  try {
+    const entidad = await findEntidadById(id);
+    
+    if (!entidad) {
+      return {
+        valid: false,
+        entity: null,
+        message: `No se encontró la entidad de tipo ${tipo} con ID: ${id}`
+      };
+    }
+
+    return {
+      valid: true,
+      entity: entidad,
+      message: 'Entidad válida'
+    };
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return {
+        valid: false,
+        entity: null,
+        message: `Formato de ID inválido para ${tipo}: ${id}`
+      };
+    }
+    throw error;
+  }
+};
+
+/**
+ * Valida que una reserva existe
+ * @param {string} reservaId - ID de la reserva a validar
+ * @returns {Promise<Object>} - { valid: boolean, reserva: Object|null, message: string }
+ */
+const validarReservaExiste = async (reservaId) => {
+  try {
+    const reserva = await findReservaById(reservaId);
+    
+    if (!reserva) {
+      return {
+        valid: false,
+        reserva: null,
+        message: `No se encontró la reserva con ID: ${reservaId}`
+      };
+    }
+
+    return {
+      valid: true,
+      reserva: reserva,
+      message: 'Reserva válida'
+    };
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return {
+        valid: false,
+        reserva: null,
+        message: `Formato de ID de reserva inválido: ${reservaId}`
+      };
+    }
+    throw error;
+  }
+};
+
+/**
+ * Valida que una reseña existe
+ * @param {string} resenaId - ID de la reseña a validar
+ * @returns {Promise<Object>} - { valid: boolean, resena: Object|null, message: string }
+ */
+const validarResenaExiste = async (resenaId) => {
+  try {
+    const resena = await findResenaById(resenaId);
+    
+    if (!resena) {
+      return {
+        valid: false,
+        resena: null,
+        message: `No se encontró la reseña con ID: ${resenaId}`
+      };
+    }
+
+    return {
+      valid: true,
+      resena: resena,
+      message: 'Reseña válida'
+    };
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return {
+        valid: false,
+        resena: null,
+        message: `Formato de ID de reseña inválido: ${resenaId}`
+      };
+    }
+    throw error;
+  }
+};
 
 const getResenasController = async (req, res) => {
   const { skip = "0", limit = "10", ...filtros } = req.query;
@@ -83,18 +249,18 @@ const getResenaByIdController = async (req, res) => {
 const getResenasByUsuarioController = async (req, res) => {
   const { usuarioId } = req.params;
   try {
+        const validacionUsuario = await validarUsuarioExiste(usuarioId);
+    if (!validacionUsuario.valid) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: validacionUsuario.message
+      });
+    }
+
     const resenas = await getResenasByUsuario(usuarioId);
     res.status(200).json(resenas);
   } catch (error) {
     console.error(error);
-
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        message: "ID de usuario inválido",
-        details: `El formato del ID '${usuarioId}' no es válido`
-      });
-    }
-
     res.status(500).json({
       message: "Error al obtener reseñas del usuario",
       details: error.message
@@ -134,18 +300,18 @@ const getResenasByEntidadController = async (req, res) => {
 const getResenasByReservaController = async (req, res) => {
   const { reservaId } = req.params;
   try {
+        const validacionReserva = await validarReservaExiste(reservaId);
+    if (!validacionReserva.valid) {
+      return res.status(404).json({
+        message: "Reserva no encontrada",
+        details: validacionReserva.message
+      });
+    }
+
     const resenas = await getResenasByReserva(reservaId);
     res.status(200).json(resenas);
   } catch (error) {
     console.error(error);
-
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        message: "ID de reserva inválido",
-        details: `El formato del ID '${reservaId}' no es válido`
-      });
-    }
-
     res.status(500).json({
       message: "Error al obtener reseñas de la reserva",
       details: error.message
@@ -193,62 +359,75 @@ const createResenaController = async (req, res) => {
     });
   }
 
-  const { reservaId } = value;
   try {
-    const reserva = await findReservaById(reservaId);
-    if (!reserva) {
+        const validacionUsuario = await validarUsuarioExiste(value.usuarioId);
+    if (!validacionUsuario.valid) {
       return res.status(404).json({
-        message: "Reserva no encontrada",
-        details: `No se ha encontrado la reserva con id: ${reservaId}`
-      });
-    }
-  } catch (error) {
-    return res.status(400).json({ message: `Error al obtener la reserva: ${error.message}`, details: error.details });
-  }
-
-  const { tipo, id } = value.entidadResenada;
-  try {
-    const entidadMap = {
-      'oficina': findOficinaById,
-      'espacio': async (id) => {
-        const salaReunion = await findSalaReunionById(id);
-        if (salaReunion) return salaReunion;
-
-        const escritorioFlexible = await findEscritorioFlexibleById(id);
-        if (escritorioFlexible) return escritorioFlexible;
-
-        return null;
-      },
-      'servicio': findServicioAdicionalById
-    };
-
-    const findEntidadById = entidadMap[tipo];
-    if (!findEntidadById) {
-      return res.status(400).json({
-        message: "Tipo de entidad no válido",
-        details: `El tipo '${tipo}' no es válido para crear una reseña`
+        message: "Usuario no encontrado",
+        details: validacionUsuario.message
       });
     }
 
-    const entidadObtenida = await findEntidadById(id);
-    if (!entidadObtenida) {
+        const { tipo, id } = value.entidadResenada;
+    const validacionEntidad = await validarEntidadResenableExiste(tipo, id);
+    if (!validacionEntidad.valid) {
       return res.status(404).json({
         message: "Entidad no encontrada",
-        details: `No se ha encontrado la entidad de tipo ${tipo} con id: ${id}`
+        details: validacionEntidad.message
       });
     }
-  } catch (error) {
-    return res.status(400).json({ message: `Error al obtener la entidad: ${error.message}`, details: error.details });
-  }
 
-  try {
+        if (value.reservaId) {
+      const validacionReserva = await validarReservaExiste(value.reservaId);
+      if (!validacionReserva.valid) {
+        return res.status(404).json({
+          message: "Reserva no encontrada",
+          details: validacionReserva.message
+        });
+      }
+
+            if (validacionReserva.reserva.usuarioId.toString() !== value.usuarioId) {
+        return res.status(400).json({
+          message: "Reserva no válida",
+          details: "La reserva no pertenece al usuario que está creando la reseña"
+        });
+      }
+
+            if (validacionReserva.reserva.entidadReservada.tipo !== tipo ||
+          validacionReserva.reserva.entidadReservada.id.toString() !== id) {
+        return res.status(400).json({
+          message: "Reserva no corresponde",
+          details: "La reserva no corresponde con la entidad que se está reseñando"
+        });
+      }
+
+            if (validacionReserva.reserva.estado !== 'completada') {
+        return res.status(400).json({
+          message: "Reserva no completada",
+          details: "Solo se pueden reseñar reservas completadas"
+        });
+      }
+    }
 
     const resena = await createResena(value);
 
     try {
       await actualizarPromedioEntidad(value.entidadResenada.tipo, value.entidadResenada.id);
 
-      res.status(201).json({ message: "Reseña creada correctamente", resena });
+      res.status(201).json({ 
+        message: "Reseña creada correctamente", 
+        resena,
+        usuarioValidado: {
+          id: validacionUsuario.user._id,
+          nombre: validacionUsuario.user.nombre,
+          email: validacionUsuario.user.email
+        },
+        entidadValidada: {
+          tipo: tipo,
+          id: validacionEntidad.entity._id,
+          nombre: validacionEntidad.entity.nombre || validacionEntidad.entity.codigo || 'Entidad'
+        }
+      });
     } catch (promError) {
       console.error("Error al actualizar promedio:", promError);
       res.status(201).json({
@@ -268,24 +447,10 @@ const createResenaController = async (req, res) => {
       });
     }
 
-    if (error.message && error.message.includes('ya ha reseñado') || error.message.includes('already reviewed')) {
+    if (error.message && (error.message.includes('ya ha reseñado') || error.message.includes('already reviewed'))) {
       return res.status(400).json({
         message: "Reseña duplicada",
         details: "El usuario ya ha creado una reseña para esta entidad"
-      });
-    }
-
-    if (error.message && (error.message.includes('no encontrada') || error.message.includes('not found'))) {
-      return res.status(404).json({
-        message: "Entidad no encontrada",
-        details: "La entidad reseñada no existe en el sistema"
-      });
-    }
-
-    if (error.message && error.message.includes('reserva')) {
-      return res.status(400).json({
-        message: "No se puede crear la reseña",
-        details: "El usuario no tiene una reserva completada para esta entidad"
       });
     }
 
@@ -308,10 +473,53 @@ const updateResenaController = async (req, res) => {
   }
 
   try {
-    const resena = await updateResena(id, value);
-    if (!resena) {
-      return res.status(404).json({ message: `No se ha encontrado la reseña con id: ${id}` });
+        const resenaExistente = await findResenaById(id);
+    if (!resenaExistente) {
+      return res.status(404).json({ 
+        message: `No se ha encontrado la reseña con id: ${id}` 
+      });
     }
+
+        if (value.usuarioId && value.usuarioId !== resenaExistente.usuarioId.toString()) {
+      const validacionUsuario = await validarUsuarioExiste(value.usuarioId);
+      if (!validacionUsuario.valid) {
+        return res.status(404).json({
+          message: "Usuario no encontrado",
+          details: validacionUsuario.message
+        });
+      }
+    }
+
+        if (value.entidadResenada) {
+      const { tipo, id: entidadId } = value.entidadResenada;
+      const validacionEntidad = await validarEntidadResenableExiste(tipo, entidadId);
+      if (!validacionEntidad.valid) {
+        return res.status(404).json({
+          message: "Entidad no encontrada",
+          details: validacionEntidad.message
+        });
+      }
+    }
+
+        if (value.reservaId && value.reservaId !== resenaExistente.reservaId?.toString()) {
+      const validacionReserva = await validarReservaExiste(value.reservaId);
+      if (!validacionReserva.valid) {
+        return res.status(404).json({
+          message: "Reserva no encontrada",
+          details: validacionReserva.message
+        });
+      }
+
+            const usuarioId = value.usuarioId || resenaExistente.usuarioId.toString();
+      if (validacionReserva.reserva.usuarioId.toString() !== usuarioId) {
+        return res.status(400).json({
+          message: "Reserva no válida",
+          details: "La reserva no pertenece al usuario de la reseña"
+        });
+      }
+    }
+
+    const resena = await updateResena(id, value);
 
     if (value.calificacion) {
       try {
@@ -330,7 +538,10 @@ const updateResenaController = async (req, res) => {
       }
     }
 
-    res.status(200).json(resena);
+    res.status(200).json({
+      message: "Reseña actualizada correctamente",
+      resena
+    });
   } catch (error) {
     console.error(error);
 
@@ -349,7 +560,7 @@ const updateResenaController = async (req, res) => {
       });
     }
 
-    if (error.message && error.message.includes('no permitido') || error.message.includes('not allowed')) {
+    if (error.message && (error.message.includes('no permitido') || error.message.includes('not allowed'))) {
       return res.status(403).json({
         message: "Operación no permitida",
         details: "No se permite modificar esta reseña"
@@ -397,7 +608,7 @@ const deleteResenaController = async (req, res) => {
       });
     }
 
-    if (error.message && error.message.includes('no permitido') || error.message.includes('not allowed')) {
+    if (error.message && (error.message.includes('no permitido') || error.message.includes('not allowed'))) {
       return res.status(403).json({
         message: "Operación no permitida",
         details: "No se permite eliminar esta reseña"
@@ -415,18 +626,22 @@ const cambiarEstadoResenaController = async (req, res) => {
   const { id } = req.params;
   const { estado } = req.body;
 
-  if (!['pendiente', 'aprobada', 'rechazada'].includes(estado)) {
+  if (!ESTADOS_RESENA_VALIDOS.includes(estado)) {
     return res.status(400).json({
       message: "Estado no válido",
-      details: "El estado debe ser 'pendiente', 'aprobada' o 'rechazada'"
+      details: `El estado debe ser uno de: ${ESTADOS_RESENA_VALIDOS.join(', ')}`
     });
   }
 
   try {
-    const resena = await cambiarEstadoResena(id, estado);
-    if (!resena) {
-      return res.status(404).json({ message: `No se ha encontrado la reseña con id: ${id}` });
+        const resenaExistente = await findResenaById(id);
+    if (!resenaExistente) {
+      return res.status(404).json({ 
+        message: `No se ha encontrado la reseña con id: ${id}` 
+      });
     }
+
+    const resena = await cambiarEstadoResena(id, estado);
 
     if (estado === 'aprobada' || estado === 'rechazada') {
       try {
@@ -455,7 +670,7 @@ const cambiarEstadoResenaController = async (req, res) => {
       });
     }
 
-    if (error.message && error.message.includes('no permitido') || error.message.includes('not allowed')) {
+    if (error.message && (error.message.includes('no permitido') || error.message.includes('not allowed'))) {
       return res.status(403).json({
         message: "Operación no permitida",
         details: "No se permite cambiar el estado de esta reseña"
@@ -482,29 +697,43 @@ const responderResenaController = async (req, res) => {
   const { resenaId, usuarioId, texto } = value;
 
   try {
-    const resena = await responderResena(resenaId, usuarioId, texto);
-    if (!resena) {
-      return res.status(404).json({ message: `No se ha encontrado la reseña con id: ${resenaId}` });
-    }
-    res.status(200).json({ message: "Respuesta agregada correctamente", resena });
-  } catch (error) {
-    console.error(error);
-
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        message: "ID inválido",
-        details: "El formato de ID de reseña o usuario no es válido"
+        const validacionResena = await validarResenaExiste(resenaId);
+    if (!validacionResena.valid) {
+      return res.status(404).json({
+        message: "Reseña no encontrada",
+        details: validacionResena.message
       });
     }
 
-    if (error.message && error.message.includes('ya respondida') || error.message.includes('already responded')) {
+        const validacionUsuario = await validarUsuarioExiste(usuarioId);
+    if (!validacionUsuario.valid) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: validacionUsuario.message
+      });
+    }
+
+        if (validacionResena.resena.respuesta && validacionResena.resena.respuesta.usuarioId) {
       return res.status(400).json({
         message: "Reseña ya respondida",
         details: "Esta reseña ya ha sido respondida"
       });
     }
 
-    if (error.message && error.message.includes('no autorizado') || error.message.includes('not authorized')) {
+    const resena = await responderResena(resenaId, usuarioId, texto);
+    res.status(200).json({ 
+      message: "Respuesta agregada correctamente", 
+      resena,
+      respondidaPor: {
+        id: validacionUsuario.user._id,
+        nombre: validacionUsuario.user.nombre,
+        email: validacionUsuario.user.email
+      }
+    });
+  } catch (error) {
+    console.error(error);
+
+    if (error.message && (error.message.includes('no autorizado') || error.message.includes('not authorized'))) {
       return res.status(403).json({
         message: "No autorizado",
         details: "No tiene permisos para responder a esta reseña"
@@ -538,10 +767,22 @@ const moderarResenaController = async (req, res) => {
   }
 
   try {
-    const resena = await moderarResena(resenaId, estado);
-    if (!resena) {
-      return res.status(404).json({ message: `No se ha encontrado la reseña con id: ${resenaId}` });
+        const validacionResena = await validarResenaExiste(resenaId);
+    if (!validacionResena.valid) {
+      return res.status(404).json({
+        message: "Reseña no encontrada",
+        details: validacionResena.message
+      });
     }
+
+        if (validacionResena.resena.estado !== 'pendiente') {
+      return res.status(400).json({
+        message: "Reseña ya moderada",
+        details: "Esta reseña ya ha sido moderada"
+      });
+    }
+
+    const resena = await moderarResena(resenaId, estado);
 
     try {
       await actualizarPromedioEntidad(
@@ -557,25 +798,14 @@ const moderarResenaController = async (req, res) => {
       });
     }
 
-    res.status(200).json({ message: `Reseña ${estado === 'aprobada' ? 'aprobada' : 'rechazada'} correctamente`, resena });
+    res.status(200).json({ 
+      message: `Reseña ${estado === 'aprobada' ? 'aprobada' : 'rechazada'} correctamente`, 
+      resena 
+    });
   } catch (error) {
     console.error(error);
 
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        message: "ID de reseña inválido",
-        details: `El formato del ID '${resenaId}' no es válido`
-      });
-    }
-
-    if (error.message && error.message.includes('no pendiente') || error.message.includes('not pending')) {
-      return res.status(400).json({
-        message: "Reseña ya moderada",
-        details: "Esta reseña ya ha sido moderada"
-      });
-    }
-
-    if (error.message && error.message.includes('no autorizado') || error.message.includes('not authorized')) {
+    if (error.message && (error.message.includes('no autorizado') || error.message.includes('not authorized'))) {
       return res.status(403).json({
         message: "No autorizado",
         details: "No tiene permisos para moderar reseñas"

@@ -21,6 +21,134 @@ const {
   reembolsarPagoSchema
 } = require("../routes/validations/pago.validation");
 
+const { findUsuarioById } = require("../repositories/usuario.repository");
+const { findReservaById } = require("../repositories/reserva.repository");
+const { findMembresiaById } = require("../repositories/membresia.repository");
+const { findFacturaById } = require("../repositories/factura.repository");
+
+const ENTIDAD_RELACIONADA_MAP = {
+  'reserva': findReservaById,
+  'membresia': findMembresiaById
+};
+
+const ENTIDADES_RELACIONADAS_VALIDAS = ['reserva', 'membresia'];
+const CONCEPTOS_PAGO_VALIDOS = ['reserva', 'membresia', 'servicio', 'multa', 'otro'];
+const ESTADOS_PAGO_VALIDOS = ['pendiente', 'completado', 'fallido', 'reembolsado'];
+const TIPOS_ENTIDAD_VALIDOS = ['reserva', 'membresia', 'oficina', 'factura', 'servicio'];
+
+/**
+ * Valida que un usuario existe
+ * @param {string} usuarioId - ID del usuario a validar
+ * @returns {Promise<Object>} - { valid: boolean, user: Object|null, message: string }
+ */
+const validarUsuarioExiste = async (usuarioId) => {
+  try {
+    const usuario = await findUsuarioById(usuarioId);
+    
+    if (!usuario) {
+      return {
+        valid: false,
+        user: null,
+        message: `No se encontró el usuario con ID: ${usuarioId}`
+      };
+    }
+
+    return {
+      valid: true,
+      user: usuario,
+      message: 'Usuario válido'
+    };
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return {
+        valid: false,
+        user: null,
+        message: `Formato de ID de usuario inválido: ${usuarioId}`
+      };
+    }
+    throw error;
+  }
+};
+
+/**
+ * Valida que una entidad relacionada existe
+ * @param {string} tipoEntidad - Tipo de entidad
+ * @param {string} entidadId - ID de la entidad
+ * @returns {Promise<Object>} - { valid: boolean, entity: Object|null, message: string }
+ */
+const validarEntidadRelacionadaExiste = async (tipoEntidad, entidadId) => {
+  const findEntidadById = ENTIDAD_RELACIONADA_MAP[tipoEntidad];
+  
+  if (!findEntidadById) {
+    return {
+      valid: false,
+      entity: null,
+      message: `Tipo de entidad no válido: ${tipoEntidad}. Debe ser una de: ${ENTIDADES_RELACIONADAS_VALIDAS.join(', ')}`
+    };
+  }
+
+  try {
+    const entidad = await findEntidadById(entidadId);
+    
+    if (!entidad) {
+      return {
+        valid: false,
+        entity: null,
+        message: `No se encontró la ${tipoEntidad} con ID: ${entidadId}`
+      };
+    }
+
+    return {
+      valid: true,
+      entity: entidad,
+      message: 'Entidad válida'
+    };
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return {
+        valid: false,
+        entity: null,
+        message: `Formato de ID inválido para ${tipoEntidad}: ${entidadId}`
+      };
+    }
+    throw error;
+  }
+};
+
+/**
+ * Valida que una factura existe
+ * @param {string} facturaId - ID de la factura a validar
+ * @returns {Promise<Object>} - { valid: boolean, factura: Object|null, message: string }
+ */
+const validarFacturaExiste = async (facturaId) => {
+  try {
+    const factura = await findFacturaById(facturaId);
+    
+    if (!factura) {
+      return {
+        valid: false,
+        factura: null,
+        message: `No se encontró la factura con ID: ${facturaId}`
+      };
+    }
+
+    return {
+      valid: true,
+      factura: factura,
+      message: 'Factura válida'
+    };
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return {
+        valid: false,
+        factura: null,
+        message: `Formato de ID de factura inválido: ${facturaId}`
+      };
+    }
+    throw error;
+  }
+};
+
 const getPagosController = async (req, res) => {
   const { skip = "0", limit = "10", ...filtros } = req.query;
   const skipNum = parseInt(skip, 10);
@@ -53,6 +181,7 @@ const getPagosController = async (req, res) => {
 
 const getPagoByIdController = async (req, res) => {
   const { id } = req.params;
+  
   try {
     const pago = await findPagoById(id);
     if (!pago) {
@@ -81,26 +210,20 @@ const getPagoByIdController = async (req, res) => {
 
 const getPagosByUsuarioController = async (req, res) => {
   const { usuarioId } = req.params;
+  
   try {
+        const validacionUsuario = await validarUsuarioExiste(usuarioId);
+    if (!validacionUsuario.valid) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: validacionUsuario.message
+      });
+    }
+
     const pagos = await getPagosByUsuario(usuarioId);
     res.status(200).json(pagos);
   } catch (error) {
     console.error(error);
-
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        message: "ID de usuario inválido",
-        details: `El formato del ID '${usuarioId}' no es válido`
-      });
-    }
-
-    if (error.message && (error.message.includes('usuario no encontrado') || error.message.includes('not found'))) {
-      return res.status(404).json({
-        message: "Usuario no encontrado",
-        details: `No existe un usuario con id: ${usuarioId}`
-      });
-    }
-
     res.status(500).json({
       message: "Error al obtener pagos del usuario",
       details: error.message
@@ -110,12 +233,12 @@ const getPagosByUsuarioController = async (req, res) => {
 
 const getPagosPorConceptoController = async (req, res) => {
   const { concepto } = req.params;
+  
   try {
-    const conceptosValidos = ['reserva', 'membresia', 'servicio', 'multa', 'otro'];
-    if (!conceptosValidos.includes(concepto)) {
+    if (!CONCEPTOS_PAGO_VALIDOS.includes(concepto)) {
       return res.status(400).json({
         message: "Concepto de pago inválido",
-        details: `Los conceptos válidos son: ${conceptosValidos.join(', ')}`,
+        details: `Los conceptos válidos son: ${CONCEPTOS_PAGO_VALIDOS.join(', ')}`,
         field: "concepto"
       });
     }
@@ -124,14 +247,6 @@ const getPagosPorConceptoController = async (req, res) => {
     res.status(200).json(pagos);
   } catch (error) {
     console.error(error);
-
-    if (error.message && error.message.includes('concepto no válido')) {
-      return res.status(400).json({
-        message: "Concepto no válido",
-        details: error.message
-      });
-    }
-
     res.status(500).json({
       message: "Error al obtener pagos por concepto",
       details: error.message
@@ -141,12 +256,12 @@ const getPagosPorConceptoController = async (req, res) => {
 
 const getPagosPorEstadoController = async (req, res) => {
   const { estado } = req.params;
+  
   try {
-    const estadosValidos = ['pendiente', 'completado', 'fallido', 'reembolsado'];
-    if (!estadosValidos.includes(estado)) {
+    if (!ESTADOS_PAGO_VALIDOS.includes(estado)) {
       return res.status(400).json({
         message: "Estado de pago inválido",
-        details: `Los estados válidos son: ${estadosValidos.join(', ')}`,
+        details: `Los estados válidos son: ${ESTADOS_PAGO_VALIDOS.join(', ')}`,
         field: "estado"
       });
     }
@@ -155,14 +270,6 @@ const getPagosPorEstadoController = async (req, res) => {
     res.status(200).json(pagos);
   } catch (error) {
     console.error(error);
-
-    if (error.message && error.message.includes('estado no válido')) {
-      return res.status(400).json({
-        message: "Estado no válido",
-        details: error.message
-      });
-    }
-
     res.status(500).json({
       message: "Error al obtener pagos por estado",
       details: error.message
@@ -173,11 +280,10 @@ const getPagosPorEstadoController = async (req, res) => {
 const getPagosPorEntidadController = async (req, res) => {
   const { tipoEntidad, entidadId } = req.params;
 
-  const tiposEntidadValidos = ['reserva', 'membresia', 'oficina', 'factura', 'servicio'];
-  if (!tiposEntidadValidos.includes(tipoEntidad)) {
+  if (!TIPOS_ENTIDAD_VALIDOS.includes(tipoEntidad)) {
     return res.status(400).json({
       message: "Tipo de entidad inválido",
-      details: `Los tipos de entidad válidos son: ${tiposEntidadValidos.join(', ')}`,
+      details: `Los tipos de entidad válidos son: ${TIPOS_ENTIDAD_VALIDOS.join(', ')}`,
       field: "tipoEntidad"
     });
   }
@@ -192,13 +298,6 @@ const getPagosPorEntidadController = async (req, res) => {
       return res.status(400).json({
         message: "ID de entidad inválido",
         details: `El formato del ID '${entidadId}' no es válido`
-      });
-    }
-
-    if (error.message && error.message.includes('entidad no encontrada')) {
-      return res.status(404).json({
-        message: "Entidad no encontrada",
-        details: `No existe una entidad de tipo ${tipoEntidad} con id: ${entidadId}`
       });
     }
 
@@ -220,8 +319,72 @@ const createPagoController = async (req, res) => {
   }
 
   try {
+        const validacionUsuario = await validarUsuarioExiste(value.usuarioId);
+    if (!validacionUsuario.valid) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: validacionUsuario.message,
+        field: "usuarioId"
+      });
+    }
+
+        if (value.entidadRelacionada && value.entidadRelacionada.tipo && value.entidadRelacionada.id) {
+      const { tipo, id: entidadId } = value.entidadRelacionada;
+      const validacionEntidad = await validarEntidadRelacionadaExiste(tipo, entidadId);
+      if (!validacionEntidad.valid) {
+        return res.status(404).json({
+          message: "Entidad relacionada no encontrada",
+          details: validacionEntidad.message,
+          field: "entidadRelacionada"
+        });
+      }
+    }
+
+        if (value.facturaId) {
+      const validacionFactura = await validarFacturaExiste(value.facturaId);
+      if (!validacionFactura.valid) {
+        return res.status(404).json({
+          message: "Factura no encontrada",
+          details: validacionFactura.message,
+          field: "facturaId"
+        });
+      }
+    }
+
+        if (value.monto && (isNaN(value.monto) || value.monto <= 0)) {
+      return res.status(400).json({
+        message: "Monto inválido",
+        details: "El monto debe ser un número positivo",
+        field: "monto"
+      });
+    }
+
+    if (value.conceptoPago && !CONCEPTOS_PAGO_VALIDOS.includes(value.conceptoPago)) {
+      return res.status(400).json({
+        message: "Concepto de pago inválido",
+        details: `Los conceptos válidos son: ${CONCEPTOS_PAGO_VALIDOS.join(', ')}`,
+        field: "conceptoPago"
+      });
+    }
+
+    if (value.estado && !ESTADOS_PAGO_VALIDOS.includes(value.estado)) {
+      return res.status(400).json({
+        message: "Estado de pago inválido",
+        details: `Los estados válidos son: ${ESTADOS_PAGO_VALIDOS.join(', ')}`,
+        field: "estado"
+      });
+    }
+
     const pago = await createPago(value);
-    res.status(201).json({ message: "Pago creado correctamente", pago });
+    res.status(201).json({ 
+      message: "Pago creado correctamente", 
+      pago,
+      usuarioValidado: {
+        id: validacionUsuario.user._id,
+        nombre: validacionUsuario.user.nombre,
+        email: validacionUsuario.user.email
+      }
+    });
   } catch (error) {
     console.error(error);
 
@@ -230,30 +393,6 @@ const createPagoController = async (req, res) => {
       return res.status(400).json({
         message: "Error de validación en modelo",
         details: errors
-      });
-    }
-
-    if (error.message && error.message.includes('usuario no encontrado')) {
-      return res.status(404).json({
-        message: "Usuario no encontrado",
-        details: "El usuario especificado no existe",
-        field: "usuarioId"
-      });
-    }
-
-    if (error.message && error.message.includes('entidad no encontrada')) {
-      return res.status(404).json({
-        message: "Entidad no encontrada",
-        details: "La entidad relacionada no existe",
-        field: "entidadId"
-      });
-    }
-
-    if (error.message && error.message.includes('método de pago no válido')) {
-      return res.status(400).json({
-        message: "Método de pago inválido",
-        details: error.message,
-        field: "metodoPago"
       });
     }
 
@@ -267,6 +406,7 @@ const createPagoController = async (req, res) => {
 const updatePagoController = async (req, res) => {
   const { id } = req.params;
   const { error, value } = updatePagoSchema.validate(req.body);
+  
   if (error) {
     return res.status(400).json({
       message: "Error de validación",
@@ -276,13 +416,73 @@ const updatePagoController = async (req, res) => {
   }
 
   try {
-    const pago = await updatePago(id, value);
-    if (!pago) {
+        const pagoExistente = await findPagoById(id);
+    if (!pagoExistente) {
       return res.status(404).json({
         message: "Pago no encontrado",
         details: `No se ha encontrado el pago con id: ${id}`
       });
     }
+
+        if (value.usuarioId) {
+      const validacionUsuario = await validarUsuarioExiste(value.usuarioId);
+      if (!validacionUsuario.valid) {
+        return res.status(404).json({
+          message: "Usuario no encontrado",
+          details: validacionUsuario.message,
+          field: "usuarioId"
+        });
+      }
+    }
+
+        if (value.entidadRelacionada && value.entidadRelacionada.tipo && value.entidadRelacionada.id) {
+      const { tipo, id: entidadId } = value.entidadRelacionada;
+      const validacionEntidad = await validarEntidadRelacionadaExiste(tipo, entidadId);
+      if (!validacionEntidad.valid) {
+        return res.status(404).json({
+          message: "Entidad relacionada no encontrada",
+          details: validacionEntidad.message,
+          field: "entidadRelacionada"
+        });
+      }
+    }
+
+        if (value.facturaId) {
+      const validacionFactura = await validarFacturaExiste(value.facturaId);
+      if (!validacionFactura.valid) {
+        return res.status(404).json({
+          message: "Factura no encontrada",
+          details: validacionFactura.message,
+          field: "facturaId"
+        });
+      }
+    }
+
+        if (value.monto && (isNaN(value.monto) || value.monto <= 0)) {
+      return res.status(400).json({
+        message: "Monto inválido",
+        details: "El monto debe ser un número positivo",
+        field: "monto"
+      });
+    }
+
+    if (value.conceptoPago && !CONCEPTOS_PAGO_VALIDOS.includes(value.conceptoPago)) {
+      return res.status(400).json({
+        message: "Concepto de pago inválido",
+        details: `Los conceptos válidos son: ${CONCEPTOS_PAGO_VALIDOS.join(', ')}`,
+        field: "conceptoPago"
+      });
+    }
+
+    if (value.estado && !ESTADOS_PAGO_VALIDOS.includes(value.estado)) {
+      return res.status(400).json({
+        message: "Estado de pago inválido",
+        details: `Los estados válidos son: ${ESTADOS_PAGO_VALIDOS.join(', ')}`,
+        field: "estado"
+      });
+    }
+
+    const pago = await updatePago(id, value);
     res.status(200).json(pago);
   } catch (error) {
     console.error(error);
@@ -310,14 +510,6 @@ const updatePagoController = async (req, res) => {
       });
     }
 
-    if (error.message && error.message.includes('usuario no encontrado')) {
-      return res.status(404).json({
-        message: "Usuario no encontrado",
-        details: "El usuario especificado no existe",
-        field: "usuarioId"
-      });
-    }
-
     res.status(500).json({
       message: "Error al actualizar el pago",
       details: error.message
@@ -327,6 +519,7 @@ const updatePagoController = async (req, res) => {
 
 const deletePagoController = async (req, res) => {
   const { id } = req.params;
+  
   try {
     const pago = await deletePago(id);
     if (!pago) {
@@ -372,23 +565,28 @@ const cambiarEstadoPagoController = async (req, res) => {
     });
   }
 
-  if (!['pendiente', 'completado', 'fallido', 'reembolsado'].includes(estado)) {
+  if (!ESTADOS_PAGO_VALIDOS.includes(estado)) {
     return res.status(400).json({
       message: "Estado no válido",
-      details: "El estado debe ser 'pendiente', 'completado', 'fallido' o 'reembolsado'",
+      details: `El estado debe ser uno de: ${ESTADOS_PAGO_VALIDOS.join(', ')}`,
       field: "estado"
     });
   }
 
   try {
-    const pago = await cambiarEstadoPago(id, estado);
-    if (!pago) {
+        const pagoExistente = await findPagoById(id);
+    if (!pagoExistente) {
       return res.status(404).json({
         message: "Pago no encontrado",
         details: `No se ha encontrado el pago con id: ${id}`
       });
     }
-    res.status(200).json({ message: "Estado de pago actualizado correctamente", pago });
+
+    const pago = await cambiarEstadoPago(id, estado);
+    res.status(200).json({ 
+      message: "Estado de pago actualizado correctamente", 
+      pago 
+    });
   } catch (error) {
     console.error(error);
 
@@ -426,14 +624,26 @@ const completarPagoController = async (req, res) => {
   }
 
   try {
-    const pago = await completarPago(id, comprobante);
-    if (!pago) {
+        const pagoExistente = await findPagoById(id);
+    if (!pagoExistente) {
       return res.status(404).json({
         message: "Pago no encontrado",
         details: `No se ha encontrado el pago con id: ${id}`
       });
     }
-    res.status(200).json({ message: "Pago completado correctamente", pago });
+
+    if (pagoExistente.estado !== 'pendiente') {
+      return res.status(400).json({
+        message: "Estado incorrecto",
+        details: "Solo se pueden completar pagos en estado pendiente"
+      });
+    }
+
+    const pago = await completarPago(id, comprobante);
+    res.status(200).json({ 
+      message: "Pago completado correctamente", 
+      pago 
+    });
   } catch (error) {
     console.error(error);
 
@@ -441,21 +651,6 @@ const completarPagoController = async (req, res) => {
       return res.status(400).json({
         message: "ID de pago inválido",
         details: `El formato del ID '${id}' no es válido`
-      });
-    }
-
-    if (error.message && error.message.includes('no está en estado pendiente')) {
-      return res.status(400).json({
-        message: "Estado incorrecto",
-        details: "Solo se pueden completar pagos en estado pendiente"
-      });
-    }
-
-    if (error.message && error.message.includes('comprobante inválido')) {
-      return res.status(400).json({
-        message: "Comprobante inválido",
-        details: error.message,
-        field: "comprobante"
       });
     }
 
@@ -479,7 +674,7 @@ const reembolsarPagoController = async (req, res) => {
   const { pagoId, motivo, montoReembolso, metodoPago } = value;
 
   try {
-    const pagoExistente = await findPagoById(pagoId);
+        const pagoExistente = await findPagoById(pagoId);
     if (!pagoExistente) {
       return res.status(404).json({
         message: "Pago no encontrado",
@@ -536,14 +731,6 @@ const reembolsarPagoController = async (req, res) => {
       });
     }
 
-    if (error.message && error.message.includes('método de pago no soporta reembolsos')) {
-      return res.status(400).json({
-        message: "Método de pago no compatible",
-        details: "El método de pago original no soporta reembolsos automáticos",
-        field: "metodoPago"
-      });
-    }
-
     res.status(500).json({
       message: "Error al reembolsar el pago",
       details: error.message
@@ -564,45 +751,54 @@ const vincularFacturaController = async (req, res) => {
   }
 
   try {
-    const pago = await vincularFactura(id, facturaId);
-    if (!pago) {
+        const pagoExistente = await findPagoById(id);
+    if (!pagoExistente) {
       return res.status(404).json({
         message: "Pago no encontrado",
         details: `No se ha encontrado el pago con id: ${id}`
       });
     }
-    res.status(200).json({ message: "Factura vinculada correctamente", pago });
-  } catch (error) {
-    console.error(error);
 
-    if (error.name === 'CastError') {
-      const field = error.path === 'id' ? 'pago' : 'factura';
-      return res.status(400).json({
-        message: `ID de ${field} inválido`,
-        details: `El formato del ID no es válido`,
-        field: field === 'pago' ? 'id' : 'facturaId'
-      });
-    }
-
-    if (error.message && error.message.includes('factura no encontrada')) {
+        const validacionFactura = await validarFacturaExiste(facturaId);
+    if (!validacionFactura.valid) {
       return res.status(404).json({
         message: "Factura no encontrada",
-        details: `No se ha encontrado la factura con id: ${facturaId}`,
+        details: validacionFactura.message,
         field: "facturaId"
       });
     }
 
-    if (error.message && error.message.includes('ya vinculado')) {
+        if (pagoExistente.facturaId) {
       return res.status(400).json({
         message: "Pago ya vinculado",
         details: "El pago ya está vinculado a una factura"
       });
     }
 
-    if (error.message && error.message.includes('no completado')) {
+    if (pagoExistente.estado !== 'completado') {
       return res.status(400).json({
         message: "Estado incorrecto",
         details: "Solo se pueden vincular a facturas los pagos completados"
+      });
+    }
+
+    const pago = await vincularFactura(id, facturaId);
+    res.status(200).json({ 
+      message: "Factura vinculada correctamente", 
+      pago,
+      facturaValidada: {
+        id: validacionFactura.factura._id,
+        numeroFactura: validacionFactura.factura.numeroFactura,
+        estado: validacionFactura.factura.estado
+      }
+    });
+  } catch (error) {
+    console.error(error);
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: "Formato de ID inválido",
+        details: "El formato de uno de los IDs no es válido"
       });
     }
 
@@ -615,6 +811,7 @@ const vincularFacturaController = async (req, res) => {
 
 const getPagosPorRangoMontosController = async (req, res) => {
   const { montoMinimo, montoMaximo } = req.query;
+  
   if (
     montoMinimo === undefined ||
     montoMaximo === undefined ||
@@ -629,12 +826,14 @@ const getPagosPorRangoMontosController = async (req, res) => {
 
   const min = parseFloat(montoMinimo);
   const max = parseFloat(montoMaximo);
+  
   if (min < 0 || max < 0) {
     return res.status(400).json({
       message: "Valores de monto inválidos",
       details: "Los montos deben ser positivos"
     });
   }
+  
   if (min > max) {
     return res.status(400).json({
       message: "Rango de montos inválido",
@@ -667,14 +866,22 @@ const filtrarPagosController = async (req, res) => {
   try {
     const filtros = {};
 
-    if (value.usuarioId) filtros.usuarioId = value.usuarioId;
+        if (value.usuarioId) {
+      const validacionUsuario = await validarUsuarioExiste(value.usuarioId);
+      if (!validacionUsuario.valid) {
+        return res.status(404).json({
+          message: "Usuario no encontrado en filtros",
+          details: validacionUsuario.message
+        });
+      }
+      filtros.usuarioId = value.usuarioId;
+    }
 
     if (value.conceptoPago) {
-      const conceptosValidos = ['reserva', 'membresia', 'servicio', 'multa', 'otro'];
-      if (!conceptosValidos.includes(value.conceptoPago)) {
+      if (!CONCEPTOS_PAGO_VALIDOS.includes(value.conceptoPago)) {
         return res.status(400).json({
           message: "Concepto de pago inválido",
-          details: `Los conceptos válidos son: ${conceptosValidos.join(', ')}`,
+          details: `Los conceptos válidos son: ${CONCEPTOS_PAGO_VALIDOS.join(', ')}`,
           field: "conceptoPago"
         });
       }
@@ -682,11 +889,10 @@ const filtrarPagosController = async (req, res) => {
     }
 
     if (value.estado) {
-      const estadosValidos = ['pendiente', 'completado', 'fallido', 'reembolsado'];
-      if (!estadosValidos.includes(value.estado)) {
+      if (!ESTADOS_PAGO_VALIDOS.includes(value.estado)) {
         return res.status(400).json({
           message: "Estado inválido",
-          details: `Los estados válidos son: ${estadosValidos.join(', ')}`,
+          details: `Los estados válidos son: ${ESTADOS_PAGO_VALIDOS.join(', ')}`,
           field: "estado"
         });
       }
@@ -695,7 +901,6 @@ const filtrarPagosController = async (req, res) => {
 
     if (value.fechaDesde) {
       const fechaDesde = new Date(value.fechaDesde);
-
       if (isNaN(fechaDesde.getTime())) {
         return res.status(400).json({
           message: "Formato de fecha inválido",
@@ -703,13 +908,11 @@ const filtrarPagosController = async (req, res) => {
           field: "fechaDesde"
         });
       }
-
       filtros.fecha = { $gte: fechaDesde };
     }
 
     if (value.fechaHasta) {
       const fechaHasta = new Date(value.fechaHasta);
-
       if (isNaN(fechaHasta.getTime())) {
         return res.status(400).json({
           message: "Formato de fecha inválido",
@@ -739,7 +942,6 @@ const filtrarPagosController = async (req, res) => {
 
     if (value.montoMinimo) {
       const montoMin = parseFloat(value.montoMinimo);
-
       if (isNaN(montoMin) || montoMin < 0) {
         return res.status(400).json({
           message: "Monto mínimo inválido",
@@ -747,13 +949,11 @@ const filtrarPagosController = async (req, res) => {
           field: "montoMinimo"
         });
       }
-
       filtros.monto = { $gte: montoMin };
     }
 
     if (value.montoMaximo) {
       const montoMax = parseFloat(value.montoMaximo);
-
       if (isNaN(montoMax) || montoMax < 0) {
         return res.status(400).json({
           message: "Monto máximo inválido",

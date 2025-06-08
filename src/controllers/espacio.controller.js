@@ -18,6 +18,10 @@ const {
   filtrarEspaciosSchema
 } = require("../routes/validations/espacio.validation");
 
+const Edificio = require("../models/edificio.model");
+const Usuario = require("../models/usuario.model");
+const EmpresaInmobiliaria = require("../models/empresaInmobiliaria.model");
+
 const getEspaciosController = async (req, res) => {
   const { skip = "0", limit = "10", ...filtros } = req.query;
   const skipNum = parseInt(skip, 10);
@@ -194,10 +198,68 @@ const createEspacioController = async (req, res) => {
   }
 
   try {
+        if (value.ubicacion && value.ubicacion.edificioId) {
+      const edificioExiste = await Edificio.findById(value.ubicacion.edificioId);
+      if (!edificioExiste) {
+        return res.status(404).json({
+          message: "Edificio no encontrado",
+          details: `No existe un edificio con id: ${value.ubicacion.edificioId}`
+        });
+      }
+
+            if (!edificioExiste.activo) {
+        return res.status(400).json({
+          message: "Edificio inactivo",
+          details: "El edificio especificado no está activo"
+        });
+      }
+    }
+
+        if (value.propietarioId) {
+      const propietarioExiste = await Usuario.findById(value.propietarioId);
+      if (!propietarioExiste) {
+        return res.status(404).json({
+          message: "Propietario no encontrado",
+          details: `No existe un usuario con id: ${value.propietarioId}`
+        });
+      }
+
+            if (!propietarioExiste.activo) {
+        return res.status(400).json({
+          message: "Propietario inactivo",
+          details: "El propietario especificado no está activo"
+        });
+      }
+    }
+
+        if (value.empresaInmobiliariaId) {
+      const empresaExiste = await EmpresaInmobiliaria.findById(value.empresaInmobiliariaId);
+      if (!empresaExiste) {
+        return res.status(404).json({
+          message: "Empresa inmobiliaria no encontrada",
+          details: `No existe una empresa inmobiliaria con id: ${value.empresaInmobiliariaId}`
+        });
+      }
+
+            if (!empresaExiste.activo) {
+        return res.status(400).json({
+          message: "Empresa inmobiliaria inactiva",
+          details: "La empresa inmobiliaria especificada no está activa"
+        });
+      }
+    }
+
     const espacio = await createEspacio(value);
     res.status(201).json({ message: "Espacio creado correctamente", espacio });
   } catch (error) {
     console.error(error);
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: "ID inválido",
+        details: `El formato del ID no es válido`
+      });
+    }
 
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
@@ -213,27 +275,6 @@ const createEspacioController = async (req, res) => {
         message: "Error de duplicación",
         details: `Ya existe un espacio con el mismo valor en '${field}'`,
         field
-      });
-    }
-
-    if (error.message && (error.message.includes('edificio no encontrado') || error.message.includes('building not found'))) {
-      return res.status(404).json({
-        message: "Edificio no encontrado",
-        details: "El edificio especificado no existe"
-      });
-    }
-
-    if (error.message && (error.message.includes('propietario no encontrado') || error.message.includes('owner not found'))) {
-      return res.status(404).json({
-        message: "Propietario no encontrado",
-        details: "El propietario especificado no existe"
-      });
-    }
-
-    if (error.message && (error.message.includes('empresa no encontrada') || error.message.includes('company not found'))) {
-      return res.status(404).json({
-        message: "Empresa no encontrada",
-        details: "La empresa inmobiliaria especificada no existe"
       });
     }
 
@@ -256,6 +297,57 @@ const updateEspacioController = async (req, res) => {
   }
 
   try {
+        if (value.ubicacion && value.ubicacion.edificioId) {
+      const edificioExiste = await Edificio.findById(value.ubicacion.edificioId);
+      if (!edificioExiste) {
+        return res.status(404).json({
+          message: "Edificio no encontrado",
+          details: `No existe un edificio con id: ${value.ubicacion.edificioId}`
+        });
+      }
+
+            if (!edificioExiste.activo) {
+        return res.status(400).json({
+          message: "Edificio inactivo",
+          details: "El edificio especificado no está activo"
+        });
+      }
+    }
+
+        if (value.propietarioId) {
+      const propietarioExiste = await Usuario.findById(value.propietarioId);
+      if (!propietarioExiste) {
+        return res.status(404).json({
+          message: "Propietario no encontrado",
+          details: `No existe un usuario con id: ${value.propietarioId}`
+        });
+      }
+
+            if (!propietarioExiste.activo) {
+        return res.status(400).json({
+          message: "Propietario inactivo",
+          details: "El propietario especificado no está activo"
+        });
+      }
+    }
+
+        if (value.empresaInmobiliariaId) {
+      const empresaExiste = await EmpresaInmobiliaria.findById(value.empresaInmobiliariaId);
+      if (!empresaExiste) {
+        return res.status(404).json({
+          message: "Empresa inmobiliaria no encontrada",
+          details: `No existe una empresa inmobiliaria con id: ${value.empresaInmobiliariaId}`
+        });
+      }
+
+            if (!empresaExiste.activo) {
+        return res.status(400).json({
+          message: "Empresa inmobiliaria inactiva",
+          details: "La empresa inmobiliaria especificada no está activa"
+        });
+      }
+    }
+
     const espacio = await updateEspacio(id, value);
     if (!espacio) {
       return res.status(404).json({ message: `No se ha encontrado el espacio con id: ${id}` });
@@ -266,8 +358,8 @@ const updateEspacioController = async (req, res) => {
 
     if (error.name === 'CastError') {
       return res.status(400).json({
-        message: "ID de espacio inválido",
-        details: `El formato del ID '${id}' no es válido`
+        message: "ID inválido",
+        details: `El formato del ID no es válido`
       });
     }
 

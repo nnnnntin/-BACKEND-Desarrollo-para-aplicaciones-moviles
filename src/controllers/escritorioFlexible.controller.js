@@ -21,6 +21,10 @@ const {
   filtrarEscritoriosFlexiblesSchema
 } = require("../routes/validations/escritorioFlexible.validation");
 
+const Edificio = require("../models/edificio.model");
+const Usuario = require("../models/usuario.model");
+const EmpresaInmobiliaria = require("../models/empresaInmobiliaria.model");
+
 const getEscritoriosFlexiblesController = async (req, res) => {
   const { skip = "0", limit = "10", ...filtros } = req.query;
   const skipNum = parseInt(skip, 10);
@@ -259,10 +263,74 @@ const createEscritorioFlexibleController = async (req, res) => {
   }
 
   try {
+        if (value.ubicacion && value.ubicacion.edificioId) {
+      const edificioExiste = await Edificio.findById(value.ubicacion.edificioId);
+      if (!edificioExiste) {
+        return res.status(404).json({
+          message: "Edificio no encontrado",
+          details: `No existe un edificio con id: ${value.ubicacion.edificioId}`,
+          field: "ubicacion.edificioId"
+        });
+      }
+
+            if (!edificioExiste.activo) {
+        return res.status(400).json({
+          message: "Edificio inactivo",
+          details: "El edificio especificado no está activo",
+          field: "ubicacion.edificioId"
+        });
+      }
+    }
+
+        if (value.propietarioId) {
+      const propietarioExiste = await Usuario.findById(value.propietarioId);
+      if (!propietarioExiste) {
+        return res.status(404).json({
+          message: "Propietario no encontrado",
+          details: `No existe un usuario con id: ${value.propietarioId}`,
+          field: "propietarioId"
+        });
+      }
+
+            if (!propietarioExiste.activo) {
+        return res.status(400).json({
+          message: "Propietario inactivo",
+          details: "El propietario especificado no está activo",
+          field: "propietarioId"
+        });
+      }
+    }
+
+        if (value.empresaInmobiliariaId) {
+      const empresaExiste = await EmpresaInmobiliaria.findById(value.empresaInmobiliariaId);
+      if (!empresaExiste) {
+        return res.status(404).json({
+          message: "Empresa inmobiliaria no encontrada",
+          details: `No existe una empresa inmobiliaria con id: ${value.empresaInmobiliariaId}`,
+          field: "empresaInmobiliariaId"
+        });
+      }
+
+            if (!empresaExiste.activo) {
+        return res.status(400).json({
+          message: "Empresa inmobiliaria inactiva",
+          details: "La empresa inmobiliaria especificada no está activa",
+          field: "empresaInmobiliariaId"
+        });
+      }
+    }
+
     const escritorio = await createEscritorioFlexible(value);
     res.status(201).json({ message: "Escritorio flexible creado correctamente", escritorio });
   } catch (error) {
     console.error(error);
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: "ID inválido",
+        details: `El formato del ID no es válido`
+      });
+    }
 
     if (error.code === 11000) {
       return res.status(400).json({
@@ -277,22 +345,6 @@ const createEscritorioFlexibleController = async (req, res) => {
       return res.status(400).json({
         message: "Error de validación en modelo",
         details: errors
-      });
-    }
-
-    if (error.message && error.message.includes('edificio no encontrado')) {
-      return res.status(404).json({
-        message: "Edificio no encontrado",
-        details: "El edificio especificado no existe",
-        field: "ubicacion.edificioId"
-      });
-    }
-
-    if (error.message && error.message.includes('propietario no encontrado')) {
-      return res.status(404).json({
-        message: "Propietario no encontrado",
-        details: "El propietario especificado no existe",
-        field: "propietarioId"
       });
     }
 
@@ -315,6 +367,63 @@ const updateEscritorioFlexibleController = async (req, res) => {
   }
 
   try {
+        if (value.ubicacion && value.ubicacion.edificioId) {
+      const edificioExiste = await Edificio.findById(value.ubicacion.edificioId);
+      if (!edificioExiste) {
+        return res.status(404).json({
+          message: "Edificio no encontrado",
+          details: `No existe un edificio con id: ${value.ubicacion.edificioId}`,
+          field: "ubicacion.edificioId"
+        });
+      }
+
+            if (!edificioExiste.activo) {
+        return res.status(400).json({
+          message: "Edificio inactivo",
+          details: "El edificio especificado no está activo",
+          field: "ubicacion.edificioId"
+        });
+      }
+    }
+
+        if (value.propietarioId) {
+      const propietarioExiste = await Usuario.findById(value.propietarioId);
+      if (!propietarioExiste) {
+        return res.status(404).json({
+          message: "Propietario no encontrado",
+          details: `No existe un usuario con id: ${value.propietarioId}`,
+          field: "propietarioId"
+        });
+      }
+
+            if (!propietarioExiste.activo) {
+        return res.status(400).json({
+          message: "Propietario inactivo",
+          details: "El propietario especificado no está activo",
+          field: "propietarioId"
+        });
+      }
+    }
+
+        if (value.empresaInmobiliariaId) {
+      const empresaExiste = await EmpresaInmobiliaria.findById(value.empresaInmobiliariaId);
+      if (!empresaExiste) {
+        return res.status(404).json({
+          message: "Empresa inmobiliaria no encontrada",
+          details: `No existe una empresa inmobiliaria con id: ${value.empresaInmobiliariaId}`,
+          field: "empresaInmobiliariaId"
+        });
+      }
+
+            if (!empresaExiste.activo) {
+        return res.status(400).json({
+          message: "Empresa inmobiliaria inactiva",
+          details: "La empresa inmobiliaria especificada no está activa",
+          field: "empresaInmobiliariaId"
+        });
+      }
+    }
+
     const escritorio = await updateEscritorioFlexible(id, value);
     if (!escritorio) {
       return res.status(404).json({
@@ -328,8 +437,8 @@ const updateEscritorioFlexibleController = async (req, res) => {
 
     if (error.name === 'CastError') {
       return res.status(400).json({
-        message: "ID de escritorio inválido",
-        details: `El formato del ID '${id}' no es válido`
+        message: "ID inválido",
+        details: `El formato del ID no es válido`
       });
     }
 
@@ -346,22 +455,6 @@ const updateEscritorioFlexibleController = async (req, res) => {
       return res.status(400).json({
         message: "Error de validación en modelo",
         details: errors
-      });
-    }
-
-    if (error.message && error.message.includes('edificio no encontrado')) {
-      return res.status(404).json({
-        message: "Edificio no encontrado",
-        details: "El edificio especificado no existe",
-        field: "ubicacion.edificioId"
-      });
-    }
-
-    if (error.message && error.message.includes('propietario no encontrado')) {
-      return res.status(404).json({
-        message: "Propietario no encontrado",
-        details: "El propietario especificado no existe",
-        field: "propietarioId"
       });
     }
 
@@ -478,7 +571,7 @@ const agregarAmenidadController = async (req, res) => {
     if (!escritorio) {
       return res.status(404).json({
         message: "Escritorio no encontrado",
-        details: `No se ha encontrado el escritorio flexible con id: ${id}`
+        details: `No se ha encontrado el escritorio flexible con id: ${req.params.id}`
       });
     }
     res.status(200).json({ message: "Amenidad agregada correctamente", escritorio });
@@ -488,7 +581,7 @@ const agregarAmenidadController = async (req, res) => {
     if (error.name === 'CastError') {
       return res.status(400).json({
         message: "ID de escritorio inválido",
-        details: `El formato del ID '${id}' no es válido`
+        details: `El formato del ID '${req.params.id}' no es válido`
       });
     }
 

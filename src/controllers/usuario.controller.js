@@ -8,6 +8,9 @@ const {
   cambiarRolUsuario,
   updateMembresiaUsuario
 } = require("../repositories/usuario.repository");
+
+const { findMembresiaById } = require("../repositories/membresia.repository");
+
 const {
   createUsuarioSchema,
   updateUsuarioSchema,
@@ -164,6 +167,25 @@ const updateUsuarioController = async (req, res) => {
   }
 
   try {
+        if (value.membresia && value.membresia.tipoMembresiaId) {
+      const membresia = await findMembresiaById(value.membresia.tipoMembresiaId);
+      if (!membresia) {
+        return res.status(404).json({
+          message: "Membresía no encontrada",
+          details: `No se ha encontrado la membresía con id: ${value.membresia.tipoMembresiaId}`,
+          field: "membresia.tipoMembresiaId"
+        });
+      }
+
+      if (!membresia.activo) {
+        return res.status(400).json({
+          message: "Membresía inactiva",
+          details: "No se puede asignar una membresía que no está activa",
+          field: "membresia.tipoMembresiaId"
+        });
+      }
+    }
+
     const usuario = await updateUsuario(id, value);
     if (!usuario) {
       return res.status(404).json({ message: `No se ha encontrado el usuario con id: ${id}` });
@@ -345,6 +367,23 @@ const updateMembresiaUsuarioController = async (req, res) => {
   }
 
   try {
+        const membresiaExistente = await findMembresiaById(membresia.tipoMembresiaId);
+    if (!membresiaExistente) {
+      return res.status(404).json({
+        message: "Membresía no encontrada",
+        details: `No se ha encontrado la membresía con id: ${membresia.tipoMembresiaId}`,
+        field: "tipoMembresiaId"
+      });
+    }
+
+        if (!membresiaExistente.activo) {
+      return res.status(400).json({
+        message: "Membresía inactiva",
+        details: "No se puede asignar una membresía que no está activa",
+        field: "tipoMembresiaId"
+      });
+    }
+
     const membresiaData = {
       tipoMembresiaId: membresia.tipoMembresiaId,
       fechaInicio: new Date(membresia.fechaInicio),
@@ -354,7 +393,10 @@ const updateMembresiaUsuarioController = async (req, res) => {
 
     const usuario = await updateMembresiaUsuario(id, membresiaData);
     if (!usuario) {
-      return res.status(404).json({ message: `No se ha encontrado el usuario con id: ${id}` });
+      return res.status(404).json({ 
+        message: "Usuario no encontrado", 
+        details: `No se ha encontrado el usuario con id: ${id}` 
+      });
     }
 
     const usuarioResponse = {
@@ -367,12 +409,22 @@ const updateMembresiaUsuarioController = async (req, res) => {
     res.status(200).json({ message: "Membresía actualizada correctamente", usuario: usuarioResponse });
   } catch (error) {
     console.error(error);
+
     if (error.name === 'CastError') {
+      const field = error.path === 'tipoMembresiaId' ? 'membresía' : 'usuario';
       return res.status(400).json({
-        message: "ID inválido",
+        message: `ID de ${field} inválido`,
         details: `El formato del ID no es válido`
       });
     }
+
+    if (error.message && error.message.includes('fecha')) {
+      return res.status(400).json({
+        message: "Formato de fecha inválido",
+        details: "Las fechas deben tener un formato válido (YYYY-MM-DD o ISO)"
+      });
+    }
+
     res.status(500).json({
       message: "Error al actualizar la membresía del usuario",
       details: error.message

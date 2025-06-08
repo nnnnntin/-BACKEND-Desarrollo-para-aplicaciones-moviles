@@ -2,7 +2,7 @@
 
 Este es un proyecto desarrollado con React, diseñado para facilitar el desarrollo de aplicaciones móviles. Utiliza [nodemon](https://nodemon.io/) para reiniciar automáticamente el servidor durante el desarrollo cuando se detectan cambios en el código.
 
-Repositorio en GitHub: [BACKEND Desarrollo para Aplicaciones Móviles](https://github.com/nnnnntin/-BACKEND-Desarrollo-para-aplicaciones-moviles/blob/main/README.txt)
+Repositorio en GitHub: [BACKEND Desarrollo para Aplicaciones Móviles](https://github.com/nnnnntin/-BACKEND-Desarrollo-para-aplicaciones-moviles)
 
 ## Requisitos
 

@@ -2,7 +2,7 @@ const Joi = require("joi");
 
 const createUsuarioSchema = Joi.object({
   tipoUsuario: Joi.string()
-    .valid("individual", "freelancer", "empresa", "administrador", "inmobiliaria")
+    .valid('usuario', 'proveedor', 'cliente', 'administrador')
     .required(),
   username: Joi.string().min(3).max(30).required(),
   email: Joi.string().email().required(),

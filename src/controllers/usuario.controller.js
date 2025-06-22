@@ -75,10 +75,10 @@ const getUsuarioByIdController = async (req, res) => {
 const getUsuariosByTipoController = async (req, res) => {
   const { tipo } = req.params;
 
-  if (!["individual", "freelancer", "empresa", "administrador", "inmobiliaria"].includes(tipo)) {
+  if (!["usuario", "proveedor", "cliente", "administrador"].includes(tipo)) {
     return res.status(400).json({
       message: "Tipo de usuario inválido",
-      details: "El tipo de usuario debe ser 'individual', 'freelancer', 'empresa', 'administrador' o 'inmobiliaria'"
+      details: "El tipo de usuario debe ser 'usuario', 'proveedor', 'cliente' o 'administrador'"
     });
   }
 

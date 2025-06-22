@@ -55,7 +55,12 @@ const postAuthLogin = async (req, res) => {
     
     try {
       const token = jwt.sign(
-        { id: userId, username: user.username, role: user.tipoUsuario },
+        { 
+          id: userId, 
+          username: user.username, 
+          tipoUsuario: user.tipoUsuario,
+          rol: user.rol
+        },
         AUTH_SECRET_KEY,
         { expiresIn: "1h" }
       );
@@ -65,10 +70,13 @@ const postAuthLogin = async (req, res) => {
         usuario: {
           id: userId,
           username: user.username,
-          role: user.tipoUsuario,
+          tipoUsuario: user.tipoUsuario, // ← Cambiado de "role" a "tipoUsuario"
+          rol: user.rol,                 // ← Agregado el campo "rol" también
           nombre: user.nombre,
           apellidos: user.apellidos,
-          email: user.email
+          email: user.email,
+          verificado: user.verificado,
+          activo: user.activo
         }
       });
     } catch (jwtError) {
@@ -120,10 +128,11 @@ const postAuthSignup = async (req, res) => {
     });
   }
   
-  if (tipoUsuario && !['individual', 'freelancer', 'empresa', 'administrador', 'inmobiliaria'].includes(tipoUsuario)) {
+  // Actualizar validación para usar los valores correctos del esquema
+  if (tipoUsuario && !['usuario', 'proveedor', 'cliente', 'administrador'].includes(tipoUsuario)) {
     return res.status(400).json({ 
       message: "Tipo de usuario inválido", 
-      details: "El tipo de usuario debe ser 'individual', 'freelancer', 'empresa', 'administrador' o 'inmobiliaria'"
+      details: "El tipo de usuario debe ser 'usuario', 'proveedor', 'cliente' o 'administrador'"
     });
   }
   
@@ -146,7 +155,7 @@ const postAuthSignup = async (req, res) => {
     }
   
     const newUser = await registerUsuario({
-      tipoUsuario: tipoUsuario || 'cliente', 
+      tipoUsuario: tipoUsuario || 'usuario', // Cambiado de 'cliente' a 'usuario'
       username,
       email,
       password,
@@ -159,7 +168,8 @@ const postAuthSignup = async (req, res) => {
       message: "Usuario creado exitosamente", 
       userId: newUser._id,
       username: newUser.username,
-      email: newUser.email
+      email: newUser.email,
+      tipoUsuario: newUser.tipoUsuario
     });
   } catch (error) {
     console.error("Error en postAuthSignup:", error);
@@ -236,7 +246,11 @@ const validateToken = async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
-        role: user.tipoUsuario
+        tipoUsuario: user.tipoUsuario, // ← Cambiado de "role" a "tipoUsuario"
+        rol: user.rol,                 // ← Agregado el campo "rol"
+        nombre: user.nombre,
+        apellidos: user.apellidos,
+        email: user.email
       }
     });
   } catch (error) {

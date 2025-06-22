@@ -80,11 +80,10 @@
                   "tipoUsuario": {
                     "type": "string",
                     "enum": [
-                      "individual",
-                      "freelancer",
-                      "empresa",
-                      "administrador",
-                      "inmobiliaria"
+                      "usuario",
+                      "proveedor",
+                      "cliente",
+                      "administrador"
                     ]
                   },
                   "username": {

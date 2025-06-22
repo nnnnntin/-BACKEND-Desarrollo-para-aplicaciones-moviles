@@ -27,6 +27,14 @@ const createUsuarioSchema = Joi.object({
     .optional()
     .default({}),
 
+  datosEmpresa: Joi.object({
+    nombreEmpresa: Joi.string().optional(),
+    cargo: Joi.string().optional(),
+    nifCif: Joi.string().optional(),
+    sitioWeb: Joi.string().uri().optional(),
+    logoUrl: Joi.string().uri().optional()
+  }).optional(),
+
   preferencias: Joi.object({
     idiomaPreferido: Joi.string().default("es"),
     monedaPreferida: Joi.string().default("USD"),

@@ -5,7 +5,8 @@
     "description": "Documentación Swagger generada automáticamente con swagger-autogen",
     "version": "1.0.0"
   },
-  "servers": [{
+  "servers": [
+    {
       "url": "/",
       "description": "Entorno actual"
     },
@@ -105,6 +106,11 @@
                   "apellidos": {
                     "type": "string"
                   },
+                  "imagen": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "URL de la imagen de perfil (Cloudinary)"
+                  },
                   "datosPersonales": {
                     "type": "object",
                     "properties": {
@@ -113,10 +119,6 @@
                       },
                       "documentoIdentidad": {
                         "type": "string"
-                      },
-                      "fotoUrl": {
-                        "type": "string",
-                        "format": "uri"
                       }
                     }
                   },
@@ -187,16 +189,16 @@
                   }
                 },
                 "example": {
-                  "tipoUsuario": "individual",
+                  "tipoUsuario": "usuario",
                   "username": "valentin_dev",
                   "email": "valentin.dev@example.com",
                   "password": "ClaveSegura2025",
                   "nombre": "Valentin",
                   "apellidos": "Acosta",
+                  "imagen": "https://res.cloudinary.com/dh40cbgjz/image/upload/v1234567/usuarios/valentin-profile.jpg",
                   "datosPersonales": {
                     "telefono": "+59891234567",
-                    "documentoIdentidad": "4.567.890-1",
-                    "fotoUrl": "https://example.com/foto.jpg"
+                    "documentoIdentidad": "4.567.890-1"
                   },
                   "direccion": {
                     "calle": "Av. Italia 1234",
@@ -223,7 +225,40 @@
         },
         "responses": {
           "201": {
-            "description": "Usuario creado correctamente"
+            "description": "Usuario creado correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Usuario creado exitosamente"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "example": "60d0fe4f5311236168a109ca"
+                    },
+                    "username": {
+                      "type": "string",
+                      "example": "valentin_dev"
+                    },
+                    "email": {
+                      "type": "string",
+                      "example": "valentin.dev@example.com"
+                    },
+                    "tipoUsuario": {
+                      "type": "string",
+                      "example": "usuario"
+                    },
+                    "imagen": {
+                      "type": "string",
+                      "example": "https://res.cloudinary.com/dh40cbgjz/image/upload/v1234567/usuarios/valentin-profile.jpg"
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "Petición inválida (errores de validación)"
@@ -311,7 +346,8 @@
         "tags": [
           "Membresías - Gestión de membresías"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "skip",
             "in": "query",
             "description": "Número de registros a omitir (offset); entero ≥ 0",
@@ -357,7 +393,8 @@
                 "nombre": "Membresía Premium Plus",
                 "tipo": "premium",
                 "descripcion": "Acceso completo a todas las salas y beneficios exclusivos",
-                "beneficios": [{
+                "beneficios": [
+                  {
                     "tipo": "Acceso 24/7",
                     "descripcion": "Acceso ilimitado a las instalaciones",
                     "valor": "sin costo extra"
@@ -393,15 +430,17 @@
       }
     },
     "/v1/membresias/{id}": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la membresía"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la membresía"
+        }
+      ],
       "get": {
         "summary": "Obtener membresía por ID",
         "tags": [
@@ -473,21 +512,23 @@
       }
     },
     "/v1/membresias/tipo/{tipo}": {
-      "parameters": [{
-        "name": "tipo",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "enum": [
-            "basico",
-            "estandar",
-            "premium",
-            "empresarial"
-          ]
-        },
-        "description": "Tipo de membresía"
-      }],
+      "parameters": [
+        {
+          "name": "tipo",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "basico",
+              "estandar",
+              "premium",
+              "empresarial"
+            ]
+          },
+          "description": "Tipo de membresía"
+        }
+      ],
       "get": {
         "summary": "Obtener membresía por tipo",
         "tags": [
@@ -523,15 +564,17 @@
       }
     },
     "/v1/membresias/{id}/activar": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la membresía"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la membresía"
+        }
+      ],
       "put": {
         "summary": "Activar o desactivar membresía",
         "tags": [
@@ -561,7 +604,8 @@
       }
     },
     "/v1/membresias/ordenadas": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "campo",
           "in": "query",
           "schema": {
@@ -600,15 +644,17 @@
       }
     },
     "/v1/membresias/beneficio/{tipoBeneficio}": {
-      "parameters": [{
-        "name": "tipoBeneficio",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "Tipo de beneficio"
-      }],
+      "parameters": [
+        {
+          "name": "tipoBeneficio",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Tipo de beneficio"
+        }
+      ],
       "get": {
         "summary": "Obtener membresías con un beneficio específico",
         "tags": [
@@ -625,7 +671,8 @@
       }
     },
     "/v1/membresias/precio": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "precioMin",
           "in": "query",
           "schema": {
@@ -663,15 +710,17 @@
       }
     },
     "/v1/membresias/{id}/beneficios": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la membresía"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la membresía"
+        }
+      ],
       "put": {
         "summary": "Actualizar beneficios de una membresía",
         "tags": [
@@ -682,7 +731,8 @@
           "content": {
             "application/json": {
               "example": {
-                "beneficios": [{
+                "beneficios": [
+                  {
                     "tipo": "Sala VIP",
                     "descripcion": "Acceso a sala VIP privada",
                     "valor": "incluido"
@@ -792,7 +842,8 @@
         "tags": [
           "Usuarios - Gestión de usuarios"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "skip",
             "in": "query",
             "description": "Número de registros a omitir (offset); entero ≥ 0",
@@ -815,7 +866,47 @@
         ],
         "responses": {
           "200": {
-            "description": "Lista de usuarios obtenida exitosamente"
+            "description": "Lista de usuarios obtenida exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "_id": {
+                        "type": "string"
+                      },
+                      "username": {
+                        "type": "string"
+                      },
+                      "email": {
+                        "type": "string"
+                      },
+                      "tipoUsuario": {
+                        "type": "string"
+                      },
+                      "nombre": {
+                        "type": "string"
+                      },
+                      "apellidos": {
+                        "type": "string"
+                      },
+                      "imagen": {
+                        "type": "string",
+                        "description": "URL de la imagen de perfil"
+                      },
+                      "activo": {
+                        "type": "boolean"
+                      },
+                      "verificado": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Error interno del servidor"
@@ -831,17 +922,66 @@
           "required": true,
           "content": {
             "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tipoUsuario",
+                  "username",
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "tipoUsuario": {
+                    "type": "string",
+                    "enum": [
+                      "usuario",
+                      "proveedor",
+                      "cliente",
+                      "administrador"
+                    ]
+                  },
+                  "username": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "nombre": {
+                    "type": "string"
+                  },
+                  "apellidos": {
+                    "type": "string"
+                  },
+                  "imagen": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "URL de la imagen de perfil (Cloudinary)"
+                  },
+                  "datosPersonales": {
+                    "type": "object"
+                  },
+                  "direccion": {
+                    "type": "object"
+                  },
+                  "preferencias": {
+                    "type": "object"
+                  }
+                }
+              },
               "example": {
-                "tipoUsuario": "empresa",
+                "tipoUsuario": "cliente",
                 "username": "jlopez",
                 "email": "juliana.lopez@empresa.com",
                 "password": "P4s$w0rd!",
                 "nombre": "Juliana",
                 "apellidos": "López",
+                "imagen": "https://res.cloudinary.com/dh40cbgjz/image/upload/v1234567/usuarios/juliana-lopez.jpg",
                 "datosPersonales": {
                   "telefono": "+59891234567",
-                  "documentoIdentidad": "12345678-9",
-                  "fotoUrl": "https://example.com/fotos/juliana.jpg"
+                  "documentoIdentidad": "12345678-9"
                 },
                 "direccion": {
                   "calle": "Av. 18 de Julio 1234",
@@ -879,15 +1019,17 @@
       }
     },
     "/v1/usuarios/{id}": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del usuario"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del usuario"
+        }
+      ],
       "get": {
         "summary": "Obtener usuario por ID",
         "tags": [
@@ -895,7 +1037,62 @@
         ],
         "responses": {
           "200": {
-            "description": "Usuario encontrado"
+            "description": "Usuario encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "_id": {
+                      "type": "string"
+                    },
+                    "username": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "tipoUsuario": {
+                      "type": "string"
+                    },
+                    "nombre": {
+                      "type": "string"
+                    },
+                    "apellidos": {
+                      "type": "string"
+                    },
+                    "imagen": {
+                      "type": "string",
+                      "description": "URL de la imagen de perfil"
+                    },
+                    "datosPersonales": {
+                      "type": "object"
+                    },
+                    "direccion": {
+                      "type": "object"
+                    },
+                    "datosEmpresa": {
+                      "type": "object"
+                    },
+                    "preferencias": {
+                      "type": "object"
+                    },
+                    "membresia": {
+                      "type": "object"
+                    },
+                    "activo": {
+                      "type": "boolean"
+                    },
+                    "verificado": {
+                      "type": "boolean"
+                    },
+                    "rol": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
             "description": "Usuario no encontrado"
@@ -914,9 +1111,61 @@
           "required": true,
           "content": {
             "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string"
+                  },
+                  "apellidos": {
+                    "type": "string"
+                  },
+                  "imagen": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "URL de la imagen de perfil (Cloudinary)"
+                  },
+                  "datosPersonales": {
+                    "type": "object",
+                    "properties": {
+                      "telefono": {
+                        "type": "string"
+                      },
+                      "documentoIdentidad": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "direccion": {
+                    "type": "object",
+                    "properties": {
+                      "calle": {
+                        "type": "string"
+                      },
+                      "ciudad": {
+                        "type": "string"
+                      },
+                      "codigoPostal": {
+                        "type": "string"
+                      },
+                      "pais": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "preferencias": {
+                    "type": "object"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8
+                  }
+                }
+              },
               "example": {
                 "nombre": "Juliana",
                 "apellidos": "López Pérez",
+                "imagen": "https://res.cloudinary.com/dh40cbgjz/image/upload/v1234567/usuarios/juliana-updated.jpg",
                 "datosPersonales": {
                   "telefono": "+59898765432"
                 },
@@ -938,7 +1187,45 @@
         },
         "responses": {
           "200": {
-            "description": "Usuario actualizado correctamente"
+            "description": "Usuario actualizado correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "_id": {
+                      "type": "string"
+                    },
+                    "username": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "tipoUsuario": {
+                      "type": "string"
+                    },
+                    "nombre": {
+                      "type": "string"
+                    },
+                    "apellidos": {
+                      "type": "string"
+                    },
+                    "imagen": {
+                      "type": "string",
+                      "description": "URL actualizada de la imagen de perfil"
+                    },
+                    "activo": {
+                      "type": "boolean"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "Datos inválidos o duplicados"
@@ -970,22 +1257,23 @@
       }
     },
     "/v1/usuarios/tipo/{tipo}": {
-      "parameters": [{
-        "name": "tipo",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "enum": [
-            "individual",
-            "freelancer",
-            "empresa",
-            "administrador",
-            "inmobiliaria"
-          ]
-        },
-        "description": "Tipo de usuario"
-      }],
+      "parameters": [
+        {
+          "name": "tipo",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "usuario",
+              "proveedor",
+              "cliente",
+              "administrador"
+            ]
+          },
+          "description": "Tipo de usuario"
+        }
+      ],
       "get": {
         "summary": "Obtener usuarios por tipo",
         "tags": [
@@ -1035,15 +1323,17 @@
       }
     },
     "/v1/usuarios/{id}/membresia": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del usuario"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del usuario"
+        }
+      ],
       "put": {
         "summary": "Actualizar membresía de un usuario",
         "tags": [
@@ -1086,7 +1376,8 @@
         "tags": [
           "Proveedores - Gestión de proveedores"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "skip",
             "in": "query",
             "description": "Número de registros a ommitir (offset); entero ≥ 0",
@@ -1175,15 +1466,17 @@
       }
     },
     "/v1/proveedores/{id}": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del proveedor"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del proveedor"
+        }
+      ],
       "get": {
         "summary": "Obtener proveedor por ID",
         "tags": [
@@ -1252,20 +1545,22 @@
       }
     },
     "/v1/proveedores/tipo/{tipo}": {
-      "parameters": [{
-        "name": "tipo",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "enum": [
-            "empresa",
-            "autonomo",
-            "interno"
-          ]
-        },
-        "description": "Tipo de proveedor"
-      }],
+      "parameters": [
+        {
+          "name": "tipo",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "empresa",
+              "autonomo",
+              "interno"
+            ]
+          },
+          "description": "Tipo de proveedor"
+        }
+      ],
       "get": {
         "summary": "Obtener proveedores por tipo",
         "tags": [
@@ -1298,15 +1593,17 @@
       }
     },
     "/v1/proveedores/{id}/activar": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del proveedor"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del proveedor"
+        }
+      ],
       "put": {
         "summary": "Activar proveedor",
         "tags": [
@@ -1337,11 +1634,13 @@
             "application/json": {
               "example": {
                 "proveedorId": "60f7e2a4b5c6d7e8f9a0b1c2",
-                "documentosVerificacion": [{
-                  "tipo": "identificacion",
-                  "url": "https://cdn.miempresa.com/docs/id-1234.pdf",
-                  "descripcion": "Cédula de identidad del representante"
-                }],
+                "documentosVerificacion": [
+                  {
+                    "tipo": "identificacion",
+                    "url": "https://cdn.miempresa.com/docs/id-1234.pdf",
+                    "descripcion": "Cédula de identidad del representante"
+                  }
+                ],
                 "notas": "Documentación completa, pendiente firma de contrato"
               }
             }
@@ -1364,15 +1663,17 @@
       }
     },
     "/v1/proveedores/{id}/calificacion": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del proveedor"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del proveedor"
+        }
+      ],
       "put": {
         "summary": "Actualizar calificación de proveedor",
         "tags": [
@@ -1405,15 +1706,17 @@
       }
     },
     "/v1/proveedores/{id}/servicio": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del proveedor"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del proveedor"
+        }
+      ],
       "post": {
         "summary": "Agregar servicio a proveedor",
         "tags": [
@@ -1446,7 +1749,8 @@
       }
     },
     "/v1/proveedores/{id}/servicio/{servicioId}": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "id",
           "in": "path",
           "required": true,
@@ -1482,14 +1786,16 @@
       }
     },
     "/v1/proveedores/{id}/contacto": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
         }
-      }],
+      ],
       "put": {
         "summary": "Actualizar información de contacto",
         "tags": [
@@ -1526,14 +1832,16 @@
       }
     },
     "/v1/proveedores/{id}/metodo-pago": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
         }
-      }],
+      ],
       "put": {
         "summary": "Actualizar método de pago",
         "tags": [
@@ -1575,18 +1883,20 @@
         "tags": [
           "Proveedores - Gestión de proveedores"
         ],
-        "parameters": [{
-          "name": "calificacionMinima",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "type": "number",
-            "minimum": 1,
-            "maximum": 5,
-            "default": 4
-          },
-          "description": "Calificación mínima"
-        }],
+        "parameters": [
+          {
+            "name": "calificacionMinima",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 5,
+              "default": 4
+            },
+            "description": "Calificación mínima"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Proveedores encontrados"
@@ -1603,16 +1913,18 @@
         "tags": [
           "Proveedores - Gestión de proveedores"
         ],
-        "parameters": [{
-          "name": "limite",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "type": "integer",
-            "default": 5
-          },
-          "description": "Número máximo de resultados"
-        }],
+        "parameters": [
+          {
+            "name": "limite",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 5
+            },
+            "description": "Número máximo de resultados"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Ranking obtenido exitosamente"
@@ -1629,7 +1941,8 @@
         "tags": [
           "Proveedores - Gestión de proveedores"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "tipo",
             "in": "query",
             "schema": {
@@ -1682,7 +1995,8 @@
           "Empresas Inmobiliarias - Gestión de empresas inmobiliarias"
         ],
         "summary": "Obtener todas las empresas inmobiliarias",
-        "parameters": [{
+        "parameters": [
+          {
             "name": "skip",
             "in": "query",
             "description": "Número de registros a omitir (offset); entero ≥ 0",
@@ -1885,15 +2199,17 @@
       }
     },
     "/v1/empresas-inmobiliarias/{id}": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la empresa inmobiliaria"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la empresa inmobiliaria"
+        }
+      ],
       "get": {
         "tags": [
           "Empresas Inmobiliarias - Gestión de empresas inmobiliarias"
@@ -2046,20 +2362,22 @@
       }
     },
     "/v1/empresas-inmobiliarias/tipo/{tipo}": {
-      "parameters": [{
-        "name": "tipo",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "enum": [
-            "inmobiliaria",
-            "propietario_directo",
-            "administrador_edificio"
-          ]
-        },
-        "description": "Tipo de empresa inmobiliaria"
-      }],
+      "parameters": [
+        {
+          "name": "tipo",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "inmobiliaria",
+              "propietario_directo",
+              "administrador_edificio"
+            ]
+          },
+          "description": "Tipo de empresa inmobiliaria"
+        }
+      ],
       "get": {
         "tags": [
           "Empresas Inmobiliarias - Gestión de empresas inmobiliarias"
@@ -2092,15 +2410,17 @@
       }
     },
     "/v1/empresas-inmobiliarias/ciudad/{ciudad}": {
-      "parameters": [{
-        "name": "ciudad",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "Ciudad"
-      }],
+      "parameters": [
+        {
+          "name": "ciudad",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Ciudad"
+        }
+      ],
       "get": {
         "tags": [
           "Empresas Inmobiliarias - Gestión de empresas inmobiliarias"
@@ -2117,15 +2437,17 @@
       }
     },
     "/v1/empresas-inmobiliarias/{id}/activar": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la empresa inmobiliaria"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la empresa inmobiliaria"
+        }
+      ],
       "put": {
         "tags": [
           "Empresas Inmobiliarias - Gestión de empresas inmobiliarias"
@@ -2198,10 +2520,12 @@
                 },
                 "example": {
                   "empresaId": "607f1f77bcf86cd799439011",
-                  "documentosVerificacion": [{
-                    "tipo": "licencia",
-                    "url": "https://docs.uy/licencia.pdf"
-                  }],
+                  "documentosVerificacion": [
+                    {
+                      "tipo": "licencia",
+                      "url": "https://docs.uy/licencia.pdf"
+                    }
+                  ],
                   "notas": "Documentación revisada"
                 }
               }
@@ -2225,15 +2549,17 @@
       }
     },
     "/v1/empresas-inmobiliarias/{id}/calificacion": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la empresa inmobiliaria"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la empresa inmobiliaria"
+        }
+      ],
       "put": {
         "tags": [
           "Empresas Inmobiliarias - Gestión de empresas inmobiliarias"
@@ -2279,15 +2605,17 @@
       }
     },
     "/v1/empresas-inmobiliarias/{id}/espacio": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la empresa inmobiliaria"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la empresa inmobiliaria"
+        }
+      ],
       "post": {
         "tags": [
           "Empresas Inmobiliarias - Gestión de empresas inmobiliarias"
@@ -2331,7 +2659,8 @@
       }
     },
     "/v1/empresas-inmobiliarias/{id}/espacio/{espacioId}": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "id",
           "in": "path",
           "required": true,
@@ -2369,15 +2698,17 @@
       }
     },
     "/v1/empresas-inmobiliarias/{id}/metodo-pago": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la empresa inmobiliaria"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la empresa inmobiliaria"
+        }
+      ],
       "put": {
         "tags": [
           "Empresas Inmobiliarias - Gestión de empresas inmobiliarias"
@@ -2436,15 +2767,17 @@
       }
     },
     "/v1/empresas-inmobiliarias/{id}/contacto": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la empresa inmobiliaria"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la empresa inmobiliaria"
+        }
+      ],
       "put": {
         "tags": [
           "Empresas Inmobiliarias - Gestión de empresas inmobiliarias"
@@ -2513,15 +2846,17 @@
       }
     },
     "/v1/empresas-inmobiliarias/ranking/espacios": {
-      "parameters": [{
-        "name": "limite",
-        "in": "query",
-        "schema": {
-          "type": "integer",
-          "default": 10
-        },
-        "description": "Número máximo de resultados"
-      }],
+      "parameters": [
+        {
+          "name": "limite",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "default": 10
+          },
+          "description": "Número máximo de resultados"
+        }
+      ],
       "get": {
         "tags": [
           "Empresas Inmobiliarias - Gestión de empresas inmobiliarias"
@@ -2543,7 +2878,8 @@
           "Edificios - Gestión de edificios"
         ],
         "summary": "Obtener todos los edificios",
-        "parameters": [{
+        "parameters": [
+          {
             "name": "skip",
             "in": "query",
             "description": "Número de registros a omitir (offset); entero ≥ 0",
@@ -2734,11 +3070,13 @@
                   "planos": [
                     "https://example.com/plan1.pdf"
                   ],
-                  "amenidades": [{
-                    "tipo": "gimnasio",
-                    "descripcion": "Gimnasio equipado",
-                    "horario": "06:00-22:00"
-                  }],
+                  "amenidades": [
+                    {
+                      "tipo": "gimnasio",
+                      "descripcion": "Gimnasio equipado",
+                      "horario": "06:00-22:00"
+                    }
+                  ],
                   "horario": {
                     "apertura": "07:00",
                     "cierre": "20:00",
@@ -2772,15 +3110,17 @@
       }
     },
     "/v1/edificios/{id}": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del edificio"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del edificio"
+        }
+      ],
       "get": {
         "tags": [
           "Edificios - Gestión de edificios"
@@ -2965,15 +3305,17 @@
       }
     },
     "/v1/edificios/propietario/{propietarioId}": {
-      "parameters": [{
-        "name": "propietarioId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del propietario"
-      }],
+      "parameters": [
+        {
+          "name": "propietarioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del propietario"
+        }
+      ],
       "get": {
         "tags": [
           "Edificios - Gestión de edificios"
@@ -2990,15 +3332,17 @@
       }
     },
     "/v1/edificios/empresa/{empresaId}": {
-      "parameters": [{
-        "name": "empresaId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la empresa inmobiliaria"
-      }],
+      "parameters": [
+        {
+          "name": "empresaId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la empresa inmobiliaria"
+        }
+      ],
       "get": {
         "tags": [
           "Edificios - Gestión de edificios"
@@ -3015,15 +3359,17 @@
       }
     },
     "/v1/edificios/ciudad/{ciudad}": {
-      "parameters": [{
-        "name": "ciudad",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "Nombre de la ciudad"
-      }],
+      "parameters": [
+        {
+          "name": "ciudad",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Nombre de la ciudad"
+        }
+      ],
       "get": {
         "tags": [
           "Edificios - Gestión de edificios"
@@ -3040,15 +3386,17 @@
       }
     },
     "/v1/edificios/pais/{pais}": {
-      "parameters": [{
-        "name": "pais",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "Nombre del país"
-      }],
+      "parameters": [
+        {
+          "name": "pais",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Nombre del país"
+        }
+      ],
       "get": {
         "tags": [
           "Edificios - Gestión de edificios"
@@ -3065,15 +3413,17 @@
       }
     },
     "/v1/edificios/amenidad/{tipoAmenidad}": {
-      "parameters": [{
-        "name": "tipoAmenidad",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "Tipo de amenidad"
-      }],
+      "parameters": [
+        {
+          "name": "tipoAmenidad",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Tipo de amenidad"
+        }
+      ],
       "get": {
         "tags": [
           "Edificios - Gestión de edificios"
@@ -3090,15 +3440,17 @@
       }
     },
     "/v1/edificios/{id}/activar": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del edificio"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del edificio"
+        }
+      ],
       "put": {
         "tags": [
           "Edificios - Gestión de edificios"
@@ -3118,15 +3470,17 @@
       }
     },
     "/v1/edificios/{id}/calificacion": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del edificio"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del edificio"
+        }
+      ],
       "put": {
         "tags": [
           "Edificios - Gestión de edificios"
@@ -3172,15 +3526,17 @@
       }
     },
     "/v1/edificios/{id}/amenidad": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del edificio"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del edificio"
+        }
+      ],
       "post": {
         "tags": [
           "Edificios - Gestión de edificios"
@@ -3233,7 +3589,8 @@
       }
     },
     "/v1/edificios/{id}/amenidad/{amenidadId}": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "id",
           "in": "path",
           "required": true,
@@ -3271,15 +3628,17 @@
       }
     },
     "/v1/edificios/{id}/horario": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del edificio"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del edificio"
+        }
+      ],
       "put": {
         "tags": [
           "Edificios - Gestión de edificios"
@@ -3349,7 +3708,8 @@
       }
     },
     "/v1/edificios/filtrar": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "ciudad",
           "in": "query",
           "schema": {
@@ -3438,7 +3798,8 @@
         "tags": [
           "Espacios - Gestión de espacios"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "skip",
             "in": "query",
             "description": "Número de registros a omitir (offset); entero ≥ 0",
@@ -3540,15 +3901,17 @@
       }
     },
     "/v1/espacios/{id}": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del espacio"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del espacio"
+        }
+      ],
       "get": {
         "summary": "Obtener espacio por ID",
         "tags": [
@@ -3627,15 +3990,17 @@
       }
     },
     "/v1/espacios/edificio/{edificioId}": {
-      "parameters": [{
-        "name": "edificioId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del edificio"
-      }],
+      "parameters": [
+        {
+          "name": "edificioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del edificio"
+        }
+      ],
       "get": {
         "summary": "Obtener espacios por edificio",
         "tags": [
@@ -3652,21 +4017,23 @@
       }
     },
     "/v1/espacios/tipo/{tipo}": {
-      "parameters": [{
-        "name": "tipo",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "enum": [
-            "oficina",
-            "sala_reunion",
-            "escritorio_flexible",
-            "otro"
-          ]
-        },
-        "description": "Tipo de espacio"
-      }],
+      "parameters": [
+        {
+          "name": "tipo",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "oficina",
+              "sala_reunion",
+              "escritorio_flexible",
+              "otro"
+            ]
+          },
+          "description": "Tipo de espacio"
+        }
+      ],
       "get": {
         "summary": "Obtener espacios por tipo",
         "tags": [
@@ -3683,15 +4050,17 @@
       }
     },
     "/v1/espacios/propietario/{propietarioId}": {
-      "parameters": [{
-        "name": "propietarioId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del propietario"
-      }],
+      "parameters": [
+        {
+          "name": "propietarioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del propietario"
+        }
+      ],
       "get": {
         "summary": "Obtener espacios por propietario",
         "tags": [
@@ -3708,15 +4077,17 @@
       }
     },
     "/v1/espacios/empresa/{empresaId}": {
-      "parameters": [{
-        "name": "empresaId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la empresa"
-      }],
+      "parameters": [
+        {
+          "name": "empresaId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la empresa"
+        }
+      ],
       "get": {
         "summary": "Obtener espacios por empresa",
         "tags": [
@@ -3733,15 +4104,17 @@
       }
     },
     "/v1/espacios/{id}/estado": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del espacio"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del espacio"
+        }
+      ],
       "put": {
         "summary": "Cambiar estado de espacio",
         "tags": [
@@ -3774,7 +4147,8 @@
       }
     },
     "/v1/espacios/disponibles": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "tipo",
           "in": "query",
           "schema": {
@@ -3840,7 +4214,8 @@
       }
     },
     "/v1/espacios/filtrar": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "tipo",
           "in": "query",
           "schema": {
@@ -3947,18 +4322,20 @@
       }
     },
     "/v1/espacios/amenidades": {
-      "parameters": [{
-        "name": "amenidades",
-        "in": "query",
-        "required": true,
-        "schema": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "description": "Amenidades (separadas por comas)"
-      }],
+      "parameters": [
+        {
+          "name": "amenidades",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": "Amenidades (separadas por comas)"
+        }
+      ],
       "get": {
         "summary": "Obtener espacios por amenidades",
         "tags": [
@@ -3983,7 +4360,8 @@
         "tags": [
           "Oficinas - Gestión de oficinas"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "skip",
             "in": "query",
             "description": "Número de registros a omitir (offset); entero ≥ 0",
@@ -4086,15 +4464,17 @@
       }
     },
     "/v1/oficinas/{id}": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la oficina"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la oficina"
+        }
+      ],
       "get": {
         "summary": "Obtener oficina por ID",
         "tags": [
@@ -4167,15 +4547,17 @@
       }
     },
     "/v1/oficinas/codigo/{codigo}": {
-      "parameters": [{
-        "name": "codigo",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "Código de la oficina"
-      }],
+      "parameters": [
+        {
+          "name": "codigo",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Código de la oficina"
+        }
+      ],
       "get": {
         "summary": "Obtener oficina por código",
         "tags": [
@@ -4195,15 +4577,17 @@
       }
     },
     "/v1/oficinas/edificio/{edificioId}": {
-      "parameters": [{
-        "name": "edificioId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del edificio"
-      }],
+      "parameters": [
+        {
+          "name": "edificioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del edificio"
+        }
+      ],
       "get": {
         "summary": "Obtener oficinas por edificio",
         "tags": [
@@ -4220,20 +4604,22 @@
       }
     },
     "/v1/oficinas/tipo/{tipo}": {
-      "parameters": [{
-        "name": "tipo",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "enum": [
-            "privada",
-            "compartida",
-            "coworking"
-          ]
-        },
-        "description": "Tipo de oficina"
-      }],
+      "parameters": [
+        {
+          "name": "tipo",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "privada",
+              "compartida",
+              "coworking"
+            ]
+          },
+          "description": "Tipo de oficina"
+        }
+      ],
       "get": {
         "summary": "Obtener oficinas por tipo",
         "tags": [
@@ -4250,15 +4636,17 @@
       }
     },
     "/v1/oficinas/propietario/{propietarioId}": {
-      "parameters": [{
-        "name": "propietarioId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del propietario"
-      }],
+      "parameters": [
+        {
+          "name": "propietarioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del propietario"
+        }
+      ],
       "get": {
         "summary": "Obtener oficinas por propietario",
         "tags": [
@@ -4275,15 +4663,17 @@
       }
     },
     "/v1/oficinas/empresa/{empresaId}": {
-      "parameters": [{
-        "name": "empresaId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la empresa inmobiliaria"
-      }],
+      "parameters": [
+        {
+          "name": "empresaId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la empresa inmobiliaria"
+        }
+      ],
       "get": {
         "summary": "Obtener oficinas por empresa",
         "tags": [
@@ -4300,15 +4690,17 @@
       }
     },
     "/v1/oficinas/{id}/estado": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la oficina"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la oficina"
+        }
+      ],
       "put": {
         "summary": "Cambiar estado de oficina",
         "tags": [
@@ -4346,16 +4738,18 @@
         "tags": [
           "Oficinas - Gestión de oficinas"
         ],
-        "parameters": [{
-          "name": "capacidadMinima",
-          "in": "query",
-          "required": true,
-          "schema": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "description": "Capacidad mínima"
-        }],
+        "parameters": [
+          {
+            "name": "capacidadMinima",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Capacidad mínima"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Oficinas encontradas"
@@ -4375,7 +4769,8 @@
         "tags": [
           "Oficinas - Gestión de oficinas"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "precioMin",
             "in": "query",
             "required": true,
@@ -4429,7 +4824,8 @@
         "tags": [
           "Oficinas - Gestión de oficinas"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "fecha",
             "in": "query",
             "required": true,
@@ -4472,15 +4868,17 @@
       }
     },
     "/v1/oficinas/{id}/calificacion": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la oficina"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la oficina"
+        }
+      ],
       "put": {
         "summary": "Actualizar calificación de oficina",
         "tags": [
@@ -4518,7 +4916,8 @@
         "tags": [
           "Oficinas - Gestión de oficinas"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "edificioId",
             "in": "query",
             "schema": {
@@ -4602,7 +5001,8 @@
         "tags": [
           "Salas de Reunión - Gestión de salas de reunión"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "skip",
             "in": "query",
             "description": "Número de registros a omitir (offset); entero ≥ 0",
@@ -4650,7 +5050,8 @@
                   "numero": "3A"
                 },
                 "capacidad": 12,
-                "equipamiento": [{
+                "equipamiento": [
+                  {
                     "tipo": "proyector",
                     "descripcion": "Proyector 4K UHD"
                   },
@@ -4704,15 +5105,17 @@
       }
     },
     "/v1/salas-reunion/{id}": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la sala de reunión"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la sala de reunión"
+        }
+      ],
       "get": {
         "summary": "Obtener sala de reunión por ID",
         "tags": [
@@ -4780,15 +5183,17 @@
       }
     },
     "/v1/salas-reunion/{id}/estado": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la sala"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la sala"
+        }
+      ],
       "put": {
         "summary": "Cambiar estado de sala",
         "tags": [
@@ -4821,15 +5226,17 @@
       }
     },
     "/v1/salas-reunion/{id}/equipamiento": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la sala"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la sala"
+        }
+      ],
       "post": {
         "summary": "Agregar equipamiento a sala",
         "tags": [
@@ -4863,15 +5270,17 @@
       }
     },
     "/v1/salas-reunion/{id}/precios": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la sala"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la sala"
+        }
+      ],
       "put": {
         "summary": "Actualizar precios de sala",
         "tags": [
@@ -4911,7 +5320,8 @@
         "tags": [
           "Salas de Reunión - Gestión de salas de reunión"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "fecha",
             "in": "query",
             "schema": {
@@ -4958,7 +5368,8 @@
         "tags": [
           "Salas de Reunión - Gestión de salas de reunión"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "edificioId",
             "in": "query",
             "schema": {
@@ -5050,7 +5461,8 @@
         "tags": [
           "Escritorios Flexibles - Gestión de escritorios flexibles"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "skip",
             "in": "query",
             "description": "Número de registros a omitir (offset); entero ≥ 0",
@@ -5101,7 +5513,8 @@
                   "numero": "12B"
                 },
                 "tipo": "individual",
-                "amenidades": [{
+                "amenidades": [
+                  {
                     "tipo": "monitor",
                     "descripcion": "Monitor 27\" 144Hz"
                   },
@@ -5146,15 +5559,17 @@
       }
     },
     "/v1/escritorios-flexibles/{id}": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del escritorio flexible"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del escritorio flexible"
+        }
+      ],
       "get": {
         "summary": "Obtener escritorio flexible por ID",
         "tags": [
@@ -5189,10 +5604,12 @@
                   "numero": "14C"
                 },
                 "tipo": "compartido",
-                "amenidades": [{
-                  "tipo": "reposapiés",
-                  "descripcion": "Reposapiés ajustable de madera"
-                }],
+                "amenidades": [
+                  {
+                    "tipo": "reposapiés",
+                    "descripcion": "Reposapiés ajustable de madera"
+                  }
+                ],
                 "precios": {
                   "porDia": 950.0,
                   "porMes": 13000.0
@@ -5240,15 +5657,17 @@
       }
     },
     "/v1/escritorios-flexibles/codigo/{codigo}": {
-      "parameters": [{
-        "name": "codigo",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "Código del escritorio flexible"
-      }],
+      "parameters": [
+        {
+          "name": "codigo",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Código del escritorio flexible"
+        }
+      ],
       "get": {
         "summary": "Obtener escritorio flexible por código",
         "tags": [
@@ -5268,15 +5687,17 @@
       }
     },
     "/v1/escritorios-flexibles/edificio/{edificioId}": {
-      "parameters": [{
-        "name": "edificioId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del edificio"
-      }],
+      "parameters": [
+        {
+          "name": "edificioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del edificio"
+        }
+      ],
       "get": {
         "summary": "Obtener escritorios flexibles por edificio",
         "tags": [
@@ -5293,20 +5714,22 @@
       }
     },
     "/v1/escritorios-flexibles/tipo/{tipo}": {
-      "parameters": [{
-        "name": "tipo",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "enum": [
-            "individual",
-            "compartido",
-            "standing"
-          ]
-        },
-        "description": "Tipo de escritorio flexible"
-      }],
+      "parameters": [
+        {
+          "name": "tipo",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "individual",
+              "compartido",
+              "standing"
+            ]
+          },
+          "description": "Tipo de escritorio flexible"
+        }
+      ],
       "get": {
         "summary": "Obtener escritorios flexibles por tipo",
         "tags": [
@@ -5323,23 +5746,25 @@
       }
     },
     "/v1/escritorios-flexibles/amenidades/{tipoAmenidad}": {
-      "parameters": [{
-        "name": "tipoAmenidad",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "enum": [
-            "monitor",
-            "teclado",
-            "mouse",
-            "reposapiés",
-            "lampara",
-            "otro"
-          ]
-        },
-        "description": "Tipo de amenidad"
-      }],
+      "parameters": [
+        {
+          "name": "tipoAmenidad",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "monitor",
+              "teclado",
+              "mouse",
+              "reposapiés",
+              "lampara",
+              "otro"
+            ]
+          },
+          "description": "Tipo de amenidad"
+        }
+      ],
       "get": {
         "summary": "Obtener escritorios flexibles por amenidad",
         "tags": [
@@ -5356,15 +5781,17 @@
       }
     },
     "/v1/escritorios-flexibles/propietario/{propietarioId}": {
-      "parameters": [{
-        "name": "propietarioId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del propietario"
-      }],
+      "parameters": [
+        {
+          "name": "propietarioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del propietario"
+        }
+      ],
       "get": {
         "summary": "Obtener escritorios flexibles por propietario",
         "tags": [
@@ -5381,7 +5808,8 @@
       }
     },
     "/v1/escritorios-flexibles/precio": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "precioMinimo",
           "in": "query",
           "schema": {
@@ -5432,15 +5860,17 @@
       }
     },
     "/v1/escritorios-flexibles/{id}/estado": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del escritorio flexible"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del escritorio flexible"
+        }
+      ],
       "put": {
         "summary": "Cambiar estado de escritorio flexible",
         "tags": [
@@ -5473,15 +5903,17 @@
       }
     },
     "/v1/escritorios-flexibles/{id}/amenidad": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del escritorio flexible"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del escritorio flexible"
+        }
+      ],
       "post": {
         "summary": "Agregar amenidad a escritorio flexible",
         "tags": [
@@ -5515,7 +5947,8 @@
       }
     },
     "/v1/escritorios-flexibles/{id}/amenidad/{amenidadId}": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "id",
           "in": "path",
           "required": true,
@@ -5553,7 +5986,8 @@
       }
     },
     "/v1/escritorios-flexibles/disponibles": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "fecha",
           "in": "query",
           "schema": {
@@ -5608,7 +6042,8 @@
       }
     },
     "/v1/escritorios-flexibles/filtrar": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "edificioId",
           "in": "query",
           "schema": {
@@ -5703,7 +6138,8 @@
           "Disponibilidades - Gestión de disponibilidades"
         ],
         "summary": "Obtener todas las disponibilidades",
-        "parameters": [{
+        "parameters": [
+          {
             "name": "skip",
             "in": "query",
             "description": "Número de registros a omitir (offset)",
@@ -5799,7 +6235,8 @@
                   "entidadId": "610c0f1f5a2d3b4c5d6e7f01",
                   "tipoEntidad": "oficina",
                   "fechaDisponibilidad": "2025-05-10",
-                  "franjas": [{
+                  "franjas": [
+                    {
                       "horaInicio": "09:00",
                       "horaFin": "10:00",
                       "disponible": true,
@@ -5831,15 +6268,17 @@
       }
     },
     "/v1/disponibilidades/{id}": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la disponibilidad"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la disponibilidad"
+        }
+      ],
       "get": {
         "tags": [
           "Disponibilidades - Gestión de disponibilidades"
@@ -5906,13 +6345,15 @@
                   }
                 },
                 "example": {
-                  "franjas": [{
-                    "horaInicio": "13:00",
-                    "horaFin": "15:00",
-                    "disponible": false,
-                    "bloqueado": true,
-                    "motivo": "Mantenimiento"
-                  }]
+                  "franjas": [
+                    {
+                      "horaInicio": "13:00",
+                      "horaFin": "15:00",
+                      "disponible": false,
+                      "bloqueado": true,
+                      "motivo": "Mantenimiento"
+                    }
+                  ]
                 }
               }
             }
@@ -5957,7 +6398,8 @@
           "Disponibilidades - Gestión de disponibilidades"
         ],
         "summary": "Obtener disponibilidades por entidad",
-        "parameters": [{
+        "parameters": [
+          {
             "name": "entidadId",
             "in": "path",
             "required": true,
@@ -6008,7 +6450,8 @@
       }
     },
     "/v1/disponibilidades/fecha": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "entidadId",
           "in": "query",
           "required": true,
@@ -6066,7 +6509,8 @@
           "Disponibilidades - Gestión de disponibilidades"
         ],
         "summary": "Obtener disponibilidades en un rango de fechas",
-        "parameters": [{
+        "parameters": [
+          {
             "name": "entidadId",
             "in": "query",
             "required": true,
@@ -6138,7 +6582,8 @@
       }
     },
     "/v1/disponibilidades/franjas": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "entidadId",
           "in": "query",
           "required": true,
@@ -6576,7 +7021,8 @@
                   "tipoEntidad": "escritorio_flexible",
                   "fechaInicio": "2025-05-06",
                   "fechaFin": "2025-05-10",
-                  "franjasBase": [{
+                  "franjasBase": [
+                    {
                       "horaInicio": "08:00",
                       "horaFin": "12:00"
                     },
@@ -6604,7 +7050,8 @@
       }
     },
     "/v1/disponibilidades/consultar": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "entidadId",
           "in": "query",
           "required": true,
@@ -6686,7 +7133,8 @@
         "tags": [
           "Servicios Adicionales - Gestión de servicios adicionales"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "skip",
             "in": "query",
             "description": "Número de registros a omitir (offset); entero ≥ 0",
@@ -6769,15 +7217,17 @@
       }
     },
     "/v1/servicios-adicionales/{id}": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del servicio adicional"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del servicio adicional"
+        }
+      ],
       "get": {
         "summary": "Obtener servicio adicional por ID",
         "tags": [
@@ -6846,23 +7296,25 @@
       }
     },
     "/v1/servicios-adicionales/tipo/{tipo}": {
-      "parameters": [{
-        "name": "tipo",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "enum": [
-            "catering",
-            "limpieza",
-            "recepcion",
-            "parking",
-            "impresion",
-            "otro"
-          ]
-        },
-        "description": "Tipo de servicio"
-      }],
+      "parameters": [
+        {
+          "name": "tipo",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "catering",
+              "limpieza",
+              "recepcion",
+              "parking",
+              "impresion",
+              "otro"
+            ]
+          },
+          "description": "Tipo de servicio"
+        }
+      ],
       "get": {
         "summary": "Obtener servicios por tipo",
         "tags": [
@@ -6879,15 +7331,17 @@
       }
     },
     "/v1/servicios-adicionales/proveedor/{proveedorId}": {
-      "parameters": [{
-        "name": "proveedorId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del proveedor"
-      }],
+      "parameters": [
+        {
+          "name": "proveedorId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del proveedor"
+        }
+      ],
       "get": {
         "summary": "Obtener servicios por proveedor",
         "tags": [
@@ -6904,15 +7358,17 @@
       }
     },
     "/v1/servicios-adicionales/espacio/{espacioId}": {
-      "parameters": [{
-        "name": "espacioId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del espacio"
-      }],
+      "parameters": [
+        {
+          "name": "espacioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del espacio"
+        }
+      ],
       "get": {
         "summary": "Obtener servicios disponibles en un espacio",
         "tags": [
@@ -6934,7 +7390,8 @@
         "tags": [
           "Servicios Adicionales - Gestión de servicios adicionales"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "precioMin",
             "in": "query",
             "required": true,
@@ -6969,21 +7426,23 @@
       }
     },
     "/v1/servicios-adicionales/unidad-precio/{unidadPrecio}": {
-      "parameters": [{
-        "name": "unidadPrecio",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "enum": [
-            "por_uso",
-            "por_hora",
-            "por_persona",
-            "por_dia"
-          ]
-        },
-        "description": "Unidad de precio"
-      }],
+      "parameters": [
+        {
+          "name": "unidadPrecio",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "por_uso",
+              "por_hora",
+              "por_persona",
+              "por_dia"
+            ]
+          },
+          "description": "Unidad de precio"
+        }
+      ],
       "get": {
         "summary": "Obtener servicios por unidad de precio",
         "tags": [
@@ -7008,16 +7467,18 @@
         "tags": [
           "Servicios Adicionales - Gestión de servicios adicionales"
         ],
-        "parameters": [{
-          "name": "fecha",
-          "in": "query",
-          "required": true,
-          "schema": {
-            "type": "string",
-            "format": "date"
-          },
-          "description": "Fecha de búsqueda (YYYY-MM-DD)"
-        }],
+        "parameters": [
+          {
+            "name": "fecha",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Fecha de búsqueda (YYYY-MM-DD)"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Servicios filtrados correctamente"
@@ -7032,15 +7493,17 @@
       }
     },
     "/v1/servicios-adicionales/{id}/activar": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del servicio"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del servicio"
+        }
+      ],
       "put": {
         "summary": "Activar o desactivar servicio adicional",
         "tags": [
@@ -7070,15 +7533,17 @@
       }
     },
     "/v1/servicios-adicionales/{id}/espacio": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del servicio"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del servicio"
+        }
+      ],
       "post": {
         "summary": "Asignar espacio a servicio adicional",
         "tags": [
@@ -7111,7 +7576,8 @@
       }
     },
     "/v1/servicios-adicionales/{id}/espacio/{espacioId}": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "id",
           "in": "path",
           "required": true,
@@ -7170,7 +7636,8 @@
         "tags": [
           "Servicios Adicionales - Gestión de servicios adicionales"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "tipo",
             "in": "query",
             "schema": {
@@ -7270,7 +7737,8 @@
         "tags": [
           "Promociones - Gestión de promociones"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "skip",
             "in": "query",
             "description": "Número de registros a omitir (offset); entero ≥ 0",
@@ -7346,15 +7814,17 @@
       }
     },
     "/v1/promociones/{id}": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la promoción"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la promoción"
+        }
+      ],
       "get": {
         "summary": "Obtener promoción por ID",
         "tags": [
@@ -7424,15 +7894,17 @@
       }
     },
     "/v1/promociones/codigo/{codigo}": {
-      "parameters": [{
-        "name": "codigo",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "Código de la promoción"
-      }],
+      "parameters": [
+        {
+          "name": "codigo",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Código de la promoción"
+        }
+      ],
       "get": {
         "summary": "Obtener promoción por código",
         "tags": [
@@ -7468,20 +7940,22 @@
       }
     },
     "/v1/promociones/tipo/{tipo}": {
-      "parameters": [{
-        "name": "tipo",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "enum": [
-            "porcentaje",
-            "monto_fijo",
-            "gratuito"
-          ]
-        },
-        "description": "Tipo de promoción"
-      }],
+      "parameters": [
+        {
+          "name": "tipo",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "porcentaje",
+              "monto_fijo",
+              "gratuito"
+            ]
+          },
+          "description": "Tipo de promoción"
+        }
+      ],
       "get": {
         "summary": "Obtener promociones por tipo",
         "tags": [
@@ -7506,7 +7980,8 @@
         "tags": [
           "Promociones - Gestión de promociones"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "entidad",
             "in": "query",
             "required": true,
@@ -7550,7 +8025,8 @@
         "tags": [
           "Promociones - Gestión de promociones"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "fechaInicio",
             "in": "query",
             "required": true,
@@ -7585,15 +8061,17 @@
       }
     },
     "/v1/promociones/{id}/activar": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la promoción"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la promoción"
+        }
+      ],
       "put": {
         "summary": "Activar promoción",
         "tags": [
@@ -7613,15 +8091,17 @@
       }
     },
     "/v1/promociones/{id}/incrementar-usos": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la promoción"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la promoción"
+        }
+      ],
       "put": {
         "summary": "Incrementar usos de promoción",
         "tags": [
@@ -7678,15 +8158,17 @@
         "tags": [
           "Promociones - Gestión de promociones"
         ],
-        "parameters": [{
-          "name": "diasRestantes",
-          "in": "query",
-          "schema": {
-            "type": "integer",
-            "default": 7
-          },
-          "description": "Días próximos a expirar"
-        }],
+        "parameters": [
+          {
+            "name": "diasRestantes",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 7
+            },
+            "description": "Días próximos a expirar"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Promociones encontradas"
@@ -7698,15 +8180,17 @@
       }
     },
     "/v1/promociones/{id}/aplicabilidad": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la promoción"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la promoción"
+        }
+      ],
       "put": {
         "summary": "Actualizar aplicabilidad de promoción",
         "tags": [
@@ -7749,7 +8233,8 @@
         "tags": [
           "Promociones - Gestión de promociones"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "activo",
             "in": "query",
             "schema": {
@@ -7832,7 +8317,8 @@
         "tags": [
           "Reservas - Gestión de reservas"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "skip",
             "in": "query",
             "description": "Número de registros a omitir (offset); entero ≥ 0",
@@ -7914,15 +8400,17 @@
       }
     },
     "/v1/reservas/{id}": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la reserva"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la reserva"
+        }
+      ],
       "get": {
         "summary": "Obtener reserva por ID",
         "tags": [
@@ -7992,15 +8480,17 @@
       }
     },
     "/v1/reservas/usuario/{usuarioId}": {
-      "parameters": [{
-        "name": "usuarioId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del usuario"
-      }],
+      "parameters": [
+        {
+          "name": "usuarioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del usuario"
+        }
+      ],
       "get": {
         "summary": "Obtener reservas por usuario",
         "tags": [
@@ -8017,7 +8507,8 @@
       }
     },
     "/v1/reservas/entidad/{tipoEntidad}/{entidadId}": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "tipoEntidad",
           "in": "path",
           "required": true,
@@ -8078,7 +8569,8 @@
         "tags": [
           "Reservas - Gestión de reservas"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "fechaInicio",
             "in": "query",
             "required": true,
@@ -8113,15 +8605,17 @@
       }
     },
     "/v1/reservas/{id}/estado": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la reserva"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la reserva"
+        }
+      ],
       "put": {
         "summary": "Cambiar estado de reserva",
         "tags": [
@@ -8154,15 +8648,17 @@
       }
     },
     "/v1/reservas/{id}/aprobar": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la reserva"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la reserva"
+        }
+      ],
       "put": {
         "summary": "Aprobar reserva",
         "tags": [
@@ -8195,15 +8691,17 @@
       }
     },
     "/v1/reservas/{id}/rechazar": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la reserva"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la reserva"
+        }
+      ],
       "put": {
         "summary": "Rechazar reserva",
         "tags": [
@@ -8253,15 +8751,17 @@
       }
     },
     "/v1/reservas/{id}/pago": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la reserva"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la reserva"
+        }
+      ],
       "put": {
         "summary": "Vincular pago a reserva",
         "tags": [
@@ -8333,7 +8833,8 @@
         "tags": [
           "Reservas - Gestión de reservas"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "usuarioId",
             "in": "query",
             "schema": {
@@ -8423,7 +8924,8 @@
         "tags": [
           "Reservas de Servicio - Gestión de reservas de servicio"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "skip",
             "in": "query",
             "description": "Número de registros a omitir (offset); entero ≥ 0",
@@ -8492,15 +8994,17 @@
       }
     },
     "/v1/reservas-servicio/{id}": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la reserva de servicio"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la reserva de servicio"
+        }
+      ],
       "get": {
         "summary": "Obtener reserva de servicio por ID",
         "tags": [
@@ -8568,15 +9072,17 @@
       }
     },
     "/v1/reservas-servicio/usuario/{usuarioId}": {
-      "parameters": [{
-        "name": "usuarioId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del usuario"
-      }],
+      "parameters": [
+        {
+          "name": "usuarioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del usuario"
+        }
+      ],
       "get": {
         "summary": "Obtener reservas por usuario",
         "tags": [
@@ -8593,15 +9099,17 @@
       }
     },
     "/v1/reservas-servicio/servicio/{servicioId}": {
-      "parameters": [{
-        "name": "servicioId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del servicio"
-      }],
+      "parameters": [
+        {
+          "name": "servicioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del servicio"
+        }
+      ],
       "get": {
         "summary": "Obtener reservas por servicio",
         "tags": [
@@ -8618,15 +9126,17 @@
       }
     },
     "/v1/reservas-servicio/reserva-espacio/{reservaEspacioId}": {
-      "parameters": [{
-        "name": "reservaEspacioId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la reserva de espacio asociada"
-      }],
+      "parameters": [
+        {
+          "name": "reservaEspacioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la reserva de espacio asociada"
+        }
+      ],
       "get": {
         "summary": "Obtener reservas de servicio por reserva de espacio",
         "tags": [
@@ -8643,21 +9153,23 @@
       }
     },
     "/v1/reservas-servicio/estado/{estado}": {
-      "parameters": [{
-        "name": "estado",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "enum": [
-            "pendiente",
-            "confirmado",
-            "cancelado",
-            "completado"
-          ]
-        },
-        "description": "Estado de la reserva"
-      }],
+      "parameters": [
+        {
+          "name": "estado",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "pendiente",
+              "confirmado",
+              "cancelado",
+              "completado"
+            ]
+          },
+          "description": "Estado de la reserva"
+        }
+      ],
       "get": {
         "summary": "Obtener reservas por estado",
         "tags": [
@@ -8682,7 +9194,8 @@
         "tags": [
           "Reservas de Servicio - Gestión de reservas de servicio"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "fechaInicio",
             "in": "query",
             "required": true,
@@ -8717,15 +9230,17 @@
       }
     },
     "/v1/reservas-servicio/{id}/estado": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la reserva"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la reserva"
+        }
+      ],
       "put": {
         "summary": "Cambiar estado de una reserva",
         "tags": [
@@ -8763,15 +9278,17 @@
         "tags": [
           "Reservas de Servicio - Gestión de reservas de servicio"
         ],
-        "parameters": [{
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          },
-          "description": "ID de la reserva"
-        }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la reserva"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Reserva confirmada correctamente"
@@ -8791,15 +9308,17 @@
         "tags": [
           "Reservas de Servicio - Gestión de reservas de servicio"
         ],
-        "parameters": [{
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          },
-          "description": "ID de la reserva"
-        }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la reserva"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -8832,15 +9351,17 @@
         "tags": [
           "Reservas de Servicio - Gestión de reservas de servicio"
         ],
-        "parameters": [{
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          },
-          "description": "ID de la reserva"
-        }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la reserva"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Reserva completada correctamente"
@@ -8860,15 +9381,17 @@
         "tags": [
           "Reservas de Servicio - Gestión de reservas de servicio"
         ],
-        "parameters": [{
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          },
-          "description": "ID de la reserva"
-        }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la reserva"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -8901,16 +9424,18 @@
         "tags": [
           "Reservas de Servicio - Gestión de reservas de servicio"
         ],
-        "parameters": [{
-          "name": "fecha",
-          "in": "query",
-          "required": true,
-          "schema": {
-            "type": "string",
-            "format": "date"
-          },
-          "description": "Fecha (YYYY-MM-DD)"
-        }],
+        "parameters": [
+          {
+            "name": "fecha",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Fecha (YYYY-MM-DD)"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Reservas pendientes obtenidas correctamente"
@@ -8964,7 +9489,8 @@
         "tags": [
           "Reservas de Servicio - Gestión de reservas de servicio"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "usuarioId",
             "in": "query",
             "schema": {
@@ -9040,7 +9566,8 @@
         "tags": [
           "Pagos - Gestión de pagos"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "skip",
             "in": "query",
             "description": "Número de registros a omitir (offset); entero ≥ 0",
@@ -9120,15 +9647,17 @@
       }
     },
     "/v1/pagos/{id}": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del pago"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del pago"
+        }
+      ],
       "get": {
         "summary": "Obtener pago por ID",
         "tags": [
@@ -9197,15 +9726,17 @@
       }
     },
     "/v1/pagos/usuario/{usuarioId}": {
-      "parameters": [{
-        "name": "usuarioId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del usuario"
-      }],
+      "parameters": [
+        {
+          "name": "usuarioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del usuario"
+        }
+      ],
       "get": {
         "summary": "Obtener pagos por usuario",
         "tags": [
@@ -9222,21 +9753,23 @@
       }
     },
     "/v1/pagos/concepto/{concepto}": {
-      "parameters": [{
-        "name": "concepto",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "enum": [
-            "reserva",
-            "membresia",
-            "multa",
-            "otro"
-          ]
-        },
-        "description": "Concepto del pago"
-      }],
+      "parameters": [
+        {
+          "name": "concepto",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "reserva",
+              "membresia",
+              "multa",
+              "otro"
+            ]
+          },
+          "description": "Concepto del pago"
+        }
+      ],
       "get": {
         "summary": "Obtener pagos por concepto",
         "tags": [
@@ -9253,21 +9786,23 @@
       }
     },
     "/v1/pagos/estado/{estado}": {
-      "parameters": [{
-        "name": "estado",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "enum": [
-            "pendiente",
-            "completado",
-            "fallido",
-            "reembolsado"
-          ]
-        },
-        "description": "Estado del pago"
-      }],
+      "parameters": [
+        {
+          "name": "estado",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "pendiente",
+              "completado",
+              "fallido",
+              "reembolsado"
+            ]
+          },
+          "description": "Estado del pago"
+        }
+      ],
       "get": {
         "summary": "Obtener pagos por estado",
         "tags": [
@@ -9284,7 +9819,8 @@
       }
     },
     "/v1/pagos/entidad/{tipoEntidad}/{entidadId}": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "tipoEntidad",
           "in": "path",
           "required": true,
@@ -9323,15 +9859,17 @@
       }
     },
     "/v1/pagos/{id}/estado": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del pago"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del pago"
+        }
+      ],
       "put": {
         "summary": "Cambiar estado de pago",
         "tags": [
@@ -9364,15 +9902,17 @@
       }
     },
     "/v1/pagos/{id}/completar": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del pago"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del pago"
+        }
+      ],
       "put": {
         "summary": "Completar pago",
         "tags": [
@@ -9442,15 +9982,17 @@
       }
     },
     "/v1/pagos/{id}/factura": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del pago"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del pago"
+        }
+      ],
       "put": {
         "summary": "Vincular factura a pago",
         "tags": [
@@ -9488,7 +10030,8 @@
         "tags": [
           "Pagos - Gestión de pagos"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "montoMinimo",
             "in": "query",
             "required": true,
@@ -9528,7 +10071,8 @@
         "tags": [
           "Pagos - Gestión de pagos"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "usuarioId",
             "in": "query",
             "schema": {
@@ -9613,7 +10157,8 @@
         "tags": [
           "Facturas - Gestión de facturación"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "skip",
             "in": "query",
             "description": "Número de registros a omitir (offset); entero ≥ 0",
@@ -9662,14 +10207,16 @@
                 "tipoEmisor": "plataforma",
                 "fechaEmision": "2025-04-10",
                 "fechaVencimiento": "2025-05-10",
-                "conceptos": [{
-                  "descripcion": "Consultoría técnica",
-                  "cantidad": 3,
-                  "precioUnitario": 1200.0,
-                  "impuesto": 18,
-                  "descuento": 5,
-                  "subtotal": 3420.0
-                }],
+                "conceptos": [
+                  {
+                    "descripcion": "Consultoría técnica",
+                    "cantidad": 3,
+                    "precioUnitario": 1200.0,
+                    "impuesto": 18,
+                    "descuento": 5,
+                    "subtotal": 3420.0
+                  }
+                ],
                 "subtotal": 3420.0,
                 "impuestosTotal": 615.6,
                 "descuentoTotal": 0.0,
@@ -9698,15 +10245,17 @@
       }
     },
     "/v1/facturas/{id}": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la factura"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la factura"
+        }
+      ],
       "get": {
         "summary": "Obtener factura por ID",
         "tags": [
@@ -9778,15 +10327,17 @@
       }
     },
     "/v1/facturas/numero/{numeroFactura}": {
-      "parameters": [{
-        "name": "numeroFactura",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "Número de factura"
-      }],
+      "parameters": [
+        {
+          "name": "numeroFactura",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Número de factura"
+        }
+      ],
       "get": {
         "summary": "Obtener factura por número",
         "tags": [
@@ -9806,15 +10357,17 @@
       }
     },
     "/v1/facturas/usuario/{usuarioId}": {
-      "parameters": [{
-        "name": "usuarioId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del usuario"
-      }],
+      "parameters": [
+        {
+          "name": "usuarioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del usuario"
+        }
+      ],
       "get": {
         "summary": "Obtener facturas por usuario",
         "tags": [
@@ -9831,21 +10384,23 @@
       }
     },
     "/v1/facturas/estado/{estado}": {
-      "parameters": [{
-        "name": "estado",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "enum": [
-            "pendiente",
-            "pagada",
-            "vencida",
-            "cancelada"
-          ]
-        },
-        "description": "Estado de la factura"
-      }],
+      "parameters": [
+        {
+          "name": "estado",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "pendiente",
+              "pagada",
+              "vencida",
+              "cancelada"
+            ]
+          },
+          "description": "Estado de la factura"
+        }
+      ],
       "get": {
         "summary": "Obtener facturas por estado",
         "tags": [
@@ -9881,7 +10436,8 @@
       }
     },
     "/v1/facturas/fechas": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "fechaInicio",
           "in": "query",
           "required": true,
@@ -9934,15 +10490,17 @@
       }
     },
     "/v1/facturas/{id}/cancelar": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la factura"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la factura"
+        }
+      ],
       "put": {
         "summary": "Marcar factura como cancelada",
         "tags": [
@@ -9971,15 +10529,17 @@
       }
     },
     "/v1/facturas/{id}/pago": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la factura"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la factura"
+        }
+      ],
       "post": {
         "summary": "Agregar pago a factura",
         "tags": [
@@ -10012,15 +10572,17 @@
       }
     },
     "/v1/facturas/{id}/pdf": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la factura"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la factura"
+        }
+      ],
       "put": {
         "summary": "Actualizar URL del PDF de la factura",
         "tags": [
@@ -10053,7 +10615,8 @@
       }
     },
     "/v1/facturas/montos": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "montoMinimo",
           "in": "query",
           "required": true,
@@ -10093,7 +10656,8 @@
       }
     },
     "/v1/facturas/filtrar": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "usuarioId",
           "in": "query",
           "schema": {
@@ -10209,140 +10773,142 @@
         }
       }
     },
-"/v1/resenas": {
-  "get": {
-    "summary": "Obtener todas las reseñas",
-    "tags": [
-      "Reseñas - Gestión de reseñas"
-    ],
-    "parameters": [
-      {
-        "name": "skip",
-        "in": "query",
-        "description": "Número de reseñas a omitir (offset); entero ≥ 0",
-        "schema": {
-          "type": "integer",
-          "minimum": 0,
-          "default": 0
+    "/v1/resenas": {
+      "get": {
+        "summary": "Obtener todas las reseñas",
+        "tags": [
+          "Reseñas - Gestión de reseñas"
+        ],
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "description": "Número de reseñas a omitir (offset); entero ≥ 0",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Máximo de reseñas a retornar; entero ≥ 1",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de reseñas obtenida exitosamente"
+          },
+          "400": {
+            "description": "Bad Request (parámetro inválido)"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
         }
       },
-      {
-        "name": "limit",
-        "in": "query",
-        "description": "Máximo de reseñas a retornar; entero ≥ 1",
-        "schema": {
-          "type": "integer",
-          "minimum": 1,
-          "default": 10
-        }
-      }
-    ],
-    "responses": {
-      "200": {
-        "description": "Lista de reseñas obtenida exitosamente"
-      },
-      "400": {
-        "description": "Bad Request (parámetro inválido)"
-      },
-      "500": {
-        "description": "Internal Server Error"
-      }
-    }
-  },
-  "post": {
-    "summary": "Crear nueva reseña",
-    "tags": [
-      "Reseñas - Gestión de reseñas"
-    ],
-    "requestBody": {
-      "required": true,
-      "content": {
-        "application/json": {
-          "schema": {
-            "type": "object",
-            "required": [
-              "usuarioId",
-              "reservaId",
-              "entidadResenada",
-              "calificacion"
-            ],
-            "properties": {
-              "usuarioId": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "reservaId": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "entidadResenada": {
+      "post": {
+        "summary": "Crear nueva reseña",
+        "tags": [
+          "Reseñas - Gestión de reseñas"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
                 "type": "object",
                 "required": [
-                  "tipo",
-                  "id"
+                  "usuarioId",
+                  "reservaId",
+                  "entidadResenada",
+                  "calificacion"
                 ],
                 "properties": {
-                  "tipo": {
-                    "type": "string",
-                    "enum": [
-                      "oficina",
-                      "sala_reunion",
-                      "escritorio_flexible",
-                      "servicio"
-                    ]
-                  },
-                  "id": {
+                  "usuarioId": {
                     "type": "string",
                     "format": "uuid"
+                  },
+                  "reservaId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "entidadResenada": {
+                    "type": "object",
+                    "required": [
+                      "tipo",
+                      "id"
+                    ],
+                    "properties": {
+                      "tipo": {
+                        "type": "string",
+                        "enum": [
+                          "oficina",
+                          "sala_reunion",
+                          "escritorio_flexible",
+                          "servicio"
+                        ]
+                      },
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    }
+                  },
+                  "calificacion": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5
+                  },
+                  "comentario": {
+                    "type": "string"
                   }
                 }
               },
-              "calificacion": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 5
-              },
-              "comentario": {
-                "type": "string"
+              "example": {
+                "usuarioId": "60f7e2a4b5c6d7e8f9a0b1c2",
+                "reservaId": "680ff2323eef511ba5d95cbb",
+                "entidadResenada": {
+                  "tipo": "oficina",
+                  "id": "610c0f1f5a2d3b4c5d6e7f01"
+                },
+                "calificacion": 5,
+                "comentario": "Excelente espacio, muy cómodo y limpio."
               }
             }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Reseña creada exitosamente"
           },
-          "example": {
-            "usuarioId": "60f7e2a4b5c6d7e8f9a0b1c2",
-            "reservaId": "680ff2323eef511ba5d95cbb",
-            "entidadResenada": {
-              "tipo": "oficina",
-              "id": "610c0f1f5a2d3b4c5d6e7f01"
-            },
-            "calificacion": 5,
-            "comentario": "Excelente espacio, muy cómodo y limpio."
+          "400": {
+            "description": "Bad Request (datos inválidos o faltantes)"
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       }
     },
-    "responses": {
-      "201": {
-        "description": "Reseña creada exitosamente"
-      },
-      "400": {
-        "description": "Bad Request (datos inválidos o faltantes)"
-      },
-      "500": {
-        "description": "Internal Server Error"
-      }
-    }
-  }
-},
     "/v1/resenas/{id}": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la reseña"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la reseña"
+        }
+      ],
       "get": {
         "summary": "Obtener reseña por ID",
         "tags": [
@@ -10411,15 +10977,17 @@
       }
     },
     "/v1/resenas/usuario/{usuarioId}": {
-      "parameters": [{
-        "name": "usuarioId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del usuario"
-      }],
+      "parameters": [
+        {
+          "name": "usuarioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del usuario"
+        }
+      ],
       "get": {
         "summary": "Obtener reseñas por usuario",
         "tags": [
@@ -10436,7 +11004,8 @@
       }
     },
     "/v1/resenas/entidad/{tipoEntidad}/{entidadId}": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "tipoEntidad",
           "in": "path",
           "required": true,
@@ -10476,15 +11045,17 @@
       }
     },
     "/v1/resenas/reserva/{reservaId}": {
-      "parameters": [{
-        "name": "reservaId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la reserva"
-      }],
+      "parameters": [
+        {
+          "name": "reservaId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la reserva"
+        }
+      ],
       "get": {
         "summary": "Obtener reseñas por reserva",
         "tags": [
@@ -10506,17 +11077,19 @@
         "tags": [
           "Reseñas - Gestión de reseñas"
         ],
-        "parameters": [{
-          "name": "calificacionMinima",
-          "in": "query",
-          "required": true,
-          "schema": {
-            "type": "number",
-            "minimum": 1,
-            "maximum": 5
-          },
-          "description": "Calificación mínima"
-        }],
+        "parameters": [
+          {
+            "name": "calificacionMinima",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 5
+            },
+            "description": "Calificación mínima"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Reseñas obtenidas exitosamente"
@@ -10531,15 +11104,17 @@
       }
     },
     "/v1/resenas/{id}/estado": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la reseña"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la reseña"
+        }
+      ],
       "put": {
         "summary": "Cambiar estado de reseña",
         "tags": [
@@ -10640,7 +11215,8 @@
       }
     },
     "/v1/resenas/promedio/{tipoEntidad}/{entidadId}": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "tipoEntidad",
           "in": "path",
           "required": true,
@@ -10685,7 +11261,8 @@
         "tags": [
           "Notificaciones - Gestión de notificaciones"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "skip",
             "in": "query",
             "description": "Número de registros a omitir (offset); entero ≥ 0",
@@ -10756,15 +11333,17 @@
       }
     },
     "/v1/notificaciones/{id}": {
-      "parameters": [{
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID de la notificación"
-      }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID de la notificación"
+        }
+      ],
       "get": {
         "summary": "Obtener notificación por ID",
         "tags": [
@@ -10832,28 +11411,32 @@
       }
     },
     "/v1/notificaciones/usuario/{usuarioId}": {
-      "parameters": [{
-        "name": "usuarioId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del usuario destinatario"
-      }],
+      "parameters": [
+        {
+          "name": "usuarioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del usuario destinatario"
+        }
+      ],
       "get": {
         "summary": "Obtener notificaciones por usuario",
         "tags": [
           "Notificaciones - Gestión de notificaciones"
         ],
-        "parameters": [{
-          "name": "leidas",
-          "in": "query",
-          "schema": {
-            "type": "boolean"
-          },
-          "description": "Filtrar por leídas (true|false)"
-        }],
+        "parameters": [
+          {
+            "name": "leidas",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filtrar por leídas (true|false)"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Notificaciones encontradas"
@@ -10865,7 +11448,8 @@
       }
     },
     "/v1/notificaciones/tipo/{tipo}": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "tipo",
           "in": "path",
           "required": true,
@@ -10939,15 +11523,17 @@
       }
     },
     "/v1/notificaciones/usuario/{usuarioId}/leer-todas": {
-      "parameters": [{
-        "name": "usuarioId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID del usuario destinatario"
-      }],
+      "parameters": [
+        {
+          "name": "usuarioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del usuario destinatario"
+        }
+      ],
       "put": {
         "summary": "Marcar todas las notificaciones de un usuario como leídas",
         "tags": [
@@ -10964,7 +11550,8 @@
       }
     },
     "/v1/notificaciones/entidad/{tipoEntidad}/{entidadId}": {
-      "parameters": [{
+      "parameters": [
+        {
           "name": "tipoEntidad",
           "in": "path",
           "required": true,
@@ -11011,7 +11598,8 @@
         "tags": [
           "Notificaciones - Gestión de notificaciones"
         ],
-        "parameters": [{
+        "parameters": [
+          {
             "name": "destinatarioId",
             "in": "query",
             "schema": {
@@ -11088,7 +11676,9 @@
       }
     }
   },
-  "security": [{
-    "bearerAuth": []
-  }]
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
 }

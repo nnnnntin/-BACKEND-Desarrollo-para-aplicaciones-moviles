@@ -8,10 +8,11 @@ const usuarioSchema = new mongoose.Schema(
     password: { type: String, required: true },
     nombre: { type: String, required: true },
     apellidos: { type: String },
+    imagen: { type: String },
     datosPersonales: {
       telefono: { type: String },
       documentoIdentidad: { type: String },
-      fotoUrl: { type: String }
+      fotoUrl: { type: String } 
     },
     direccion: {
       calle: { type: String },

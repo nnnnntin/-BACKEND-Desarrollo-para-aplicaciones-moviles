@@ -70,11 +70,17 @@ const postAuthLogin = async (req, res) => {
         usuario: {
           id: userId,
           username: user.username,
-          tipoUsuario: user.tipoUsuario, // ← Cambiado de "role" a "tipoUsuario"
-          rol: user.rol,                 // ← Agregado el campo "rol" también
+          tipoUsuario: user.tipoUsuario,
+          rol: user.rol,
           nombre: user.nombre,
           apellidos: user.apellidos,
           email: user.email,
+          imagen: user.imagen, // ← CAMBIO: Incluir imagen en la respuesta de login
+          datosPersonales: user.datosPersonales,
+          direccion: user.direccion,
+          datosEmpresa: user.datosEmpresa,
+          preferencias: user.preferencias,
+          membresia: user.membresia,
           verificado: user.verificado,
           activo: user.activo
         }
@@ -110,7 +116,8 @@ const postAuthSignup = async (req, res) => {
     email,
     password,
     nombre = "",
-    apellidos = ""
+    apellidos = "",
+    imagen // ← CAMBIO: Agregar imagen a los campos del signup
   } = req.body;
   
   if (!username || !email || !password) {
@@ -128,7 +135,6 @@ const postAuthSignup = async (req, res) => {
     });
   }
   
-  // Actualizar validación para usar los valores correctos del esquema
   if (tipoUsuario && !['usuario', 'proveedor', 'cliente', 'administrador'].includes(tipoUsuario)) {
     return res.status(400).json({ 
       message: "Tipo de usuario inválido", 
@@ -154,22 +160,31 @@ const postAuthSignup = async (req, res) => {
       });
     }
   
-    const newUser = await registerUsuario({
-      tipoUsuario: tipoUsuario || 'usuario', // Cambiado de 'cliente' a 'usuario'
+    // CAMBIO: Incluir imagen en los datos del nuevo usuario
+    const newUserData = {
+      tipoUsuario: tipoUsuario || 'usuario',
       username,
       email,
       password,
       nombre,
       apellidos,
       activo: true
-    });
+    };
+
+    // Solo agregar imagen si se proporciona
+    if (imagen) {
+      newUserData.imagen = imagen;
+    }
+
+    const newUser = await registerUsuario(newUserData);
   
     return res.status(201).json({ 
       message: "Usuario creado exitosamente", 
       userId: newUser._id,
       username: newUser.username,
       email: newUser.email,
-      tipoUsuario: newUser.tipoUsuario
+      tipoUsuario: newUser.tipoUsuario,
+      imagen: newUser.imagen // ← CAMBIO: Incluir imagen en la respuesta del signup
     });
   } catch (error) {
     console.error("Error en postAuthSignup:", error);
@@ -246,11 +261,19 @@ const validateToken = async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
-        tipoUsuario: user.tipoUsuario, // ← Cambiado de "role" a "tipoUsuario"
-        rol: user.rol,                 // ← Agregado el campo "rol"
+        tipoUsuario: user.tipoUsuario,
+        rol: user.rol,
         nombre: user.nombre,
         apellidos: user.apellidos,
-        email: user.email
+        email: user.email,
+        imagen: user.imagen, // ← CAMBIO: Incluir imagen en la validación del token
+        datosPersonales: user.datosPersonales,
+        direccion: user.direccion,
+        datosEmpresa: user.datosEmpresa,
+        preferencias: user.preferencias,
+        membresia: user.membresia,
+        verificado: user.verificado,
+        activo: user.activo
       }
     });
   } catch (error) {

@@ -9,6 +9,7 @@ const createUsuarioSchema = Joi.object({
   password: Joi.string().min(8).required(),
   nombre: Joi.string().optional(),
   apellidos: Joi.string().optional(),
+  imagen: Joi.string().uri().optional(), 
 
   datosPersonales: Joi.object({
     telefono: Joi.string().optional(),
@@ -57,6 +58,7 @@ const createUsuarioSchema = Joi.object({
 const updateUsuarioSchema = Joi.object({
   nombre: Joi.string(),
   apellidos: Joi.string(),
+  imagen: Joi.string().uri(),
   datosPersonales: Joi.object({
     telefono: Joi.string(),
     documentoIdentidad: Joi.string(),

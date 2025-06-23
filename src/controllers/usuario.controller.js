@@ -114,7 +114,16 @@ const registerUsuarioController = async (req, res) => {
       tipoUsuario: usuario.tipoUsuario,
       nombre: usuario.nombre,
       apellidos: usuario.apellidos,
+      imagen: usuario.imagen,
+      datosPersonales: usuario.datosPersonales,
+      direccion: usuario.direccion,
+      datosEmpresa: usuario.datosEmpresa,
+      preferencias: usuario.preferencias,
+      membresia: usuario.membresia,
+      metodoPago: usuario.metodoPago,
       activo: usuario.activo,
+      verificado: usuario.verificado,
+      rol: usuario.rol,
       createdAt: usuario.createdAt,
       updatedAt: usuario.updatedAt
     };
@@ -167,7 +176,7 @@ const updateUsuarioController = async (req, res) => {
   }
 
   try {
-        if (value.membresia && value.membresia.tipoMembresiaId) {
+    if (value.membresia && value.membresia.tipoMembresiaId) {
       const membresia = await findMembresiaById(value.membresia.tipoMembresiaId);
       if (!membresia) {
         return res.status(404).json({
@@ -198,7 +207,16 @@ const updateUsuarioController = async (req, res) => {
       tipoUsuario: usuario.tipoUsuario,
       nombre: usuario.nombre,
       apellidos: usuario.apellidos,
+      imagen: usuario.imagen,
+      datosPersonales: usuario.datosPersonales,
+      direccion: usuario.direccion,
+      datosEmpresa: usuario.datosEmpresa,
+      preferencias: usuario.preferencias,
+      membresia: usuario.membresia,
+      metodoPago: usuario.metodoPago,
       activo: usuario.activo,
+      verificado: usuario.verificado,
+      rol: usuario.rol,
       updatedAt: usuario.updatedAt
     };
 
@@ -320,6 +338,7 @@ const cambiarRolUsuarioController = async (req, res) => {
       _id: usuario._id,
       username: usuario.username,
       tipoUsuario: usuario.tipoUsuario,
+      rol: usuario.rol,
       updatedAt: usuario.updatedAt
     };
 
@@ -367,7 +386,7 @@ const updateMembresiaUsuarioController = async (req, res) => {
   }
 
   try {
-        const membresiaExistente = await findMembresiaById(membresia.tipoMembresiaId);
+    const membresiaExistente = await findMembresiaById(membresia.tipoMembresiaId);
     if (!membresiaExistente) {
       return res.status(404).json({
         message: "Membresía no encontrada",
@@ -376,7 +395,7 @@ const updateMembresiaUsuarioController = async (req, res) => {
       });
     }
 
-        if (!membresiaExistente.activo) {
+    if (!membresiaExistente.activo) {
       return res.status(400).json({
         message: "Membresía inactiva",
         details: "No se puede asignar una membresía que no está activa",
@@ -431,7 +450,6 @@ const updateMembresiaUsuarioController = async (req, res) => {
     });
   }
 };
-
 
 module.exports = {
   getUsuariosController,

@@ -145,27 +145,68 @@ const findUsuarioByUsername = async (username) => {
 
 const registerUsuario = async (userData) => {
   const redisClient = connectToRedis();
+  
+  // Hash password
   const hashedPassword = await bcrypt.hash(userData.password, 10);
   
-  const newUsuario = new Usuario({
+  // CAMBIO: Preparar datos incluyendo el campo imagen
+  const newUsuarioData = {
     ...userData,
     password: hashedPassword
+  };
+
+  // CAMBIO: Log para debug del campo imagen
+  console.log('🔵 [Repository] Datos recibidos para registro:', {
+    username: userData.username,
+    email: userData.email,
+    tipoUsuario: userData.tipoUsuario,
+    imagen: userData.imagen, // ← Log específico para imagen
+    hasImagen: !!userData.imagen,
+    imagenType: typeof userData.imagen
   });
-  
-  const saved = await newUsuario.save();
-  
-  await redisClient.del(_getUsuariosFilterRedisKey({}));
-  if (saved.email) {
-    await redisClient.del(_getUsuarioByEmailRedisKey(saved.email));
-  }
-  if (saved.username) {
-    await redisClient.del(_getUsuarioByUsernameRedisKey(saved.username));
-  }
-  if (saved.tipoUsuario) {
-    await redisClient.del(_getUsuariosByTipoRedisKey(saved.tipoUsuario));
+
+  // CAMBIO: Solo incluir imagen si existe y es válida
+  if (userData.imagen && typeof userData.imagen === 'string' && userData.imagen.trim()) {
+    newUsuarioData.imagen = userData.imagen.trim();
+    console.log('🟢 [Repository] Campo imagen incluido:', newUsuarioData.imagen);
+  } else {
+    console.log('🟡 [Repository] Campo imagen no incluido - valor:', userData.imagen);
   }
   
-  return saved;
+  console.log('🔵 [Repository] Datos finales para MongoDB:', {
+    ...newUsuarioData,
+    password: '[HASH]' // No loggear la contraseña hasheada
+  });
+
+  const newUsuario = new Usuario(newUsuarioData);
+  
+  try {
+    const saved = await newUsuario.save();
+    console.log('🟢 [Repository] Usuario guardado exitosamente:', {
+      id: saved._id,
+      username: saved.username,
+      email: saved.email,
+      imagen: saved.imagen, // ← Verificar que se guardó
+      hasImagen: !!saved.imagen
+    });
+
+    // Limpiar cache de Redis
+    await redisClient.del(_getUsuariosFilterRedisKey({}));
+    if (saved.email) {
+      await redisClient.del(_getUsuarioByEmailRedisKey(saved.email));
+    }
+    if (saved.username) {
+      await redisClient.del(_getUsuarioByUsernameRedisKey(saved.username));
+    }
+    if (saved.tipoUsuario) {
+      await redisClient.del(_getUsuariosByTipoRedisKey(saved.tipoUsuario));
+    }
+    
+    return saved;
+  } catch (error) {
+    console.error('🔴 [Repository] Error guardando usuario:', error);
+    throw error;
+  }
 };
 
 const loginUsuario = async (email, password) => {
@@ -190,12 +231,27 @@ const updateUsuario = async (id, payload) => {
     return null;
   }
 
+  // CAMBIO: Log para debug de actualización con imagen
+  console.log('🔵 [Repository] Actualizando usuario con payload:', {
+    id,
+    hasImagen: !!payload.imagen,
+    imagen: payload.imagen,
+    otherFields: Object.keys(payload).filter(key => key !== 'imagen' && key !== 'password')
+  });
+
   if (payload.password) {
     payload.password = await bcrypt.hash(payload.password, 10);
   }
   
   const updated = await Usuario.findByIdAndUpdate(id, payload, { new: true });
   
+  console.log('🟢 [Repository] Usuario actualizado:', {
+    id: updated._id,
+    imagen: updated.imagen,
+    hasImagen: !!updated.imagen
+  });
+
+  // Limpiar cache de Redis
   await redisClient.del(_getUsuarioRedisKey(id));
   await redisClient.del(_getUsuariosFilterRedisKey({}));
   

@@ -9,12 +9,12 @@ const createUsuarioSchema = Joi.object({
   password: Joi.string().min(8).required(),
   nombre: Joi.string().optional(),
   apellidos: Joi.string().optional(),
-  imagen: Joi.string().uri().optional(), 
+  imagen: Joi.string().uri().optional(), // ← CAMBIO: Campo imagen principal
 
   datosPersonales: Joi.object({
     telefono: Joi.string().optional(),
     documentoIdentidad: Joi.string().optional(),
-    fotoUrl: Joi.string().uri().optional(),
+    // ← CAMBIO: REMOVIDO fotoUrl de aquí para evitar conflictos
   })
     .optional()
     .default({}),
@@ -58,11 +58,11 @@ const createUsuarioSchema = Joi.object({
 const updateUsuarioSchema = Joi.object({
   nombre: Joi.string(),
   apellidos: Joi.string(),
-  imagen: Joi.string().uri(),
+  imagen: Joi.string().uri(), // ← CAMBIO: Campo imagen principal
   datosPersonales: Joi.object({
     telefono: Joi.string(),
     documentoIdentidad: Joi.string(),
-    fotoUrl: Joi.string().uri()
+    // ← CAMBIO: REMOVIDO fotoUrl de aquí también
   }),
   direccion: Joi.object({
     calle: Joi.string(),

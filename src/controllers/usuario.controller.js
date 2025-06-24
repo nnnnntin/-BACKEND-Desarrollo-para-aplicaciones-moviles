@@ -14,8 +14,15 @@ const { findMembresiaById } = require("../repositories/membresia.repository");
 const {
   createUsuarioSchema,
   updateUsuarioSchema,
-  cambiarRolSchema
+  cambiarRolSchema,
+  agregarMetodoPagoSchema,
+  actualizarMetodoPredeterminadoSchema,
+  eliminarMetodoPagoSchema,
+  validarUsuarioTieneMetodoPago,
+  validarMetodoPredeterminado
 } = require("../routes/validations/usuario.validation");
+
+// ========== CONTROLADORES EXISTENTES ==========
 
 const getUsuariosController = async (req, res) => {
   const { skip = "0", limit = "10", ...filtros } = req.query;
@@ -451,7 +458,307 @@ const updateMembresiaUsuarioController = async (req, res) => {
   }
 };
 
+// ========== NUEVOS CONTROLADORES PARA MÉTODOS DE PAGO ==========
+
+const agregarMetodoPagoController = async (req, res) => {
+  const { id: usuarioId } = req.params;
+  const { error, value } = agregarMetodoPagoSchema.validate(req.body);
+  
+  if (error) {
+    return res.status(400).json({
+      message: "Error de validación",
+      details: error.details[0].message,
+      field: error.details[0].context.key
+    });
+  }
+
+  try {
+    console.log('🏦 Agregando método de pago:', {
+      usuarioId,
+      metodoPago: value
+    });
+
+    // Obtener usuario actual
+    const usuario = await findUsuarioById(usuarioId);
+    if (!usuario) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: `No se ha encontrado el usuario con id: ${usuarioId}`
+      });
+    }
+
+    // Verificar duplicados
+    const metodoExistente = usuario.metodoPago?.find(mp => 
+      mp.tipo === value.tipo && mp.ultimosDigitos === value.ultimosDigitos
+    );
+
+    if (metodoExistente) {
+      return res.status(400).json({
+        message: "Método de pago duplicado",
+        details: `Ya existe un ${value.tipo} con los últimos dígitos ${value.ultimosDigitos}`
+      });
+    }
+
+    // Preparar nuevo método de pago
+    const nuevoMetodo = {
+      ...value,
+      id: `mp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      activo: true,
+      fechaCreacion: new Date()
+    };
+
+    // Si es el primer método o se marca como predeterminado
+    const metodosPagoActuales = usuario.metodoPago || [];
+    if (nuevoMetodo.predeterminado || metodosPagoActuales.length === 0) {
+      // Desmarcar otros como predeterminados
+      metodosPagoActuales.forEach(mp => {
+        mp.predeterminado = false;
+      });
+      nuevoMetodo.predeterminado = true;
+    }
+
+    // Agregar el nuevo método
+    const nuevosMetodosPago = [...metodosPagoActuales, nuevoMetodo];
+
+    // Actualizar usuario
+    const usuarioActualizado = await updateUsuario(usuarioId, {
+      metodoPago: nuevosMetodosPago
+    });
+
+    if (!usuarioActualizado) {
+      return res.status(500).json({
+        message: "Error al actualizar usuario",
+        details: "No se pudo guardar el método de pago"
+      });
+    }
+
+    console.log('✅ Método de pago agregado exitosamente');
+
+    res.status(201).json({
+      message: "Método de pago agregado correctamente",
+      metodoPago: nuevoMetodo,
+      metodosPago: usuarioActualizado.metodoPago
+    });
+
+  } catch (error) {
+    console.error('💥 Error agregando método de pago:', error);
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: "ID de usuario inválido",
+        details: `El formato del ID '${usuarioId}' no es válido`
+      });
+    }
+
+    res.status(500).json({
+      message: "Error al agregar método de pago",
+      details: error.message
+    });
+  }
+};
+
+const eliminarMetodoPagoController = async (req, res) => {
+  const { id: usuarioId, metodoId } = req.params;
+
+  try {
+    console.log('🗑️ Eliminando método de pago:', {
+      usuarioId,
+      metodoId
+    });
+
+    // Obtener usuario actual
+    const usuario = await findUsuarioById(usuarioId);
+    if (!usuario) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: `No se ha encontrado el usuario con id: ${usuarioId}`
+      });
+    }
+
+    // Verificar que el método existe
+    const metodosPagoActuales = usuario.metodoPago || [];
+    const metodoAEliminar = metodosPagoActuales.find(mp => mp.id === metodoId);
+
+    if (!metodoAEliminar) {
+      return res.status(404).json({
+        message: "Método de pago no encontrado",
+        details: `No se ha encontrado el método de pago con id: ${metodoId}`
+      });
+    }
+
+    // Verificar que no sea el último método de pago activo
+    const metodosActivos = metodosPagoActuales.filter(mp => mp.activo);
+    if (metodosActivos.length === 1 && metodoAEliminar.activo) {
+      return res.status(400).json({
+        message: "No se puede eliminar el último método de pago",
+        details: "Debe tener al menos un método de pago activo"
+      });
+    }
+
+    // Filtrar el método a eliminar
+    const nuevosMetodosPago = metodosPagoActuales.filter(mp => mp.id !== metodoId);
+
+    // Si eliminamos el método predeterminado y hay otros, hacer el primero predeterminado
+    if (metodoAEliminar.predeterminado && nuevosMetodosPago.length > 0) {
+      nuevosMetodosPago[0].predeterminado = true;
+    }
+
+    // Actualizar usuario
+    const usuarioActualizado = await updateUsuario(usuarioId, {
+      metodoPago: nuevosMetodosPago
+    });
+
+    if (!usuarioActualizado) {
+      return res.status(500).json({
+        message: "Error al actualizar usuario",
+        details: "No se pudo eliminar el método de pago"
+      });
+    }
+
+    console.log('✅ Método de pago eliminado exitosamente');
+
+    res.status(200).json({
+      message: "Método de pago eliminado correctamente",
+      metodosPago: usuarioActualizado.metodoPago
+    });
+
+  } catch (error) {
+    console.error('💥 Error eliminando método de pago:', error);
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: "ID inválido",
+        details: "El formato del ID no es válido"
+      });
+    }
+
+    res.status(500).json({
+      message: "Error al eliminar método de pago",
+      details: error.message
+    });
+  }
+};
+
+const actualizarMetodoPredeterminadoController = async (req, res) => {
+  const { id: usuarioId, metodoId } = req.params;
+
+  try {
+    console.log('⭐ Actualizando método predeterminado:', {
+      usuarioId,
+      metodoId
+    });
+
+    // Obtener usuario actual
+    const usuario = await findUsuarioById(usuarioId);
+    if (!usuario) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: `No se ha encontrado el usuario con id: ${usuarioId}`
+      });
+    }
+
+    // Verificar que el método existe y está activo
+    const metodosPagoActuales = usuario.metodoPago || [];
+    const metodoAActivar = metodosPagoActuales.find(mp => mp.id === metodoId);
+
+    if (!metodoAActivar) {
+      return res.status(404).json({
+        message: "Método de pago no encontrado",
+        details: `No se ha encontrado el método de pago con id: ${metodoId}`
+      });
+    }
+
+    if (!metodoAActivar.activo) {
+      return res.status(400).json({
+        message: "Método de pago inactivo",
+        details: "No se puede establecer como predeterminado un método inactivo"
+      });
+    }
+
+    // Actualizar predeterminados
+    const nuevosMetodosPago = metodosPagoActuales.map(mp => ({
+      ...mp,
+      predeterminado: mp.id === metodoId
+    }));
+
+    // Actualizar usuario
+    const usuarioActualizado = await updateUsuario(usuarioId, {
+      metodoPago: nuevosMetodosPago
+    });
+
+    if (!usuarioActualizado) {
+      return res.status(500).json({
+        message: "Error al actualizar usuario",
+        details: "No se pudo actualizar el método predeterminado"
+      });
+    }
+
+    console.log('✅ Método predeterminado actualizado exitosamente');
+
+    res.status(200).json({
+      message: "Método predeterminado actualizado correctamente",
+      metodosPago: usuarioActualizado.metodoPago
+    });
+
+  } catch (error) {
+    console.error('💥 Error actualizando método predeterminado:', error);
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: "ID inválido",
+        details: "El formato del ID no es válido"
+      });
+    }
+
+    res.status(500).json({
+      message: "Error al actualizar método predeterminado",
+      details: error.message
+    });
+  }
+};
+
+const obtenerMetodosPagoController = async (req, res) => {
+  const { id: usuarioId } = req.params;
+
+  try {
+    console.log('📋 Obteniendo métodos de pago para usuario:', usuarioId);
+
+    const usuario = await findUsuarioById(usuarioId);
+    if (!usuario) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: `No se ha encontrado el usuario con id: ${usuarioId}`
+      });
+    }
+
+    const metodosPago = usuario.metodoPago || [];
+    const metodosActivos = metodosPago.filter(mp => mp.activo);
+
+    res.status(200).json({
+      metodosPago: metodosActivos,
+      total: metodosActivos.length,
+      predeterminado: metodosActivos.find(mp => mp.predeterminado) || null
+    });
+
+  } catch (error) {
+    console.error('💥 Error obteniendo métodos de pago:', error);
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: "ID de usuario inválido",
+        details: `El formato del ID '${usuarioId}' no es válido`
+      });
+    }
+
+    res.status(500).json({
+      message: "Error al obtener métodos de pago",
+      details: error.message
+    });
+  }
+};
+
 module.exports = {
+  // Controladores existentes
   getUsuariosController,
   getUsuarioByIdController,
   getUsuariosByTipoController,
@@ -459,5 +766,10 @@ module.exports = {
   updateUsuarioController,
   deleteUsuarioController,
   cambiarRolUsuarioController,
-  updateMembresiaUsuarioController
+  updateMembresiaUsuarioController,
+  // Nuevos controladores para métodos de pago
+  agregarMetodoPagoController,
+  eliminarMetodoPagoController,
+  actualizarMetodoPredeterminadoController,
+  obtenerMetodosPagoController
 };

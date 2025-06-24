@@ -116,6 +116,7 @@ const getReservasByUsuario = async (usuarioId) => {
     }
     
     const result = await Reserva.find({ usuarioId })
+      .populate('usuario', 'nombre email')
       .populate('pagoId')
       .populate('serviciosAdicionales')
       .lean();

@@ -7,7 +7,20 @@ const escritorioFlexibleSchema = new mongoose.Schema(
       edificioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edificio', required: true },
       piso: { type: Number, required: true },
       zona: { type: String, required: true },
-      numero: { type: String, required: true }
+      numero: { type: String, required: true },
+      // ← NUEVOS CAMPOS OBLIGATORIOS
+      coordenadas: {
+        lat: { type: Number, required: true },
+        lng: { type: Number, required: true }
+      },
+      direccionCompleta: {
+        calle: { type: String, required: true },
+        numero: { type: String, required: true },
+        ciudad: { type: String, required: true },
+        departamento: { type: String, required: true },
+        codigoPostal: { type: String, required: true },
+        pais: { type: String, required: true }
+      }
     },
     tipo: { type: String, enum: ['individual', 'compartido', 'standing'], default: 'individual' },
     amenidades: [{
@@ -22,7 +35,8 @@ const escritorioFlexibleSchema = new mongoose.Schema(
     },
     imagenes: [{ type: String }],
     estado: { type: String, enum: ['disponible', 'ocupado', 'mantenimiento', 'reservado'], default: 'disponible' },
-    propietarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
+    // ← CAMBIO: propietarioId -> usuarioId y OBLIGATORIO
+    usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
     empresaInmobiliariaId: { type: mongoose.Schema.Types.ObjectId, ref: 'EmpresaInmobiliaria' },
     activo: { type: Boolean, default: true }
   },

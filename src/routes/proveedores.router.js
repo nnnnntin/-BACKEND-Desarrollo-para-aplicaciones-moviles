@@ -11,6 +11,7 @@ const {
 const {
   getProveedoresController,
   getProveedorByIdController,
+  getProveedorByUsuarioIdController, // ← NUEVO IMPORT
   getProveedoresByTipoController,
   getProveedoresVerificadosController,
   createProveedorController,
@@ -41,6 +42,11 @@ router.get("/proveedores/calificacion", getProveedoresPorCalificacionController)
 router.get("/proveedores/ranking/servicios", getProveedoresConMasServiciosController);
 
 router.get("/proveedores/:id", getProveedorByIdController);
+
+router.get(
+  "/proveedores/usuario/:usuarioId", 
+  getProveedorByUsuarioIdController
+);
 
 router.post(
   "/proveedores",

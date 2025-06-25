@@ -52,6 +52,46 @@ const getEmpresasInmobiliarias = async (filtros = {}, skip = 0, limit = 10) => {
   }
 };
 
+const findEmpresaByUsuarioId = async (usuarioId) => {
+  const redisClient = connectToRedis();
+  const key = `empresa:usuario:${usuarioId}`;
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    console.log("[Leyendo findEmpresaByUsuarioId desde MongoDB]");
+    const result = await EmpresaInmobiliaria.findOne({ usuarioId })
+      .populate('espacios')
+      .populate('usuarioId', 'username email nombre apellidos imagen')
+      .lean();
+    if (result) {
+      await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+    }
+    
+    return result;
+  } catch (error) {
+    console.log("[Error en Redis, leyendo desde MongoDB]", error);
+    return await EmpresaInmobiliaria.findOne({ usuarioId })
+      .populate('espacios')
+      .populate('usuarioId', 'username email nombre apellidos imagen')
+      .lean();
+  }
+};
+
 const findEmpresaInmobiliariaById = async (id) => {
   const redisClient = connectToRedis();
   const key = _getEmpresaRedisKey(id);
@@ -207,6 +247,11 @@ const createEmpresaInmobiliaria = async (empresaData) => {
   if (saved.direccion && saved.direccion.ciudad) {
     await redisClient.del(_getEmpresasByCiudadRedisKey(saved.direccion.ciudad));
   }
+  
+  if (saved.usuarioId) {
+    await redisClient.del(`empresa:usuario:${saved.usuarioId}`);
+  }
+  
   await redisClient.keys(`empresas:mas-espacios:*`).then(keys => {
     keys.forEach(key => redisClient.del(key));
   });
@@ -221,6 +266,10 @@ const updateEmpresaInmobiliaria = async (id, payload) => {
   
   await redisClient.del(_getEmpresaRedisKey(id));
   await redisClient.del(_getEmpresasFilterRedisKey({}));
+  
+  if (empresa.usuarioId) {
+    await redisClient.del(`empresa:usuario:${empresa.usuarioId}`);
+  }
   
   if (empresa.tipo) {
     await redisClient.del(_getEmpresasByTipoRedisKey(empresa.tipo));
@@ -259,6 +308,11 @@ const deleteEmpresaInmobiliaria = async (id) => {
   
   await redisClient.del(_getEmpresaRedisKey(id));
   await redisClient.del(_getEmpresasFilterRedisKey({}));
+  
+  // ← NUEVO: Limpiar cache específico del usuario
+  if (empresa.usuarioId) {
+    await redisClient.del(`empresa:usuario:${empresa.usuarioId}`);
+  }
   
   if (empresa.tipo) {
     await redisClient.del(_getEmpresasByTipoRedisKey(empresa.tipo));
@@ -386,6 +440,7 @@ const getEmpresasConMasEspacios = async (limite = 5) => {
 module.exports = {
   getEmpresasInmobiliarias,
   findEmpresaInmobiliariaById,
+  findEmpresaByUsuarioId,
   getEmpresasByTipo,
   getEmpresasVerificadas,
   getEmpresasByCiudad,

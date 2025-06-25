@@ -2,22 +2,27 @@ const Espacio = require("../models/espacio.model");
 const Edificio = require("../models/edificio.model");
 const EmpresaInmobiliaria = require("../models/empresaInmobiliaria.model");
 const Usuario = require("../models/usuario.model");
-
 const connectToRedis = require("../services/redis.service");
+
 const _getEspacioRedisKey = (id) => `id:${id}-espacio`;
 const _getEspaciosFilterRedisKey = (filtros, skip, limit) =>
   `espacios:${JSON.stringify(filtros)}:skip=${skip}:limit=${limit}`;
 const _getEspaciosByEdificioRedisKey = (edificioId) =>
   `edificio:${edificioId}-espacios`;
 const _getEspaciosByTipoRedisKey = (tipo) => `espacios:tipo:${tipo}`;
-const _getEspaciosByPropietarioRedisKey = (propietarioId) =>
-  `propietario:${propietarioId}-espacios`;
+const _getEspaciosByUsuarioRedisKey = (usuarioId) =>
+  `usuario:${usuarioId}-espacios`;
 const _getEspaciosByEmpresaRedisKey = (empresaId) =>
   `empresa:${empresaId}-espacios`;
 const _getEspaciosDisponiblesRedisKey = (tipo, fecha, horaInicio, horaFin) =>
   `espacios:disponibles:${tipo}:${fecha}:${horaInicio}-${horaFin}`;
 const _getEspaciosByAmenidadesRedisKey = (amenidades) =>
   `espacios:amenidades:${JSON.stringify(amenidades)}`;
+const _getEspaciosByProximidadRedisKey = (lat, lng, radioKm) => `espacios:proximidad:${lat}:${lng}:${radioKm}`;
+const _getEspaciosByCiudadRedisKey = (ciudad) => `espacios:ciudad:${ciudad}`;
+const _getEspaciosByDepartamentoRedisKey = (departamento) => `espacios:departamento:${departamento}`;
+const _getEspaciosByPaisRedisKey = (pais) => `espacios:pais:${pais}`;
+const _getEspaciosByCapacidadRedisKey = (capacidadMinima) => `espacios:capacidad-min:${capacidadMinima}`;
 
 const getEspacios = async (filtros = {}, skip = 0, limit = 10) => {
   const redisClient = connectToRedis();
@@ -40,7 +45,7 @@ const getEspacios = async (filtros = {}, skip = 0, limit = 10) => {
     console.log("[Mongo] getEspacios con paginación");
     const result = await Espacio.find(filtros)
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .skip(skip)
       .limit(limit)
@@ -54,7 +59,7 @@ const getEspacios = async (filtros = {}, skip = 0, limit = 10) => {
     try {
       return await Espacio.find(filtros)
         .populate("ubicacion.edificioId")
-        .populate("propietarioId", "nombre email")
+        .populate("usuarioId", "nombre email imagen")
         .populate("empresaInmobiliariaId", "nombre")
         .skip(skip)
         .limit(limit)
@@ -90,7 +95,7 @@ const findEspacioById = async (id) => {
     console.log("[Leyendo findEspacioById desde MongoDB]");
     const result = await Espacio.findById(id)
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
     if (result) {
@@ -102,7 +107,7 @@ const findEspacioById = async (id) => {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
     return await Espacio.findById(id)
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
   }
@@ -131,7 +136,7 @@ const getEspaciosByEdificio = async (edificioId) => {
 
     console.log("[Leyendo getEspaciosByEdificio desde MongoDB]");
     const result = await Espacio.find({ "ubicacion.edificioId": edificioId })
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
@@ -140,7 +145,7 @@ const getEspaciosByEdificio = async (edificioId) => {
   } catch (error) {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
     return await Espacio.find({ "ubicacion.edificioId": edificioId })
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
   }
@@ -170,7 +175,7 @@ const getEspaciosByTipo = async (tipo) => {
     console.log("[Leyendo getEspaciosByTipo desde MongoDB]");
     const result = await Espacio.find({ tipo })
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
@@ -180,15 +185,15 @@ const getEspaciosByTipo = async (tipo) => {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
     return await Espacio.find({ tipo })
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
   }
 };
 
-const getEspaciosByPropietario = async (propietarioId) => {
+const getEspaciosByUsuario = async (usuarioId) => {
   const redisClient = connectToRedis();
-  const key = _getEspaciosByPropietarioRedisKey(propietarioId);
+  const key = _getEspaciosByUsuarioRedisKey(usuarioId);
 
   try {
     const exists = await redisClient.exists(key);
@@ -207,8 +212,8 @@ const getEspaciosByPropietario = async (propietarioId) => {
       }
     }
 
-    console.log("[Leyendo getEspaciosByPropietario desde MongoDB]");
-    const result = await Espacio.find({ propietarioId })
+    console.log("[Leyendo getEspaciosByUsuario desde MongoDB]");
+    const result = await Espacio.find({ usuarioId })
       .populate("ubicacion.edificioId")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
@@ -217,7 +222,7 @@ const getEspaciosByPropietario = async (propietarioId) => {
     return result;
   } catch (error) {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
-    return await Espacio.find({ propietarioId })
+    return await Espacio.find({ usuarioId })
       .populate("ubicacion.edificioId")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
@@ -248,7 +253,7 @@ const getEspaciosByEmpresa = async (empresaInmobiliariaId) => {
     console.log("[Leyendo getEspaciosByEmpresa desde MongoDB]");
     const result = await Espacio.find({ empresaInmobiliariaId })
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .lean();
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
 
@@ -257,29 +262,261 @@ const getEspaciosByEmpresa = async (empresaInmobiliariaId) => {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
     return await Espacio.find({ empresaInmobiliariaId })
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .lean();
+  }
+};
+
+const getEspaciosByCapacidad = async (capacidadMinima) => {
+  const redisClient = connectToRedis();
+  const key = _getEspaciosByCapacidadRedisKey(capacidadMinima);
+
+  try {
+    const exists = await redisClient.exists(key);
+
+    if (exists) {
+      const cached = await redisClient.get(key);
+
+      if (typeof cached === "object" && cached !== null) {
+        return cached;
+      }
+
+      if (typeof cached === "string") {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+
+    console.log("[Leyendo getEspaciosByCapacidad desde MongoDB]");
+    const result = await Espacio.find({ capacidad: { $gte: capacidadMinima } })
+      .populate("ubicacion.edificioId")
+      .populate("usuarioId", "nombre email imagen")
+      .populate("empresaInmobiliariaId", "nombre")
+      .lean();
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+
+    return result;
+  } catch (error) {
+    console.log("[Error en Redis, leyendo desde MongoDB]", error);
+    return await Espacio.find({ capacidad: { $gte: capacidadMinima } })
+      .populate("ubicacion.edificioId")
+      .populate("usuarioId", "nombre email imagen")
+      .populate("empresaInmobiliariaId", "nombre")
+      .lean();
+  }
+};
+
+const getEspaciosByProximidad = async (lat, lng, radioKm = 10) => {
+  const redisClient = connectToRedis();
+  const key = _getEspaciosByProximidadRedisKey(lat, lng, radioKm);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const result = await Espacio.find({
+      "ubicacion.coordenadas": {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [lng, lat]
+          },
+          $maxDistance: radioKm * 1000
+        }
+      },
+      activo: true
+    })
+    .populate('ubicacion.edificioId')
+    .populate('usuarioId', 'nombre email imagen')
+    .populate('empresaInmobiliariaId', 'nombre')
+    .lean();
+    
+    await redisClient.set(key, result, { ex: 1800 });
+    
+    return result;
+  } catch (error) {
+    console.log("[Error en búsqueda geoespacial]", error);
+    return await Espacio.find({ activo: true })
+      .populate('ubicacion.edificioId')
+      .populate('usuarioId', 'nombre email imagen')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
+  }
+};
+
+const getEspaciosByCiudad = async (ciudad) => {
+  const redisClient = connectToRedis();
+  const key = _getEspaciosByCiudadRedisKey(ciudad);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const result = await Espacio.find({ 
+      'ubicacion.direccionCompleta.ciudad': ciudad,
+      activo: true 
+    })
+    .populate('ubicacion.edificioId')
+    .populate('usuarioId', 'nombre email imagen')
+    .populate('empresaInmobiliariaId', 'nombre')
+    .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Espacio.find({ 
+      'ubicacion.direccionCompleta.ciudad': ciudad,
+      activo: true 
+    })
+    .populate('ubicacion.edificioId')
+    .populate('usuarioId', 'nombre email imagen')
+    .populate('empresaInmobiliariaId', 'nombre')
+    .lean();
+  }
+};
+
+const getEspaciosByDepartamento = async (departamento) => {
+  const redisClient = connectToRedis();
+  const key = _getEspaciosByDepartamentoRedisKey(departamento);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const result = await Espacio.find({ 
+      'ubicacion.direccionCompleta.departamento': departamento,
+      activo: true 
+    })
+    .populate('ubicacion.edificioId')
+    .populate('usuarioId', 'nombre email imagen')
+    .populate('empresaInmobiliariaId', 'nombre')
+    .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Espacio.find({ 
+      'ubicacion.direccionCompleta.departamento': departamento,
+      activo: true 
+    })
+    .populate('ubicacion.edificioId')
+    .populate('usuarioId', 'nombre email imagen')
+    .populate('empresaInmobiliariaId', 'nombre')
+    .lean();
+  }
+};
+
+const getEspaciosByPais = async (pais) => {
+  const redisClient = connectToRedis();
+  const key = _getEspaciosByPaisRedisKey(pais);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const result = await Espacio.find({ 
+      'ubicacion.direccionCompleta.pais': pais,
+      activo: true 
+    })
+    .populate('ubicacion.edificioId')
+    .populate('usuarioId', 'nombre email imagen')
+    .populate('empresaInmobiliariaId', 'nombre')
+    .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await Espacio.find({ 
+      'ubicacion.direccionCompleta.pais': pais,
+      activo: true 
+    })
+    .populate('ubicacion.edificioId')
+    .populate('usuarioId', 'nombre email imagen')
+    .populate('empresaInmobiliariaId', 'nombre')
+    .lean();
   }
 };
 
 const createEspacio = async (espacioData) => {
   const redisClient = connectToRedis();
 
-  if (espacioData.propietarioId) {
-    const propietarioExiste = await Usuario.exists({
-      _id: espacioData.propietarioId,
-    });
-    if (!propietarioExiste) {
-      throw new Error("propietario no encontrado");
-    }
+  if (!espacioData.usuarioId) {
+    throw new Error("usuarioId es obligatorio");
   }
 
-  if (espacioData.edificioId) {
-    const edificioExiste = await Edificio.exists({
-      _id: espacioData.edificioId,
-    });
+  const usuarioExiste = await Usuario.exists({ _id: espacioData.usuarioId });
+  if (!usuarioExiste) {
+    throw new Error("Usuario no encontrado");
+  }
+
+  if (!espacioData.ubicacion?.coordenadas?.lat || !espacioData.ubicacion?.coordenadas?.lng) {
+    throw new Error("Coordenadas (lat, lng) son obligatorias");
+  }
+  
+  if (!espacioData.ubicacion?.direccionCompleta) {
+    throw new Error("Dirección completa es obligatoria");
+  }
+
+  if (espacioData.ubicacion?.edificioId) {
+    const edificioExiste = await Edificio.exists({ _id: espacioData.ubicacion.edificioId });
     if (!edificioExiste) {
-      throw new Error("edificio no encontrado");
+      throw new Error("Edificio no encontrado");
     }
   }
 
@@ -304,15 +541,26 @@ const createEspacio = async (espacioData) => {
   if (saved.tipo) {
     await redisClient.del(_getEspaciosByTipoRedisKey(saved.tipo));
   }
-  if (saved.propietarioId) {
+  if (saved.usuarioId) {
     await redisClient.del(
-      _getEspaciosByPropietarioRedisKey(saved.propietarioId.toString())
+      _getEspaciosByUsuarioRedisKey(saved.usuarioId.toString())
     );
   }
   if (saved.empresaInmobiliariaId) {
     await redisClient.del(
       _getEspaciosByEmpresaRedisKey(saved.empresaInmobiliariaId.toString())
     );
+  }
+  if (saved.capacidad) {
+    for (let i = 1; i <= saved.capacidad; i++) {
+      await redisClient.del(_getEspaciosByCapacidadRedisKey(i));
+    }
+  }
+  if (saved.ubicacion?.direccionCompleta?.ciudad) {
+    await redisClient.del(_getEspaciosByCiudadRedisKey(saved.ubicacion.direccionCompleta.ciudad));
+  }
+  if (saved.ubicacion?.direccionCompleta?.departamento) {
+    await redisClient.del(_getEspaciosByDepartamentoRedisKey(saved.ubicacion.direccionCompleta.departamento));
   }
 
   return saved;
@@ -321,7 +569,22 @@ const createEspacio = async (espacioData) => {
 const updateEspacio = async (id, payload) => {
   const redisClient = connectToRedis();
   const espacio = await Espacio.findById(id);
-  const updated = await Espacio.findByIdAndUpdate(id, payload, { new: true });
+  
+  if (!espacio) {
+    throw new Error("Espacio no encontrado");
+  }
+
+  if (payload.usuarioId && payload.usuarioId !== espacio.usuarioId?.toString()) {
+    const usuarioExiste = await Usuario.exists({ _id: payload.usuarioId });
+    if (!usuarioExiste) {
+      throw new Error("Nuevo usuario no encontrado");
+    }
+  }
+  
+  const updated = await Espacio.findByIdAndUpdate(id, payload, { new: true })
+    .populate("ubicacion.edificioId")
+    .populate("usuarioId", "nombre email imagen")
+    .populate("empresaInmobiliariaId", "nombre");
 
   await redisClient.del(_getEspacioRedisKey(id));
   await redisClient.del(_getEspaciosFilterRedisKey({}));
@@ -351,18 +614,18 @@ const updateEspacio = async (id, payload) => {
     await redisClient.del(_getEspaciosByTipoRedisKey(updated.tipo));
   }
 
-  if (espacio.propietarioId) {
+  if (espacio.usuarioId) {
     await redisClient.del(
-      _getEspaciosByPropietarioRedisKey(espacio.propietarioId.toString())
+      _getEspaciosByUsuarioRedisKey(espacio.usuarioId.toString())
     );
   }
   if (
-    updated.propietarioId &&
-    (!espacio.propietarioId ||
-      espacio.propietarioId.toString() !== updated.propietarioId.toString())
+    updated.usuarioId &&
+    (!espacio.usuarioId ||
+      espacio.usuarioId.toString() !== updated.usuarioId.toString())
   ) {
     await redisClient.del(
-      _getEspaciosByPropietarioRedisKey(updated.propietarioId.toString())
+      _getEspaciosByUsuarioRedisKey(updated.usuarioId.toString())
     );
   }
 
@@ -382,6 +645,13 @@ const updateEspacio = async (id, payload) => {
     );
   }
 
+  if (espacio.capacidad !== updated.capacidad) {
+    const maxCapacidad = Math.max(espacio.capacidad || 0, updated.capacidad || 0);
+    for (let i = 1; i <= maxCapacidad; i++) {
+      await redisClient.del(_getEspaciosByCapacidadRedisKey(i));
+    }
+  }
+
   await redisClient.keys("espacios:disponibles:*").then((keys) => {
     keys.forEach((key) => redisClient.del(key));
   });
@@ -390,6 +660,21 @@ const updateEspacio = async (id, payload) => {
     await redisClient.keys("espacios:amenidades:*").then((keys) => {
       keys.forEach((key) => redisClient.del(key));
     });
+  }
+
+  await redisClient.keys('espacios:proximidad:*').then(keys => {
+    keys.forEach(key => redisClient.del(key));
+  });
+
+  if (payload.ubicacion?.direccionCompleta) {
+    if (espacio.ubicacion?.direccionCompleta?.ciudad !== payload.ubicacion.direccionCompleta.ciudad) {
+      await redisClient.del(_getEspaciosByCiudadRedisKey(espacio.ubicacion?.direccionCompleta?.ciudad));
+      await redisClient.del(_getEspaciosByCiudadRedisKey(payload.ubicacion.direccionCompleta.ciudad));
+    }
+    if (espacio.ubicacion?.direccionCompleta?.departamento !== payload.ubicacion.direccionCompleta.departamento) {
+      await redisClient.del(_getEspaciosByDepartamentoRedisKey(espacio.ubicacion?.direccionCompleta?.departamento));
+      await redisClient.del(_getEspaciosByDepartamentoRedisKey(payload.ubicacion.direccionCompleta.departamento));
+    }
   }
 
   return updated;
@@ -411,9 +696,9 @@ const deleteEspacio = async (id) => {
   if (espacio.tipo) {
     await redisClient.del(_getEspaciosByTipoRedisKey(espacio.tipo));
   }
-  if (espacio.propietarioId) {
+  if (espacio.usuarioId) {
     await redisClient.del(
-      _getEspaciosByPropietarioRedisKey(espacio.propietarioId.toString())
+      _getEspaciosByUsuarioRedisKey(espacio.usuarioId.toString())
     );
   }
   if (espacio.empresaInmobiliariaId) {
@@ -485,7 +770,7 @@ const getEspaciosDisponibles = async (tipo, fecha, horaInicio, horaFin) => {
 
     const result = await Espacio.find(filtrosBase)
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
 
@@ -501,7 +786,7 @@ const getEspaciosDisponibles = async (tipo, fecha, horaInicio, horaFin) => {
 
     return await Espacio.find(filtrosBase)
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
   }
@@ -531,7 +816,7 @@ const getEspaciosByAmenidades = async (amenidades) => {
     console.log("[Leyendo getEspaciosByAmenidades desde MongoDB]");
     const result = await Espacio.find({ amenidades: { $all: amenidades } })
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
@@ -541,10 +826,80 @@ const getEspaciosByAmenidades = async (amenidades) => {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
     return await Espacio.find({ amenidades: { $all: amenidades } })
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
   }
+};
+
+const activarEspacio = async (id) => {
+  return await updateEspacio(id, { activo: true });
+};
+
+const desactivarEspacio = async (id) => {
+  return await updateEspacio(id, { activo: false });
+};
+
+const agregarAmenidad = async (id, amenidad) => {
+  const redisClient = connectToRedis();
+  const updated = await Espacio.findByIdAndUpdate(
+    id,
+    { $push: { amenidades: amenidad } },
+    { new: true }
+  );
+
+  await redisClient.del(_getEspacioRedisKey(id));
+  await redisClient.keys("espacios:amenidades:*").then((keys) => {
+    keys.forEach((key) => redisClient.del(key));
+  });
+
+  return updated;
+};
+
+const eliminarAmenidad = async (id, amenidad) => {
+  const redisClient = connectToRedis();
+  const updated = await Espacio.findByIdAndUpdate(
+    id,
+    { $pull: { amenidades: amenidad } },
+    { new: true }
+  );
+
+  await redisClient.del(_getEspacioRedisKey(id));
+  await redisClient.keys("espacios:amenidades:*").then((keys) => {
+    keys.forEach((key) => redisClient.del(key));
+  });
+
+  return updated;
+};
+
+const actualizarPrecios = async (id, precios) => {
+  const redisClient = connectToRedis();
+  const updated = await Espacio.findByIdAndUpdate(
+    id,
+    { precios },
+    { new: true }
+  );
+
+  await redisClient.del(_getEspacioRedisKey(id));
+  await redisClient.del(_getEspaciosFilterRedisKey({}));
+
+  return updated;
+};
+
+const actualizarDisponibilidad = async (id, disponibilidad) => {
+  const redisClient = connectToRedis();
+  const updated = await Espacio.findByIdAndUpdate(
+    id,
+    { disponibilidad },
+    { new: true }
+  );
+
+  await redisClient.del(_getEspacioRedisKey(id));
+  await redisClient.keys("espacios:disponibles:*").then((keys) => {
+    keys.forEach((key) => redisClient.del(key));
+  });
+
+  return updated;
 };
 
 module.exports = {
@@ -552,12 +907,23 @@ module.exports = {
   findEspacioById,
   getEspaciosByEdificio,
   getEspaciosByTipo,
-  getEspaciosByPropietario,
+  getEspaciosByUsuario,
   getEspaciosByEmpresa,
+  getEspaciosByCapacidad,
+  getEspaciosByProximidad,
+  getEspaciosByCiudad,
+  getEspaciosByDepartamento,
+  getEspaciosByPais,
   createEspacio,
   updateEspacio,
   deleteEspacio,
   cambiarEstadoEspacio,
   getEspaciosDisponibles,
   getEspaciosByAmenidades,
+  activarEspacio,
+  desactivarEspacio,
+  agregarAmenidad,
+  eliminarAmenidad,
+  actualizarPrecios,
+  actualizarDisponibilidad,
 };

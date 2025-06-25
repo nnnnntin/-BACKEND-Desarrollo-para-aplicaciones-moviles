@@ -1,4 +1,6 @@
 const SalaReunion = require("../models/salaReunion.model");
+const Usuario = require("../models/usuario.model");
+const Edificio = require("../models/edificio.model");
 const connectToRedis = require("../services/redis.service");
 
 const _getSalasReunionRedisKey = (id) => `id:${id}-salasReunion`;
@@ -9,9 +11,13 @@ const _getSalasByEdificioRedisKey = (edificioId) => `edificio:${edificioId}-sala
 const _getSalasByCapacidadRedisKey = (capacidadMinima) => `salasReunion:capacidad-min:${capacidadMinima}`;
 const _getSalasByConfiguracionRedisKey = (configuracion) => `salasReunion:configuracion:${configuracion}`;
 const _getSalasByEquipamientoRedisKey = (tipoEquipamiento) => `salasReunion:equipamiento:${tipoEquipamiento}`;
-const _getSalasByPropietarioRedisKey = (propietarioId) => `propietario:${propietarioId}-salasReunion`;
+const _getSalasByUsuarioRedisKey = (usuarioId) => `usuario:${usuarioId}-salasReunion`;
 const _getSalasByRangoPrecioRedisKey = (precioMin, precioMax, tipoPrecio) => `salasReunion:precio:${tipoPrecio}:${precioMin}-${precioMax}`;
 const _getSalasDisponiblesRedisKey = (fecha, horaInicio, horaFin) => `salasReunion:disponibles:${fecha}:${horaInicio}-${horaFin}`;
+const _getSalasByProximidadRedisKey = (lat, lng, radioKm) => `salasReunion:proximidad:${lat}:${lng}:${radioKm}`;
+const _getSalasByCiudadRedisKey = (ciudad) => `salasReunion:ciudad:${ciudad}`;
+const _getSalasByDepartamentoRedisKey = (departamento) => `salasReunion:departamento:${departamento}`;
+const _getSalasByPaisRedisKey = (pais) => `salasReunion:pais:${pais}`;
 
 const getSalasReunion = async (filtros = {}, skip = 0, limit = 10) => {
   const redisClient = connectToRedis();
@@ -30,7 +36,7 @@ const getSalasReunion = async (filtros = {}, skip = 0, limit = 10) => {
     console.log("[Mongo] getSalasReunion con skip/limit");
     const result = await SalaReunion.find(filtros)
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .skip(skip)
       .limit(limit)
@@ -43,7 +49,7 @@ const getSalasReunion = async (filtros = {}, skip = 0, limit = 10) => {
     console.log("[Error Redis] fallback a Mongo sin cache", err);
     return await SalaReunion.find(filtros)
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .skip(skip)
       .limit(limit)
@@ -74,7 +80,7 @@ const findSalaReunionById = async (id) => {
     
     const result = await SalaReunion.findById(id)
       .populate('ubicacion.edificioId')
-      .populate('propietarioId', 'nombre email')
+      .populate('usuarioId', 'nombre email imagen')
       .populate('empresaInmobiliariaId', 'nombre')
       .lean();
     
@@ -86,7 +92,7 @@ const findSalaReunionById = async (id) => {
   } catch (error) {
     return await SalaReunion.findById(id)
       .populate('ubicacion.edificioId')
-      .populate('propietarioId', 'nombre email')
+      .populate('usuarioId', 'nombre email imagen')
       .populate('empresaInmobiliariaId', 'nombre')
       .lean();
   }
@@ -115,7 +121,7 @@ const findSalaReunionByCodigo = async (codigo) => {
     
     const result = await SalaReunion.findOne({ codigo })
       .populate('ubicacion.edificioId')
-      .populate('propietarioId', 'nombre email')
+      .populate('usuarioId', 'nombre email imagen')
       .populate('empresaInmobiliariaId', 'nombre')
       .lean();
     
@@ -127,7 +133,7 @@ const findSalaReunionByCodigo = async (codigo) => {
   } catch (error) {
     return await SalaReunion.findOne({ codigo })
       .populate('ubicacion.edificioId')
-      .populate('propietarioId', 'nombre email')
+      .populate('usuarioId', 'nombre email imagen')
       .populate('empresaInmobiliariaId', 'nombre')
       .lean();
   }
@@ -155,7 +161,7 @@ const getSalasByEdificio = async (edificioId) => {
     }
     
     const result = await SalaReunion.find({ 'ubicacion.edificioId': edificioId })
-      .populate('propietarioId', 'nombre email')
+      .populate('usuarioId', 'nombre email imagen')
       .populate('empresaInmobiliariaId', 'nombre')
       .lean();
     
@@ -164,7 +170,7 @@ const getSalasByEdificio = async (edificioId) => {
     return result;
   } catch (error) {
     return await SalaReunion.find({ 'ubicacion.edificioId': edificioId })
-      .populate('propietarioId', 'nombre email')
+      .populate('usuarioId', 'nombre email imagen')
       .populate('empresaInmobiliariaId', 'nombre')
       .lean();
   }
@@ -193,7 +199,7 @@ const getSalasByCapacidad = async (capacidadMinima) => {
     
     const result = await SalaReunion.find({ capacidad: { $gte: capacidadMinima } })
       .populate('ubicacion.edificioId')
-      .populate('propietarioId', 'nombre email')
+      .populate('usuarioId', 'nombre email imagen')
       .populate('empresaInmobiliariaId', 'nombre')
       .lean();
     
@@ -203,7 +209,7 @@ const getSalasByCapacidad = async (capacidadMinima) => {
   } catch (error) {
     return await SalaReunion.find({ capacidad: { $gte: capacidadMinima } })
       .populate('ubicacion.edificioId')
-      .populate('propietarioId', 'nombre email')
+      .populate('usuarioId', 'nombre email imagen')
       .populate('empresaInmobiliariaId', 'nombre')
       .lean();
   }
@@ -232,7 +238,7 @@ const getSalasByConfiguracion = async (configuracion) => {
     
     const result = await SalaReunion.find({ configuracion })
       .populate('ubicacion.edificioId')
-      .populate('propietarioId', 'nombre email')
+      .populate('usuarioId', 'nombre email imagen')
       .populate('empresaInmobiliariaId', 'nombre')
       .lean();
     
@@ -242,7 +248,7 @@ const getSalasByConfiguracion = async (configuracion) => {
   } catch (error) {
     return await SalaReunion.find({ configuracion })
       .populate('ubicacion.edificioId')
-      .populate('propietarioId', 'nombre email')
+      .populate('usuarioId', 'nombre email imagen')
       .populate('empresaInmobiliariaId', 'nombre')
       .lean();
   }
@@ -271,7 +277,7 @@ const getSalasByEquipamiento = async (tipoEquipamiento) => {
     
     const result = await SalaReunion.find({ 'equipamiento.tipo': tipoEquipamiento })
       .populate('ubicacion.edificioId')
-      .populate('propietarioId', 'nombre email')
+      .populate('usuarioId', 'nombre email imagen')
       .populate('empresaInmobiliariaId', 'nombre')
       .lean();
     
@@ -281,15 +287,15 @@ const getSalasByEquipamiento = async (tipoEquipamiento) => {
   } catch (error) {
     return await SalaReunion.find({ 'equipamiento.tipo': tipoEquipamiento })
       .populate('ubicacion.edificioId')
-      .populate('propietarioId', 'nombre email')
+      .populate('usuarioId', 'nombre email imagen')
       .populate('empresaInmobiliariaId', 'nombre')
       .lean();
   }
 };
 
-const getSalasByPropietario = async (propietarioId) => {
+const getSalasByUsuario = async (usuarioId) => {
   const redisClient = connectToRedis();
-  const key = _getSalasByPropietarioRedisKey(propietarioId);
+  const key = _getSalasByUsuarioRedisKey(usuarioId);
   
   try {
     const exists = await redisClient.exists(key);
@@ -308,7 +314,7 @@ const getSalasByPropietario = async (propietarioId) => {
       }
     }
     
-    const result = await SalaReunion.find({ propietarioId })
+    const result = await SalaReunion.find({ usuarioId })
       .populate('ubicacion.edificioId')
       .populate('empresaInmobiliariaId', 'nombre')
       .lean();
@@ -317,7 +323,7 @@ const getSalasByPropietario = async (propietarioId) => {
     
     return result;
   } catch (error) {
-    return await SalaReunion.find({ propietarioId })
+    return await SalaReunion.find({ usuarioId })
       .populate('ubicacion.edificioId')
       .populate('empresaInmobiliariaId', 'nombre')
       .lean();
@@ -350,7 +356,7 @@ const getSalasByRangoPrecio = async (precioMin, precioMax, tipoPrecio = 'porHora
     
     const result = await SalaReunion.find(query)
       .populate('ubicacion.edificioId')
-      .populate('propietarioId', 'nombre email')
+      .populate('usuarioId', 'nombre email imagen')
       .populate('empresaInmobiliariaId', 'nombre')
       .lean();
     
@@ -363,7 +369,7 @@ const getSalasByRangoPrecio = async (precioMin, precioMax, tipoPrecio = 'porHora
     
     return await SalaReunion.find(query)
       .populate('ubicacion.edificioId')
-      .populate('propietarioId', 'nombre email')
+      .populate('usuarioId', 'nombre email imagen')
       .populate('empresaInmobiliariaId', 'nombre')
       .lean();
   }
@@ -397,7 +403,7 @@ const getSalasDisponibles = async (fecha, horaInicio, horaFin) => {
     
     const result = await SalaReunion.find(filtrosBase)
       .populate('ubicacion.edificioId')
-      .populate('propietarioId', 'nombre email')
+      .populate('usuarioId', 'nombre email imagen')
       .populate('empresaInmobiliariaId', 'nombre')
       .lean();
     
@@ -412,14 +418,180 @@ const getSalasDisponibles = async (fecha, horaInicio, horaFin) => {
     
     return await SalaReunion.find(filtrosBase)
       .populate('ubicacion.edificioId')
-      .populate('propietarioId', 'nombre email')
+      .populate('usuarioId', 'nombre email imagen')
       .populate('empresaInmobiliariaId', 'nombre')
       .lean();
   }
 };
 
+const getSalasByProximidad = async (lat, lng, radioKm = 10) => {
+  const redisClient = connectToRedis();
+  const key = _getSalasByProximidadRedisKey(lat, lng, radioKm);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const result = await SalaReunion.find({
+      "ubicacion.coordenadas": {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [lng, lat]
+          },
+          $maxDistance: radioKm * 1000
+        }
+      },
+      activo: true
+    })
+    .populate('ubicacion.edificioId')
+    .populate('usuarioId', 'nombre email imagen')
+    .populate('empresaInmobiliariaId', 'nombre')
+    .lean();
+    
+    await redisClient.set(key, result, { ex: 1800 });
+    
+    return result;
+  } catch (error) {
+    console.log("[Error en búsqueda geoespacial]", error);
+    return await SalaReunion.find({ activo: true })
+      .populate('ubicacion.edificioId')
+      .populate('usuarioId', 'nombre email imagen')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
+  }
+};
+
+const getSalasByCiudad = async (ciudad) => {
+  const redisClient = connectToRedis();
+  const key = _getSalasByCiudadRedisKey(ciudad);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const result = await SalaReunion.find({ 
+      'ubicacion.direccionCompleta.ciudad': ciudad,
+      activo: true 
+    })
+    .populate('ubicacion.edificioId')
+    .populate('usuarioId', 'nombre email imagen')
+    .populate('empresaInmobiliariaId', 'nombre')
+    .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await SalaReunion.find({ 
+      'ubicacion.direccionCompleta.ciudad': ciudad,
+      activo: true 
+    })
+    .populate('ubicacion.edificioId')
+    .populate('usuarioId', 'nombre email imagen')
+    .populate('empresaInmobiliariaId', 'nombre')
+    .lean();
+  }
+};
+
+const getSalasByDepartamento = async (departamento) => {
+  const redisClient = connectToRedis();
+  const key = _getSalasByDepartamentoRedisKey(departamento);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const result = await SalaReunion.find({ 
+      'ubicacion.direccionCompleta.departamento': departamento,
+      activo: true 
+    })
+    .populate('ubicacion.edificioId')
+    .populate('usuarioId', 'nombre email imagen')
+    .populate('empresaInmobiliariaId', 'nombre')
+    .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await SalaReunion.find({ 
+      'ubicacion.direccionCompleta.departamento': departamento,
+      activo: true 
+    })
+    .populate('ubicacion.edificioId')
+    .populate('usuarioId', 'nombre email imagen')
+    .populate('empresaInmobiliariaId', 'nombre')
+    .lean();
+  }
+};
+
 const createSalaReunion = async (salaData) => {
   const redisClient = connectToRedis();
+  
+  if (!salaData.usuarioId) {
+    throw new Error("usuarioId es obligatorio");
+  }
+  
+  const usuarioExiste = await Usuario.exists({ _id: salaData.usuarioId });
+  if (!usuarioExiste) {
+    throw new Error("Usuario no encontrado");
+  }
+  
+  if (!salaData.ubicacion?.coordenadas?.lat || !salaData.ubicacion?.coordenadas?.lng) {
+    throw new Error("Coordenadas (lat, lng) son obligatorias");
+  }
+  
+  if (!salaData.ubicacion?.direccionCompleta) {
+    throw new Error("Dirección completa es obligatoria");
+  }
+  
+  if (salaData.ubicacion?.edificioId) {
+    const edificioExiste = await Edificio.exists({ _id: salaData.ubicacion.edificioId });
+    if (!edificioExiste) {
+      throw new Error("Edificio no encontrado");
+    }
+  }
+  
   const newSala = new SalaReunion(salaData);
   const saved = await newSala.save();
   
@@ -427,11 +599,17 @@ const createSalaReunion = async (salaData) => {
   if (saved.codigo) {
     await redisClient.del(_getSalaReunionByCodigoRedisKey(saved.codigo));
   }
-  if (saved.ubicacion && saved.ubicacion.edificioId) {
+  if (saved.ubicacion?.edificioId) {
     await redisClient.del(_getSalasByEdificioRedisKey(saved.ubicacion.edificioId.toString()));
   }
-  if (saved.propietarioId) {
-    await redisClient.del(_getSalasByPropietarioRedisKey(saved.propietarioId.toString()));
+  if (saved.usuarioId) {
+    await redisClient.del(_getSalasByUsuarioRedisKey(saved.usuarioId.toString()));
+  }
+  if (saved.ubicacion?.direccionCompleta?.ciudad) {
+    await redisClient.del(_getSalasByCiudadRedisKey(saved.ubicacion.direccionCompleta.ciudad));
+  }
+  if (saved.ubicacion?.direccionCompleta?.departamento) {
+    await redisClient.del(_getSalasByDepartamentoRedisKey(saved.ubicacion.direccionCompleta.departamento));
   }
   
   return saved;
@@ -440,38 +618,47 @@ const createSalaReunion = async (salaData) => {
 const updateSalaReunion = async (id, payload) => {
   const redisClient = connectToRedis();
   const sala = await SalaReunion.findById(id);
-  const updated = await SalaReunion.findByIdAndUpdate(id, payload, { new: true });
+  
+  if (!sala) {
+    throw new Error("Sala de reunión no encontrada");
+  }
+  
+  if (payload.usuarioId && payload.usuarioId !== sala.usuarioId?.toString()) {
+    const usuarioExiste = await Usuario.exists({ _id: payload.usuarioId });
+    if (!usuarioExiste) {
+      throw new Error("Nuevo usuario no encontrado");
+    }
+  }
+  
+  const updated = await SalaReunion.findByIdAndUpdate(id, payload, { new: true })
+    .populate('ubicacion.edificioId')
+    .populate('usuarioId', 'nombre email imagen')
+    .populate('empresaInmobiliariaId', 'nombre');
   
   await redisClient.del(_getSalasReunionRedisKey(id));
   await redisClient.del(_getSalasReunionFilterRedisKey({}));
   
-  if (sala.codigo) {
-    await redisClient.del(_getSalaReunionByCodigoRedisKey(sala.codigo));
+  if (sala.usuarioId) {
+    await redisClient.del(_getSalasByUsuarioRedisKey(sala.usuarioId.toString()));
   }
-  if (updated.codigo && sala.codigo !== updated.codigo) {
-    await redisClient.del(_getSalaReunionByCodigoRedisKey(updated.codigo));
-  }
-  
-  if (sala.ubicacion && sala.ubicacion.edificioId) {
-    await redisClient.del(_getSalasByEdificioRedisKey(sala.ubicacion.edificioId.toString()));
-  }
-  if (updated.ubicacion && updated.ubicacion.edificioId) {
-    await redisClient.del(_getSalasByEdificioRedisKey(updated.ubicacion.edificioId.toString()));
+  if (updated.usuarioId && sala.usuarioId?.toString() !== updated.usuarioId.toString()) {
+    await redisClient.del(_getSalasByUsuarioRedisKey(updated.usuarioId.toString()));
   }
   
-  if (sala.propietarioId) {
-    await redisClient.del(_getSalasByPropietarioRedisKey(sala.propietarioId.toString()));
-  }
-  if (updated.propietarioId && (!sala.propietarioId || sala.propietarioId.toString() !== updated.propietarioId.toString())) {
-    await redisClient.del(_getSalasByPropietarioRedisKey(updated.propietarioId.toString()));
+  if (payload.ubicacion?.direccionCompleta) {
+    if (sala.ubicacion?.direccionCompleta?.ciudad !== payload.ubicacion.direccionCompleta.ciudad) {
+      await redisClient.del(_getSalasByCiudadRedisKey(sala.ubicacion?.direccionCompleta?.ciudad));
+      await redisClient.del(_getSalasByCiudadRedisKey(payload.ubicacion.direccionCompleta.ciudad));
+    }
+    if (sala.ubicacion?.direccionCompleta?.departamento !== payload.ubicacion.direccionCompleta.departamento) {
+      await redisClient.del(_getSalasByDepartamentoRedisKey(sala.ubicacion?.direccionCompleta?.departamento));
+      await redisClient.del(_getSalasByDepartamentoRedisKey(payload.ubicacion.direccionCompleta.departamento));
+    }
   }
   
-  if (sala.configuracion) {
-    await redisClient.del(_getSalasByConfiguracionRedisKey(sala.configuracion));
-  }
-  if (updated.configuracion && sala.configuracion !== updated.configuracion) {
-    await redisClient.del(_getSalasByConfiguracionRedisKey(updated.configuracion));
-  }
+  await redisClient.keys('salasReunion:proximidad:*').then(keys => {
+    keys.forEach(key => redisClient.del(key));
+  });
   
   return updated;
 };
@@ -492,8 +679,8 @@ const deleteSalaReunion = async (id) => {
     await redisClient.del(_getSalasByEdificioRedisKey(sala.ubicacion.edificioId.toString()));
   }
   
-  if (sala.propietarioId) {
-    await redisClient.del(_getSalasByPropietarioRedisKey(sala.propietarioId.toString()));
+  if (sala.usuarioId) {
+    await redisClient.del(_getSalasByUsuarioRedisKey(sala.usuarioId.toString()));
   }
   
   return removed;
@@ -577,14 +764,17 @@ module.exports = {
   getSalasByCapacidad,
   getSalasByConfiguracion,
   getSalasByEquipamiento,
-  getSalasByPropietario,
+  getSalasByUsuario,
   getSalasByRangoPrecio,
+  getSalasDisponibles,
+  getSalasByProximidad,
+  getSalasByCiudad,
+  getSalasByDepartamento,
   createSalaReunion,
   updateSalaReunion,
   deleteSalaReunion,
   cambiarEstadoSala,
   agregarEquipamiento,
   eliminarEquipamiento,
-  actualizarPrecios,
-  getSalasDisponibles
+  actualizarPrecios
 };

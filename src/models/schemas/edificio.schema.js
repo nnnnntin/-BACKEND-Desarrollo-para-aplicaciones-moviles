@@ -7,14 +7,18 @@ const edificioSchema = new mongoose.Schema(
       calle: { type: String, required: true },
       numero: { type: String, required: true },
       ciudad: { type: String, required: true },
+      // ← NUEVO CAMPO OBLIGATORIO
+      departamento: { type: String, required: true },
       codigoPostal: { type: String, required: true },
       pais: { type: String, required: true },
+      // ← COORDENADAS OBLIGATORIAS
       coordenadas: {
-        lat: { type: Number },
-        lng: { type: Number }
+        lat: { type: Number, required: true },
+        lng: { type: Number, required: true }
       }
     },
-    propietarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
+    // ← CAMBIO: propietarioId -> usuarioId y OBLIGATORIO
+    usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
     empresaInmobiliariaId: { type: mongoose.Schema.Types.ObjectId, ref: 'EmpresaInmobiliaria' },
     descripcion: { type: String },
     imagenes: [{ type: String }],

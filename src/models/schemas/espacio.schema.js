@@ -5,12 +5,22 @@ const espacioSchema = new mongoose.Schema(
     nombre: { type: String, required: true },
     tipo: { type: String, required: true, enum: ['oficina', 'sala_reunion', 'escritorio_flexible', 'otro'] },
     ubicacion: {
-      edificioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edificio' },
-      piso: { type: Number },
-      sector: { type: String },
+      edificioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edificio', required: true },
+      piso: { type: Number, required: true },
+      sector: { type: String, required: true },
+      // ← COORDENADAS OBLIGATORIAS
       coordenadas: {
-        lat: { type: Number },
-        lng: { type: Number }
+        lat: { type: Number, required: true },
+        lng: { type: Number, required: true }
+      },
+      // ← NUEVA DIRECCIÓN COMPLETA OBLIGATORIA
+      direccionCompleta: {
+        calle: { type: String, required: true },
+        numero: { type: String, required: true },
+        ciudad: { type: String, required: true },
+        departamento: { type: String, required: true },
+        codigoPostal: { type: String, required: true },
+        pais: { type: String, required: true }
       }
     },
     capacidad: { type: Number, required: true },
@@ -27,7 +37,8 @@ const espacioSchema = new mongoose.Schema(
     },
     imagenes: [{ type: String }],
     estado: { type: String, enum: ['disponible', 'ocupado', 'mantenimiento', 'reservado'], default: 'disponible' },
-    propietarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
+    // ← CAMBIO: propietarioId -> usuarioId y OBLIGATORIO
+    usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
     empresaInmobiliariaId: { type: mongoose.Schema.Types.ObjectId, ref: 'EmpresaInmobiliaria' },
     activo: { type: Boolean, default: true }
   },

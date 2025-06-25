@@ -1,8 +1,9 @@
 const EscritorioFlexible = require("../models/escritorioFlexible.model");
-const connectToRedis = require("../services/redis.service");
-const EmpresaInmobiliaria = require("../models/empresaInmobiliaria.model");
 const Usuario = require("../models/usuario.model");
 const Edificio = require("../models/edificio.model");
+const EmpresaInmobiliaria = require("../models/empresaInmobiliaria.model");
+const connectToRedis = require("../services/redis.service");
+
 const _getEscritorioRedisKey = (id) => `id:${id}-escritorio`;
 const _getEscritoriosFilterRedisKey = (filtros, skip, limit) =>
   `escritorios:${JSON.stringify(filtros)}:skip=${skip}:limit=${limit}`;
@@ -13,8 +14,8 @@ const _getEscritoriosByEdificioRedisKey = (edificioId) =>
 const _getEscritoriosByTipoRedisKey = (tipo) => `escritorios:tipo:${tipo}`;
 const _getEscritoriosByAmenidadesRedisKey = (tipoAmenidad) =>
   `escritorios:amenidad:${tipoAmenidad}`;
-const _getEscritoriosByPropietarioRedisKey = (propietarioId) =>
-  `propietario:${propietarioId}-escritorios`;
+const _getEscritoriosByUsuarioRedisKey = (usuarioId) =>
+  `usuario:${usuarioId}-escritorios`;
 const _getEscritoriosByRangoPrecioRedisKey = (
   precioMin,
   precioMax,
@@ -22,6 +23,9 @@ const _getEscritoriosByRangoPrecioRedisKey = (
 ) => `escritorios:precio:${tipoPrecio}:${precioMin}-${precioMax}`;
 const _getEscritoriosDisponiblesRedisKey = (fecha) =>
   `escritorios:disponibles:${fecha}`;
+const _getEscritoriosByProximidadRedisKey = (lat, lng, radioKm) => `escritorios:proximidad:${lat}:${lng}:${radioKm}`;
+const _getEscritoriosByCiudadRedisKey = (ciudad) => `escritorios:ciudad:${ciudad}`;
+const _getEscritoriosByDepartamentoRedisKey = (departamento) => `escritorios:departamento:${departamento}`;
 
 const getEscritoriosFlexibles = async (filtros = {}, skip = 0, limit = 10) => {
   const redisClient = connectToRedis();
@@ -44,7 +48,7 @@ const getEscritoriosFlexibles = async (filtros = {}, skip = 0, limit = 10) => {
     console.log("[Mongo] getEscritoriosFlexibles con paginación");
     const result = await EscritorioFlexible.find(filtros)
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .skip(skip)
       .limit(limit)
@@ -58,7 +62,7 @@ const getEscritoriosFlexibles = async (filtros = {}, skip = 0, limit = 10) => {
     try {
       return await EscritorioFlexible.find(filtros)
         .populate("ubicacion.edificioId")
-        .populate("propietarioId", "nombre email")
+        .populate("usuarioId", "nombre email imagen")
         .populate("empresaInmobiliariaId", "nombre")
         .skip(skip)
         .limit(limit)
@@ -94,7 +98,7 @@ const findEscritorioFlexibleById = async (id) => {
     console.log("[Leyendo findEscritorioFlexibleById desde MongoDB]");
     const result = await EscritorioFlexible.findById(id)
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
     if (result) {
@@ -106,7 +110,7 @@ const findEscritorioFlexibleById = async (id) => {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
     return await EscritorioFlexible.findById(id)
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
   }
@@ -136,7 +140,7 @@ const findEscritorioFlexibleByCodigo = async (codigo) => {
     console.log("[Leyendo findEscritorioFlexibleByCodigo desde MongoDB]");
     const result = await EscritorioFlexible.findOne({ codigo })
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
     if (result) {
@@ -148,7 +152,7 @@ const findEscritorioFlexibleByCodigo = async (codigo) => {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
     return await EscritorioFlexible.findOne({ codigo })
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
   }
@@ -179,7 +183,7 @@ const getEscritoriosByEdificio = async (edificioId) => {
     const result = await EscritorioFlexible.find({
       "ubicacion.edificioId": edificioId,
     })
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
@@ -188,7 +192,7 @@ const getEscritoriosByEdificio = async (edificioId) => {
   } catch (error) {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
     return await EscritorioFlexible.find({ "ubicacion.edificioId": edificioId })
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
   }
@@ -218,7 +222,7 @@ const getEscritoriosByTipo = async (tipo) => {
     console.log("[Leyendo getEscritoriosByTipo desde MongoDB]");
     const result = await EscritorioFlexible.find({ tipo })
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
@@ -228,7 +232,7 @@ const getEscritoriosByTipo = async (tipo) => {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
     return await EscritorioFlexible.find({ tipo })
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
   }
@@ -260,7 +264,7 @@ const getEscritoriosByAmenidades = async (tipoAmenidad) => {
       "amenidades.tipo": tipoAmenidad,
     })
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
@@ -270,15 +274,15 @@ const getEscritoriosByAmenidades = async (tipoAmenidad) => {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
     return await EscritorioFlexible.find({ "amenidades.tipo": tipoAmenidad })
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
   }
 };
 
-const getEscritoriosByPropietario = async (propietarioId) => {
+const getEscritoriosByUsuario = async (usuarioId) => {
   const redisClient = connectToRedis();
-  const key = _getEscritoriosByPropietarioRedisKey(propietarioId);
+  const key = _getEscritoriosByUsuarioRedisKey(usuarioId);
 
   try {
     const exists = await redisClient.exists(key);
@@ -297,8 +301,8 @@ const getEscritoriosByPropietario = async (propietarioId) => {
       }
     }
 
-    console.log("[Leyendo getEscritoriosByPropietario desde MongoDB]");
-    const result = await EscritorioFlexible.find({ propietarioId })
+    console.log("[Leyendo getEscritoriosByUsuario desde MongoDB]");
+    const result = await EscritorioFlexible.find({ usuarioId })
       .populate("ubicacion.edificioId")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
@@ -307,7 +311,7 @@ const getEscritoriosByPropietario = async (propietarioId) => {
     return result;
   } catch (error) {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
-    return await EscritorioFlexible.find({ propietarioId })
+    return await EscritorioFlexible.find({ usuarioId })
       .populate("ubicacion.edificioId")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
@@ -349,7 +353,7 @@ const getEscritoriosByRangoPrecio = async (
 
     const result = await EscritorioFlexible.find(query)
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
@@ -362,22 +366,171 @@ const getEscritoriosByRangoPrecio = async (
 
     return await EscritorioFlexible.find(query)
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
+  }
+};
+
+const getEscritoriosByProximidad = async (lat, lng, radioKm = 10) => {
+  const redisClient = connectToRedis();
+  const key = _getEscritoriosByProximidadRedisKey(lat, lng, radioKm);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const result = await EscritorioFlexible.find({
+      "ubicacion.coordenadas": {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [lng, lat]
+          },
+          $maxDistance: radioKm * 1000
+        }
+      },
+      activo: true
+    })
+    .populate('ubicacion.edificioId')
+    .populate('usuarioId', 'nombre email imagen')
+    .populate('empresaInmobiliariaId', 'nombre')
+    .lean();
+    
+    await redisClient.set(key, result, { ex: 1800 });
+    
+    return result;
+  } catch (error) {
+    console.log("[Error en búsqueda geoespacial]", error);
+    return await EscritorioFlexible.find({ activo: true })
+      .populate('ubicacion.edificioId')
+      .populate('usuarioId', 'nombre email imagen')
+      .populate('empresaInmobiliariaId', 'nombre')
+      .lean();
+  }
+};
+
+const getEscritoriosByCiudad = async (ciudad) => {
+  const redisClient = connectToRedis();
+  const key = _getEscritoriosByCiudadRedisKey(ciudad);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const result = await EscritorioFlexible.find({ 
+      'ubicacion.direccionCompleta.ciudad': ciudad,
+      activo: true 
+    })
+    .populate('ubicacion.edificioId')
+    .populate('usuarioId', 'nombre email imagen')
+    .populate('empresaInmobiliariaId', 'nombre')
+    .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await EscritorioFlexible.find({ 
+      'ubicacion.direccionCompleta.ciudad': ciudad,
+      activo: true 
+    })
+    .populate('ubicacion.edificioId')
+    .populate('usuarioId', 'nombre email imagen')
+    .populate('empresaInmobiliariaId', 'nombre')
+    .lean();
+  }
+};
+
+const getEscritoriosByDepartamento = async (departamento) => {
+  const redisClient = connectToRedis();
+  const key = _getEscritoriosByDepartamentoRedisKey(departamento);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const result = await EscritorioFlexible.find({ 
+      'ubicacion.direccionCompleta.departamento': departamento,
+      activo: true 
+    })
+    .populate('ubicacion.edificioId')
+    .populate('usuarioId', 'nombre email imagen')
+    .populate('empresaInmobiliariaId', 'nombre')
+    .lean();
+    
+    await redisClient.set(key, result, { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    return await EscritorioFlexible.find({ 
+      'ubicacion.direccionCompleta.departamento': departamento,
+      activo: true 
+    })
+    .populate('ubicacion.edificioId')
+    .populate('usuarioId', 'nombre email imagen')
+    .populate('empresaInmobiliariaId', 'nombre')
+    .lean();
   }
 };
 
 const createEscritorioFlexible = async (escritorioData) => {
   const redisClient = connectToRedis();
 
-  if (escritorioData.propietarioId) {
-    const propietarioExiste = await Usuario.exists({
-      _id: escritorioData.propietarioId,
-    });
-    if (!propietarioExiste) {
-      throw new Error("propietario no encontrado");
-    }
+  if (!escritorioData.usuarioId) {
+    throw new Error("usuarioId es obligatorio");
+  }
+
+  const usuarioExiste = await Usuario.exists({ _id: escritorioData.usuarioId });
+  if (!usuarioExiste) {
+    throw new Error("Usuario no encontrado");
+  }
+
+  if (!escritorioData.ubicacion?.coordenadas?.lat || !escritorioData.ubicacion?.coordenadas?.lng) {
+    throw new Error("Coordenadas (lat, lng) son obligatorias");
+  }
+  
+  if (!escritorioData.ubicacion?.direccionCompleta) {
+    throw new Error("Dirección completa es obligatoria");
   }
 
   if (escritorioData.empresaInmobiliariaId) {
@@ -389,9 +542,9 @@ const createEscritorioFlexible = async (escritorioData) => {
     }
   }
 
-  if (escritorioData.edificioId) {
+  if (escritorioData.ubicacion?.edificioId) {
     const edificioExiste = await Edificio.exists({
-      _id: escritorioData.edificioId,
+      _id: escritorioData.ubicacion.edificioId,
     });
     if (!edificioExiste) {
       throw new Error("Edificio no encontrado");
@@ -413,9 +566,9 @@ const createEscritorioFlexible = async (escritorioData) => {
   if (saved.tipo) {
     await redisClient.del(_getEscritoriosByTipoRedisKey(saved.tipo));
   }
-  if (saved.propietarioId) {
+  if (saved.usuarioId) {
     await redisClient.del(
-      _getEscritoriosByPropietarioRedisKey(saved.propietarioId.toString())
+      _getEscritoriosByUsuarioRedisKey(saved.usuarioId.toString())
     );
   }
 
@@ -425,9 +578,24 @@ const createEscritorioFlexible = async (escritorioData) => {
 const updateEscritorioFlexible = async (id, payload) => {
   const redisClient = connectToRedis();
   const escritorio = await EscritorioFlexible.findById(id);
+  
+  if (!escritorio) {
+    throw new Error("Escritorio flexible no encontrado");
+  }
+
+  if (payload.usuarioId && payload.usuarioId !== escritorio.usuarioId?.toString()) {
+    const usuarioExiste = await Usuario.exists({ _id: payload.usuarioId });
+    if (!usuarioExiste) {
+      throw new Error("Nuevo usuario no encontrado");
+    }
+  }
+  
   const updated = await EscritorioFlexible.findByIdAndUpdate(id, payload, {
     new: true,
-  });
+  })
+  .populate("ubicacion.edificioId")
+  .populate("usuarioId", "nombre email imagen")
+  .populate("empresaInmobiliariaId", "nombre");
 
   await redisClient.del(_getEscritorioRedisKey(id));
   await redisClient.del(_getEscritoriosFilterRedisKey({}));
@@ -466,23 +634,27 @@ const updateEscritorioFlexible = async (id, payload) => {
     await redisClient.del(_getEscritoriosByTipoRedisKey(updated.tipo));
   }
 
-  if (escritorio.propietarioId) {
+  if (escritorio.usuarioId) {
     await redisClient.del(
-      _getEscritoriosByPropietarioRedisKey(escritorio.propietarioId.toString())
+      _getEscritoriosByUsuarioRedisKey(escritorio.usuarioId.toString())
     );
   }
   if (
-    updated.propietarioId &&
-    (!escritorio.propietarioId ||
-      escritorio.propietarioId.toString() !== updated.propietarioId.toString())
+    updated.usuarioId &&
+    (!escritorio.usuarioId ||
+      escritorio.usuarioId.toString() !== updated.usuarioId.toString())
   ) {
     await redisClient.del(
-      _getEscritoriosByPropietarioRedisKey(updated.propietarioId.toString())
+      _getEscritoriosByUsuarioRedisKey(updated.usuarioId.toString())
     );
   }
 
   await redisClient.keys("escritorios:disponibles:*").then((keys) => {
     keys.forEach((key) => redisClient.del(key));
+  });
+
+  await redisClient.keys('escritorios:proximidad:*').then(keys => {
+    keys.forEach(key => redisClient.del(key));
   });
 
   return updated;
@@ -509,9 +681,9 @@ const deleteEscritorioFlexible = async (id) => {
   if (escritorio.tipo) {
     await redisClient.del(_getEscritoriosByTipoRedisKey(escritorio.tipo));
   }
-  if (escritorio.propietarioId) {
+  if (escritorio.usuarioId) {
     await redisClient.del(
-      _getEscritoriosByPropietarioRedisKey(escritorio.propietarioId.toString())
+      _getEscritoriosByUsuarioRedisKey(escritorio.usuarioId.toString())
     );
   }
 
@@ -608,7 +780,7 @@ const getEscritoriosDisponibles = async (fecha) => {
 
     const result = await EscritorioFlexible.find(filtrosBase)
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
 
@@ -623,7 +795,7 @@ const getEscritoriosDisponibles = async (fecha) => {
 
     return await EscritorioFlexible.find(filtrosBase)
       .populate("ubicacion.edificioId")
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
   }
@@ -636,8 +808,11 @@ module.exports = {
   getEscritoriosByEdificio,
   getEscritoriosByTipo,
   getEscritoriosByAmenidades,
-  getEscritoriosByPropietario,
+  getEscritoriosByUsuario,
   getEscritoriosByRangoPrecio,
+  getEscritoriosByProximidad,
+  getEscritoriosByCiudad,
+  getEscritoriosByDepartamento,
   createEscritorioFlexible,
   updateEscritorioFlexible,
   deleteEscritorioFlexible,

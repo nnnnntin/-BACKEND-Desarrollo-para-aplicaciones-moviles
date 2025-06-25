@@ -1420,6 +1420,7 @@
           "content": {
             "application/json": {
               "example": {
+                "usuarioId": "60f7e2a4b5c6d7e8f9a0b1c5",
                 "nombre": "Soluciones Tech S.A.",
                 "tipo": "empresa",
                 "descripcion": "Proveedor de servicios de TI y soporte técnico",
@@ -1458,6 +1459,39 @@
           },
           "400": {
             "description": "Bad Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/v1/proveedores/usuario/{usuarioId}": {
+      "parameters": [
+        {
+          "name": "usuarioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del usuario proveedor"
+        }
+      ],
+      "get": {
+        "summary": "Obtener proveedor por ID de usuario",
+        "tags": [
+          "Proveedores - Gestión de proveedores"
+        ],
+        "responses": {
+          "200": {
+            "description": "Proveedor encontrado"
+          },
+          "404": {
+            "description": "No se encontró proveedor para el usuario"
+          },
+          "400": {
+            "description": "ID de usuario inválido"
           },
           "500": {
             "description": "Internal Server Error"
@@ -2041,6 +2075,7 @@
               "schema": {
                 "type": "object",
                 "required": [
+                  "usuarioId",
                   "nombre",
                   "tipo",
                   "contacto",
@@ -2048,6 +2083,10 @@
                   "direccion"
                 ],
                 "properties": {
+                  "usuarioId": {
+                    "type": "string",
+                    "description": "ID del usuario cliente propietario"
+                  },
                   "nombre": {
                     "type": "string"
                   },
@@ -2151,6 +2190,7 @@
                   }
                 },
                 "example": {
+                  "usuarioId": "60f7e2a4b5c6d7e8f9a0b1c2",
                   "nombre": "InmoCentro",
                   "tipo": "inmobiliaria",
                   "descripcion": "Gestión de propiedades residenciales",
@@ -2191,6 +2231,39 @@
           },
           "400": {
             "description": "Bad Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/v1/empresas-inmobiliarias/usuario/{usuarioId}": {
+      "parameters": [
+        {
+          "name": "usuarioId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID del usuario cliente"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Empresas Inmobiliarias - Gestión de empresas inmobiliarias"
+        ],
+        "summary": "Obtener empresa inmobiliaria por ID de usuario",
+        "responses": {
+          "200": {
+            "description": "Empresa inmobiliaria encontrada"
+          },
+          "404": {
+            "description": "No se encontró empresa para el usuario"
+          },
+          "400": {
+            "description": "ID de usuario inválido"
           },
           "500": {
             "description": "Internal Server Error"

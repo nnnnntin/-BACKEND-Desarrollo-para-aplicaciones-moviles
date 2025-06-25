@@ -6,14 +6,15 @@ const createEdificioSchema = Joi.object({
     calle: Joi.string().required(),
     numero: Joi.string().required(),
     ciudad: Joi.string().required(),
+    departamento: Joi.string().required(),
     codigoPostal: Joi.string().required(),
     pais: Joi.string().required(),
     coordenadas: Joi.object({
-      lat: Joi.number(),
-      lng: Joi.number()
-    })
+      lat: Joi.number().min(-90).max(90).required(),
+      lng: Joi.number().min(-180).max(180).required()
+    }).required()
   }).required(),
-  propietarioId: Joi.string(),
+  usuarioId: Joi.string().required(),
   empresaInmobiliariaId: Joi.string(),
   descripcion: Joi.string(),
   imagenes: Joi.array().items(Joi.string().uri()),
@@ -43,14 +44,15 @@ const updateEdificioSchema = Joi.object({
     calle: Joi.string(),
     numero: Joi.string(),
     ciudad: Joi.string(),
+    departamento: Joi.string(),
     codigoPostal: Joi.string(),
     pais: Joi.string(),
     coordenadas: Joi.object({
-      lat: Joi.number(),
-      lng: Joi.number()
+      lat: Joi.number().min(-90).max(90),
+      lng: Joi.number().min(-180).max(180)
     })
   }),
-  propietarioId: Joi.string(),
+  usuarioId: Joi.string(),
   empresaInmobiliariaId: Joi.string(),
   descripcion: Joi.string(),
   imagenes: Joi.array().items(Joi.string().uri()),
@@ -76,13 +78,17 @@ const updateEdificioSchema = Joi.object({
 
 const filtrarEdificiosSchema = Joi.object({
   ciudad: Joi.string(),
+  departamento: Joi.string(),
   pais: Joi.string(),
-  propietarioId: Joi.string(),
+  usuarioId: Joi.string(),
   empresaInmobiliariaId: Joi.string(),
   amenidades: Joi.array().items(Joi.string()),
   accesibilidad: Joi.boolean(),
   estacionamiento: Joi.boolean(),
-  activo: Joi.boolean()
+  activo: Joi.boolean(),
+  lat: Joi.number().min(-90).max(90),
+  lng: Joi.number().min(-180).max(180),
+  radioKm: Joi.number().min(0)
 });
 
 module.exports = {

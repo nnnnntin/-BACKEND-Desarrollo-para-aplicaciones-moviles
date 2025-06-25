@@ -6,15 +6,27 @@ const {
   deleteUsuario,
   getUsuariosByTipo,
   cambiarRolUsuario,
-  updateMembresiaUsuario
+  updateMembresiaUsuario,
+  // ← NUEVOS IMPORTS para métodos de pago
+  addMetodoPago,
+  updateMetodoPago,
+  deleteMetodoPago,
+  setDefaultMetodoPago,
+  getMetodosPagoSeguros
 } = require("../repositories/usuario.repository");
 
 const { findMembresiaById } = require("../repositories/membresia.repository");
+const { findEmpresaByUsuarioId } = require("../repositories/empresaInmobiliaria.repository");
+const { findProveedorByUsuarioId } = require("../repositories/proveedor.repository");
 
 const {
   createUsuarioSchema,
   updateUsuarioSchema,
-  cambiarRolSchema
+  cambiarRolSchema,
+  // ← NUEVOS IMPORTS para validaciones de métodos de pago
+  addMetodoPagoSchema,
+  updateMetodoPagoSchema,
+  deleteMetodoPagoSchema
 } = require("../routes/validations/usuario.validation");
 
 const getUsuariosController = async (req, res) => {
@@ -54,7 +66,14 @@ const getUsuarioByIdController = async (req, res) => {
     if (!usuario) {
       return res.status(404).json({ message: `No se ha encontrado el usuario con id: ${id}` });
     }
-    res.status(200).json(usuario);
+    
+    // ← CAMBIO: Filtrar datos sensibles de métodos de pago
+    const usuarioSeguro = {
+      ...usuario,
+      metodoPago: getMetodosPagoSeguros(usuario.metodoPago)
+    };
+    
+    res.status(200).json(usuarioSeguro);
   } catch (error) {
     console.error(error);
 
@@ -120,7 +139,8 @@ const registerUsuarioController = async (req, res) => {
       datosEmpresa: usuario.datosEmpresa,
       preferencias: usuario.preferencias,
       membresia: usuario.membresia,
-      metodoPago: usuario.metodoPago,
+      // ← CAMBIO: Filtrar métodos de pago seguros
+      metodoPago: getMetodosPagoSeguros(usuario.metodoPago),
       activo: usuario.activo,
       verificado: usuario.verificado,
       rol: usuario.rol,
@@ -213,7 +233,8 @@ const updateUsuarioController = async (req, res) => {
       datosEmpresa: usuario.datosEmpresa,
       preferencias: usuario.preferencias,
       membresia: usuario.membresia,
-      metodoPago: usuario.metodoPago,
+      // ← CAMBIO: Filtrar métodos de pago seguros
+      metodoPago: getMetodosPagoSeguros(usuario.metodoPago),
       activo: usuario.activo,
       verificado: usuario.verificado,
       rol: usuario.rol,
@@ -451,6 +472,320 @@ const updateMembresiaUsuarioController = async (req, res) => {
   }
 };
 
+const getPerfilCompletoUsuarioController = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const usuario = await findUsuarioById(id);
+    if (!usuario) {
+      return res.status(404).json({ 
+        message: `No se ha encontrado el usuario con id: ${id}` 
+      });
+    }
+
+    const perfil = {
+      usuario: {
+        _id: usuario._id,
+        username: usuario.username,
+        email: usuario.email,
+        tipoUsuario: usuario.tipoUsuario,
+        nombre: usuario.nombre,
+        apellidos: usuario.apellidos,
+        imagen: usuario.imagen,
+        datosPersonales: usuario.datosPersonales,
+        direccion: usuario.direccion,
+        datosEmpresa: usuario.datosEmpresa,
+        preferencias: usuario.preferencias,
+        // ← CAMBIO: Filtrar métodos de pago seguros
+        metodoPago: getMetodosPagoSeguros(usuario.metodoPago),
+        activo: usuario.activo,
+        verificado: usuario.verificado,
+        rol: usuario.rol,
+        createdAt: usuario.createdAt,
+        updatedAt: usuario.updatedAt
+      }
+    };
+
+    // Agregar perfil específico según tipo de usuario
+    if (usuario.tipoUsuario === 'cliente') {
+      const empresa = await findEmpresaByUsuarioId(id);
+      perfil.empresaInmobiliaria = empresa;
+    } else if (usuario.tipoUsuario === 'proveedor') {
+      const proveedor = await findProveedorByUsuarioId(id);
+      perfil.proveedor = proveedor;
+    }
+
+    res.status(200).json(perfil);
+  } catch (error) {
+    console.error(error);
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: "ID de usuario inválido",
+        details: `El formato del ID '${id}' no es válido`
+      });
+    }
+
+    res.status(500).json({
+      message: "Error al obtener el perfil completo del usuario",
+      details: error.message
+    });
+  }
+};
+
+// ← NUEVOS CONTROLADORES para métodos de pago
+
+const addMetodoPagoController = async (req, res) => {
+  const { id } = req.params;
+  const { error, value } = addMetodoPagoSchema.validate(req.body);
+  
+  if (error) {
+    return res.status(400).json({
+      message: "Error de validación",
+      details: error.details[0].message,
+      field: error.details[0].context.key
+    });
+  }
+
+  try {
+    console.log('🔵 [Controller] Agregando método de pago para usuario:', id);
+    console.log('🔵 [Controller] Datos recibidos:', {
+      tipo: value.tipo,
+      predeterminado: value.predeterminado
+    });
+
+    const usuario = await addMetodoPago(id, value);
+    
+    const usuarioResponse = {
+      _id: usuario._id,
+      username: usuario.username,
+      metodoPago: getMetodosPagoSeguros(usuario.metodoPago),
+      updatedAt: usuario.updatedAt
+    };
+    
+    res.status(201).json({
+      message: "Método de pago agregado correctamente",
+      usuario: usuarioResponse
+    });
+  } catch (error) {
+    console.error('🔴 [Controller] Error agregando método de pago:', error);
+    
+    if (error.message === 'Usuario no encontrado') {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: `No se ha encontrado el usuario con id: ${id}`
+      });
+    }
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: "ID de usuario inválido",
+        details: `El formato del ID '${id}' no es válido`
+      });
+    }
+
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        message: "Error de validación en modelo",
+        details: errors
+      });
+    }
+
+    res.status(500).json({
+      message: "Error al agregar el método de pago",
+      details: error.message
+    });
+  }
+};
+
+const updateMetodoPagoController = async (req, res) => {
+  const { id } = req.params;
+  const { error, value } = updateMetodoPagoSchema.validate(req.body);
+  
+  if (error) {
+    return res.status(400).json({
+      message: "Error de validación",
+      details: error.details[0].message,
+      field: error.details[0].context.key
+    });
+  }
+
+  try {
+    const { metodoPagoId, ...updateData } = value;
+    
+    const usuario = await updateMetodoPago(id, metodoPagoId, updateData);
+    
+    const usuarioResponse = {
+      _id: usuario._id,
+      username: usuario.username,
+      metodoPago: getMetodosPagoSeguros(usuario.metodoPago),
+      updatedAt: usuario.updatedAt
+    };
+    
+    res.status(200).json({
+      message: "Método de pago actualizado correctamente",
+      usuario: usuarioResponse
+    });
+  } catch (error) {
+    console.error('🔴 [Controller] Error actualizando método de pago:', error);
+    
+    if (error.message === 'Usuario no encontrado') {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: `No se ha encontrado el usuario con id: ${id}`
+      });
+    }
+
+    if (error.message === 'Método de pago no encontrado') {
+      return res.status(404).json({
+        message: "Método de pago no encontrado",
+        details: "El método de pago especificado no existe"
+      });
+    }
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: "ID inválido",
+        details: "El formato del ID no es válido"
+      });
+    }
+
+    res.status(500).json({
+      message: "Error al actualizar el método de pago",
+      details: error.message
+    });
+  }
+};
+
+const deleteMetodoPagoController = async (req, res) => {
+  const { id } = req.params;
+  const { error, value } = deleteMetodoPagoSchema.validate(req.body);
+  
+  if (error) {
+    return res.status(400).json({
+      message: "Error de validación",
+      details: error.details[0].message,
+      field: error.details[0].context.key
+    });
+  }
+
+  try {
+    const { metodoPagoId } = value;
+    
+    const usuario = await deleteMetodoPago(id, metodoPagoId);
+    
+    const usuarioResponse = {
+      _id: usuario._id,
+      username: usuario.username,
+      metodoPago: getMetodosPagoSeguros(usuario.metodoPago),
+      updatedAt: usuario.updatedAt
+    };
+    
+    res.status(200).json({
+      message: "Método de pago eliminado correctamente",
+      usuario: usuarioResponse
+    });
+  } catch (error) {
+    console.error('🔴 [Controller] Error eliminando método de pago:', error);
+    
+    if (error.message === 'Usuario no encontrado') {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: `No se ha encontrado el usuario con id: ${id}`
+      });
+    }
+
+    if (error.message === 'Método de pago no encontrado') {
+      return res.status(404).json({
+        message: "Método de pago no encontrado",
+        details: "El método de pago especificado no existe"
+      });
+    }
+
+    if (error.message.includes('único método de pago activo')) {
+      return res.status(400).json({
+        message: "No se puede eliminar",
+        details: "No se puede eliminar el único método de pago activo"
+      });
+    }
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: "ID inválido",
+        details: "El formato del ID no es válido"
+      });
+    }
+
+    res.status(500).json({
+      message: "Error al eliminar el método de pago",
+      details: error.message
+    });
+  }
+};
+
+const setDefaultMetodoPagoController = async (req, res) => {
+  const { id } = req.params;
+  const { metodoPagoId } = req.body;
+  
+  if (!metodoPagoId) {
+    return res.status(400).json({
+      message: "Datos incompletos",
+      details: "Se requiere el ID del método de pago (metodoPagoId)"
+    });
+  }
+
+  try {
+    const usuario = await setDefaultMetodoPago(id, metodoPagoId);
+    
+    const usuarioResponse = {
+      _id: usuario._id,
+      username: usuario.username,
+      metodoPago: getMetodosPagoSeguros(usuario.metodoPago),
+      updatedAt: usuario.updatedAt
+    };
+    
+    res.status(200).json({
+      message: "Método de pago establecido como predeterminado",
+      usuario: usuarioResponse
+    });
+  } catch (error) {
+    console.error('🔴 [Controller] Error estableciendo método predeterminado:', error);
+    
+    if (error.message === 'Usuario no encontrado') {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: `No se ha encontrado el usuario con id: ${id}`
+      });
+    }
+
+    if (error.message === 'Método de pago no encontrado') {
+      return res.status(404).json({
+        message: "Método de pago no encontrado",
+        details: "El método de pago especificado no existe"
+      });
+    }
+
+    if (error.message.includes('método de pago inactivo')) {
+      return res.status(400).json({
+        message: "Método de pago inactivo",
+        details: "No se puede establecer como predeterminado un método de pago inactivo"
+      });
+    }
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: "ID inválido",
+        details: "El formato del ID no es válido"
+      });
+    }
+
+    res.status(500).json({
+      message: "Error al establecer el método de pago como predeterminado",
+      details: error.message
+    });
+  }
+};
+
 module.exports = {
   getUsuariosController,
   getUsuarioByIdController,
@@ -459,5 +794,11 @@ module.exports = {
   updateUsuarioController,
   deleteUsuarioController,
   cambiarRolUsuarioController,
-  updateMembresiaUsuarioController
+  updateMembresiaUsuarioController,
+  getPerfilCompletoUsuarioController,
+  // ← NUEVOS CONTROLADORES EXPORTADOS
+  addMetodoPagoController,
+  updateMetodoPagoController,
+  deleteMetodoPagoController,
+  setDefaultMetodoPagoController
 };

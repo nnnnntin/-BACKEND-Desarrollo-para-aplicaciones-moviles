@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getEmpresasInmobiliariasController,
   getEmpresaInmobiliariaByIdController,
+  getEmpresaByUsuarioIdController, // ← NUEVO IMPORT
   getEmpresasByTipoController,
   getEmpresasVerificadasController,
   getEmpresasByCiudadController,
@@ -106,6 +107,11 @@ router.put(
 router.put(
   "/empresas-inmobiliarias/:id/contacto",
   actualizarContactoController
+);
+
+router.get(
+  "/empresas-inmobiliarias/usuario/:usuarioId",
+  getEmpresaByUsuarioIdController
 );
 
 module.exports = router;

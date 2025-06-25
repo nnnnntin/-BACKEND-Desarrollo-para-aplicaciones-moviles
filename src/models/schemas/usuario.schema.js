@@ -28,7 +28,7 @@ const usuarioSchema = new mongoose.Schema(
     apellidos: { 
       type: String 
     },
-    // ← CAMBIO: Campo imagen principal para foto de perfil
+    // Campo imagen principal para foto de perfil
     imagen: { 
       type: String,
       validate: {
@@ -40,9 +40,7 @@ const usuarioSchema = new mongoose.Schema(
     },
     datosPersonales: {
       telefono: { type: String },
-      documentoIdentidad: { type: String },
-      // ← CAMBIO: REMOVIDO fotoUrl de aquí para evitar conflictos
-      // Ahora solo usamos el campo 'imagen' principal
+      documentoIdentidad: { type: String }
     },
     direccion: {
       calle: { type: String },
@@ -55,7 +53,7 @@ const usuarioSchema = new mongoose.Schema(
       cargo: { type: String },
       nifCif: { type: String },
       sitioWeb: { type: String },
-      logoUrl: { type: String } // ← Este sí se mantiene para logo de empresa
+      logoUrl: { type: String }
     },
     preferencias: {
       idiomaPreferido: { type: String, default: 'es' },
@@ -72,11 +70,36 @@ const usuarioSchema = new mongoose.Schema(
       fechaVencimiento: { type: Date },
       renovacionAutomatica: { type: Boolean, default: false }
     },
+    // ← CAMBIO: Estructura completa para métodos de pago
     metodoPago: [{
       predeterminado: { type: Boolean, default: false },
-      tipo: { type: String, enum: ['tarjeta', 'paypal', 'cuenta_bancaria'] },
-      ultimosDigitos: { type: String },
-      fechaExpiracion: { type: String }
+      tipo: { 
+        type: String, 
+        enum: ['tarjeta_credito', 'tarjeta_debito', 'cuenta_bancaria'], 
+        required: true 
+      },
+      activo: { type: Boolean, default: true },
+      
+      // Datos para tarjetas (crédito/débito)
+      numero: { type: String }, // Número de tarjeta encriptado
+      ultimosDigitos: { type: String }, // Últimos 4 dígitos para mostrar
+      titular: { type: String },
+      fechaVencimiento: { type: String }, // MM/AA para tarjetas
+      cvc: { type: String }, // CVC encriptado
+      marca: { 
+        type: String, 
+        enum: ['visa', 'mastercard', 'american_express', 'discover', 'otro'] 
+      },
+      
+      // Datos para cuenta bancaria
+      banco: { type: String }, // Nombre del banco
+      numeroCuenta: { type: String }, // Número de cuenta encriptado
+      tipoCuenta: { 
+        type: String, 
+        enum: ['corriente', 'ahorros', 'nomina'] 
+      },
+      
+      fechaCreacion: { type: Date, default: Date.now }
     }],
     activo: { type: Boolean, default: true },
     verificado: { type: Boolean, default: false },
@@ -90,5 +113,15 @@ const usuarioSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Middleware para validar que solo haya un método de pago predeterminado
+usuarioSchema.pre('save', function(next) {
+  const metodosPredeterminados = this.metodoPago.filter(metodo => metodo.predeterminado);
+  if (metodosPredeterminados.length > 1) {
+    const error = new Error('Solo puede haber un método de pago predeterminado');
+    return next(error);
+  }
+  next();
+});
 
 module.exports = usuarioSchema;

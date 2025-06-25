@@ -44,6 +44,45 @@ const getProveedores = async (filtros = {}, skip = 0, limit = 10) => {
   }
 };
 
+const findProveedorByUsuarioId = async (usuarioId) => {
+  const redisClient = connectToRedis();
+  const key = `proveedor:usuario:${usuarioId}`;
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    console.log("[Leyendo findProveedorByUsuarioId desde MongoDB]");
+    const result = await Proveedor.findOne({ usuarioId })
+      .populate('serviciosOfrecidos')
+      .populate('usuarioId', 'username email nombre apellidos imagen')
+      .lean();
+    if (result) {
+      await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+    }
+    
+    return result;
+  } catch (error) {
+    console.log("[Error en Redis, leyendo desde MongoDB]", error);
+    return await Proveedor.findOne({ usuarioId })
+      .populate('serviciosOfrecidos')
+      .populate('usuarioId', 'username email nombre apellidos imagen')
+      .lean();
+  }
+};
 
 const findProveedorById = async (id) => {
   const redisClient = connectToRedis();
@@ -157,6 +196,11 @@ const createProveedor = async (proveedorData) => {
     await redisClient.del(_getProveedoresVerificadosRedisKey());
   }
   
+  // ← NUEVO: Limpiar cache específico del usuario
+  if (saved.usuarioId) {
+    await redisClient.del(`proveedor:usuario:${saved.usuarioId}`);
+  }
+  
   if (saved.calificacionPromedio) {
     for (let i = 1; i <= Math.min(saved.calificacionPromedio, 5); i++) {
       await redisClient.del(_getProveedoresPorCalificacionRedisKey(i));
@@ -177,6 +221,11 @@ const updateProveedor = async (id, payload) => {
   
   await redisClient.del(_getProveedorRedisKey(id));
   await redisClient.del(_getProveedoresFilterRedisKey({}));
+  
+  // ← NUEVO: Limpiar cache específico del usuario
+  if (proveedor.usuarioId) {
+    await redisClient.del(`proveedor:usuario:${proveedor.usuarioId}`);
+  }
   
   if (proveedor.tipo) {
     await redisClient.del(_getProveedoresByTipoRedisKey(proveedor.tipo));
@@ -216,6 +265,11 @@ const deleteProveedor = async (id) => {
   
   await redisClient.del(_getProveedorRedisKey(id));
   await redisClient.del(_getProveedoresFilterRedisKey({}));
+  
+  // ← NUEVO: Limpiar cache específico del usuario
+  if (proveedor.usuarioId) {
+    await redisClient.del(`proveedor:usuario:${proveedor.usuarioId}`);
+  }
   
   if (proveedor.tipo) {
     await redisClient.del(_getProveedoresByTipoRedisKey(proveedor.tipo));
@@ -431,6 +485,7 @@ const getProveedoresConMasServicios = async (limite = 5) => {
 module.exports = {
   getProveedores,
   findProveedorById,
+  findProveedorByUsuarioId, // ← NUEVO
   getProveedoresByTipo,
   getProveedoresVerificados,
   createProveedor,

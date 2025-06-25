@@ -1,5 +1,56 @@
 const Joi = require("joi");
 
+// Validación para método de pago tipo tarjeta
+const metodoPagoTarjetaSchema = Joi.object({
+  predeterminado: Joi.boolean().default(false),
+  tipo: Joi.string().valid('tarjeta_credito', 'tarjeta_debito').required(),
+  numero: Joi.string()
+    .pattern(/^\d{13,19}$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'El número de tarjeta debe tener entre 13 y 19 dígitos'
+    }),
+  titular: Joi.string().min(2).max(100).required(),
+  fechaVencimiento: Joi.string()
+    .pattern(/^(0[1-9]|1[0-2])\/\d{2}$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'La fecha de vencimiento debe tener el formato MM/AA'
+    }),
+  cvc: Joi.string()
+    .pattern(/^\d{3,4}$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'El CVC debe tener 3 o 4 dígitos'
+    }),
+  marca: Joi.string()
+    .valid('visa', 'mastercard', 'american_express', 'discover', 'otro')
+    .optional()
+});
+
+// Validación para método de pago tipo cuenta bancaria
+const metodoPagoCuentaSchema = Joi.object({
+  predeterminado: Joi.boolean().default(false),
+  tipo: Joi.string().valid('cuenta_bancaria').required(),
+  banco: Joi.string().min(2).max(100).required(),
+  numeroCuenta: Joi.string()
+    .pattern(/^\d{10,20}$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'El número de cuenta debe tener entre 10 y 20 dígitos'
+    }),
+  titular: Joi.string().min(2).max(100).required(),
+  tipoCuenta: Joi.string()
+    .valid('corriente', 'ahorros', 'nomina')
+    .required()
+});
+
+// Esquema general para método de pago
+const metodoPagoSchema = Joi.alternatives().try(
+  metodoPagoTarjetaSchema,
+  metodoPagoCuentaSchema
+);
+
 const createUsuarioSchema = Joi.object({
   tipoUsuario: Joi.string()
     .valid('usuario', 'proveedor', 'cliente', 'administrador')
@@ -9,12 +60,11 @@ const createUsuarioSchema = Joi.object({
   password: Joi.string().min(8).required(),
   nombre: Joi.string().optional(),
   apellidos: Joi.string().optional(),
-  imagen: Joi.string().uri().optional(), // ← CAMBIO: Campo imagen principal
+  imagen: Joi.string().uri().optional(),
 
   datosPersonales: Joi.object({
     telefono: Joi.string().optional(),
     documentoIdentidad: Joi.string().optional(),
-    // ← CAMBIO: REMOVIDO fotoUrl de aquí para evitar conflictos
   })
     .optional()
     .default({}),
@@ -48,21 +98,23 @@ const createUsuarioSchema = Joi.object({
     .optional()
     .default(),
 
+  // ← CAMBIO: Nueva validación para métodos de pago
+  metodoPago: Joi.array().items(metodoPagoSchema).optional(),
+
   activo: Joi.boolean().default(true),
   verificado: Joi.boolean().default(false),
   rol: Joi.string()
-    .valid("usuario", "editor", "administrador", "superadmin")
+    .valid('usuario', 'proveedor', 'cliente', 'administrador')
     .default("usuario"),
 });
 
 const updateUsuarioSchema = Joi.object({
   nombre: Joi.string(),
   apellidos: Joi.string(),
-  imagen: Joi.string().uri(), // ← CAMBIO: Campo imagen principal
+  imagen: Joi.string().uri(),
   datosPersonales: Joi.object({
     telefono: Joi.string(),
     documentoIdentidad: Joi.string(),
-    // ← CAMBIO: REMOVIDO fotoUrl de aquí también
   }),
   direccion: Joi.object({
     calle: Joi.string(),
@@ -86,6 +138,8 @@ const updateUsuarioSchema = Joi.object({
       sms: Joi.boolean()
     })
   }),
+  // ← CAMBIO: Permitir actualizar métodos de pago
+  metodoPago: Joi.array().items(metodoPagoSchema).optional(),
   password: Joi.string().min(8),
   activo: Joi.boolean(),
   verificado: Joi.boolean()
@@ -98,12 +152,32 @@ const loginSchema = Joi.object({
 
 const cambiarRolSchema = Joi.object({
   usuarioId: Joi.string().required(),
-  nuevoRol: Joi.string().valid('usuario', 'editor', 'administrador', 'superadmin').required()
+  nuevoRol: Joi.string().valid('usuario', 'proveedor', 'cliente', 'administrador').required()
+});
+
+// ← NUEVO: Esquemas específicos para métodos de pago
+const addMetodoPagoSchema = metodoPagoSchema;
+
+const updateMetodoPagoSchema = Joi.object({
+  metodoPagoId: Joi.string().required(),
+  predeterminado: Joi.boolean(),
+  activo: Joi.boolean(),
+  titular: Joi.string().min(2).max(100),
+  fechaVencimiento: Joi.string().pattern(/^(0[1-9]|1[0-2])\/\d{2}$/),
+  banco: Joi.string().min(2).max(100),
+  tipoCuenta: Joi.string().valid('corriente', 'ahorros', 'nomina')
+}).min(2); // Requiere al menos metodoPagoId y un campo más
+
+const deleteMetodoPagoSchema = Joi.object({
+  metodoPagoId: Joi.string().required()
 });
 
 module.exports = {
   createUsuarioSchema,
   updateUsuarioSchema,
   loginSchema,
-  cambiarRolSchema
+  cambiarRolSchema,
+  addMetodoPagoSchema,
+  updateMetodoPagoSchema,
+  deleteMetodoPagoSchema
 };

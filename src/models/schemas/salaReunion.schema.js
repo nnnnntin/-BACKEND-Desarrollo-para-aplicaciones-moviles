@@ -7,7 +7,20 @@ const salaReunionSchema = new mongoose.Schema(
     ubicacion: {
       edificioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edificio', required: true },
       piso: { type: Number, required: true },
-      numero: { type: String, required: true }
+      numero: { type: String, required: true },
+      // ← NUEVOS CAMPOS OBLIGATORIOS
+      coordenadas: {
+        lat: { type: Number, required: true },
+        lng: { type: Number, required: true }
+      },
+      direccionCompleta: {
+        calle: { type: String, required: true },
+        numero: { type: String, required: true },
+        ciudad: { type: String, required: true },
+        departamento: { type: String, required: true },
+        codigoPostal: { type: String, required: true },
+        pais: { type: String, required: true }
+      }
     },
     capacidad: { type: Number, required: true },
     equipamiento: [{
@@ -28,7 +41,8 @@ const salaReunionSchema = new mongoose.Schema(
       },
       dias: [{ type: String, enum: ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'] }]
     },
-    propietarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
+    // ← CAMBIO: propietarioId -> usuarioId y OBLIGATORIO
+    usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
     empresaInmobiliariaId: { type: mongoose.Schema.Types.ObjectId, ref: 'EmpresaInmobiliaria' },
     estado: { type: String, enum: ['disponible', 'ocupada', 'mantenimiento', 'reservada'], default: 'disponible' },
     activo: { type: Boolean, default: true }

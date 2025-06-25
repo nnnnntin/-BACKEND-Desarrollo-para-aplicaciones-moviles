@@ -1,18 +1,21 @@
 const Edificio = require("../models/edificio.model");
-const connectToRedis = require("../services/redis.service");
-const EmpresaInmobiliaria = require("../models/empresaInmobiliaria.model");
 const Usuario = require("../models/usuario.model");
+const EmpresaInmobiliaria = require("../models/empresaInmobiliaria.model");
+const connectToRedis = require("../services/redis.service");
+
 const _getEdificioRedisKey = (id) => `id:${id}-edificio`;
 const _getEdificiosFilterRedisKey = (filtros, skip, limit) =>
   `edificios:${JSON.stringify(filtros)}:skip=${skip}:limit=${limit}`;
-const _getEdificiosByPropietarioRedisKey = (propietarioId) =>
-  `propietario:${propietarioId}-edificios`;
+const _getEdificiosByUsuarioRedisKey = (usuarioId) =>
+  `usuario:${usuarioId}-edificios`;
 const _getEdificiosByEmpresaRedisKey = (empresaId) =>
   `empresa:${empresaId}-edificios`;
 const _getEdificiosByCiudadRedisKey = (ciudad) => `edificios:ciudad:${ciudad}`;
+const _getEdificiosByDepartamentoRedisKey = (departamento) => `edificios:departamento:${departamento}`;
 const _getEdificiosByPaisRedisKey = (pais) => `edificios:pais:${pais}`;
 const _getEdificiosConAmenidadRedisKey = (tipoAmenidad) =>
   `edificios:amenidad:${tipoAmenidad}`;
+const _getEdificiosByProximidadRedisKey = (lat, lng, radioKm) => `edificios:proximidad:${lat}:${lng}:${radioKm}`;
 
 const getEdificios = async (filtros = {}, skip = 0, limit = 10) => {
   const redisClient = connectToRedis();
@@ -36,7 +39,7 @@ const getEdificios = async (filtros = {}, skip = 0, limit = 10) => {
 
     console.log("[Mongo] getEdificios con paginación");
     const result = await Edificio.find(filtros)
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .skip(skip)
       .limit(limit)
@@ -49,7 +52,7 @@ const getEdificios = async (filtros = {}, skip = 0, limit = 10) => {
     console.log("[Error Redis] leyendo desde MongoDB sin cache", error);
     try {
       return await Edificio.find(filtros)
-        .populate("propietarioId", "nombre email")
+        .populate("usuarioId", "nombre email imagen")
         .populate("empresaInmobiliariaId", "nombre")
         .skip(skip)
         .limit(limit)
@@ -84,7 +87,7 @@ const findEdificioById = async (id) => {
 
     console.log("[Leyendo findEdificioById desde MongoDB]");
     const result = await Edificio.findById(id)
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
     if (result) {
@@ -95,15 +98,15 @@ const findEdificioById = async (id) => {
   } catch (error) {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
     return await Edificio.findById(id)
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
   }
 };
 
-const getEdificiosByPropietario = async (propietarioId) => {
+const getEdificiosByUsuario = async (usuarioId) => {
   const redisClient = connectToRedis();
-  const key = _getEdificiosByPropietarioRedisKey(propietarioId);
+  const key = _getEdificiosByUsuarioRedisKey(usuarioId);
 
   try {
     const exists = await redisClient.exists(key);
@@ -122,8 +125,8 @@ const getEdificiosByPropietario = async (propietarioId) => {
       }
     }
 
-    console.log("[Leyendo getEdificiosByPropietario desde MongoDB]");
-    const result = await Edificio.find({ propietarioId })
+    console.log("[Leyendo getEdificiosByUsuario desde MongoDB]");
+    const result = await Edificio.find({ usuarioId })
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
@@ -131,7 +134,7 @@ const getEdificiosByPropietario = async (propietarioId) => {
     return result;
   } catch (error) {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
-    return await Edificio.find({ propietarioId })
+    return await Edificio.find({ usuarioId })
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
   }
@@ -160,7 +163,7 @@ const getEdificiosByEmpresa = async (empresaInmobiliariaId) => {
 
     console.log("[Leyendo getEdificiosByEmpresa desde MongoDB]");
     const result = await Edificio.find({ empresaInmobiliariaId })
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .lean();
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
 
@@ -168,7 +171,7 @@ const getEdificiosByEmpresa = async (empresaInmobiliariaId) => {
   } catch (error) {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
     return await Edificio.find({ empresaInmobiliariaId })
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .lean();
   }
 };
@@ -196,7 +199,7 @@ const getEdificiosByCiudad = async (ciudad) => {
 
     console.log("[Leyendo getEdificiosByCiudad desde MongoDB]");
     const result = await Edificio.find({ "direccion.ciudad": ciudad })
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
@@ -205,7 +208,45 @@ const getEdificiosByCiudad = async (ciudad) => {
   } catch (error) {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
     return await Edificio.find({ "direccion.ciudad": ciudad })
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
+      .populate("empresaInmobiliariaId", "nombre")
+      .lean();
+  }
+};
+
+const getEdificiosByDepartamento = async (departamento) => {
+  const redisClient = connectToRedis();
+  const key = _getEdificiosByDepartamentoRedisKey(departamento);
+
+  try {
+    const exists = await redisClient.exists(key);
+
+    if (exists) {
+      const cached = await redisClient.get(key);
+
+      if (typeof cached === "object" && cached !== null) {
+        return cached;
+      }
+
+      if (typeof cached === "string") {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+
+    console.log("[Leyendo getEdificiosByDepartamento desde MongoDB]");
+    const result = await Edificio.find({ "direccion.departamento": departamento })
+      .populate("usuarioId", "nombre email imagen")
+      .populate("empresaInmobiliariaId", "nombre")
+      .lean();
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+
+    return result;
+  } catch (error) {
+    console.log("[Error en Redis, leyendo desde MongoDB]", error);
+    return await Edificio.find({ "direccion.departamento": departamento })
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
   }
@@ -234,7 +275,7 @@ const getEdificiosByPais = async (pais) => {
 
     console.log("[Leyendo getEdificiosByPais desde MongoDB]");
     const result = await Edificio.find({ "direccion.pais": pais })
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
@@ -243,7 +284,7 @@ const getEdificiosByPais = async (pais) => {
   } catch (error) {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
     return await Edificio.find({ "direccion.pais": pais })
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
   }
@@ -272,7 +313,7 @@ const getEdificiosConAmenidad = async (tipoAmenidad) => {
 
     console.log("[Leyendo getEdificiosConAmenidad desde MongoDB]");
     const result = await Edificio.find({ "amenidades.tipo": tipoAmenidad })
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
@@ -281,7 +322,56 @@ const getEdificiosConAmenidad = async (tipoAmenidad) => {
   } catch (error) {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
     return await Edificio.find({ "amenidades.tipo": tipoAmenidad })
-      .populate("propietarioId", "nombre email")
+      .populate("usuarioId", "nombre email imagen")
+      .populate("empresaInmobiliariaId", "nombre")
+      .lean();
+  }
+};
+
+const getEdificiosByProximidad = async (lat, lng, radioKm = 10) => {
+  const redisClient = connectToRedis();
+  const key = _getEdificiosByProximidadRedisKey(lat, lng, radioKm);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    const result = await Edificio.find({
+      "direccion.coordenadas": {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [lng, lat]
+          },
+          $maxDistance: radioKm * 1000
+        }
+      },
+      activo: true
+    })
+    .populate("usuarioId", "nombre email imagen")
+    .populate("empresaInmobiliariaId", "nombre")
+    .lean();
+    
+    await redisClient.set(key, result, { ex: 1800 });
+    
+    return result;
+  } catch (error) {
+    console.log("[Error en búsqueda geoespacial de edificios]", error);
+    return await Edificio.find({ activo: true })
+      .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
       .lean();
   }
@@ -290,13 +380,21 @@ const getEdificiosConAmenidad = async (tipoAmenidad) => {
 const createEdificio = async (edificioData) => {
   const redisClient = connectToRedis();
 
-  if (edificioData.propietarioId) {
-    const propietarioExiste = await Usuario.exists({
-      _id: edificioData.propietarioId,
-    });
-    if (!propietarioExiste) {
-      throw new Error("propietario no encontrado");
-    }
+  if (!edificioData.usuarioId) {
+    throw new Error("usuarioId es obligatorio");
+  }
+
+  const usuarioExiste = await Usuario.exists({ _id: edificioData.usuarioId });
+  if (!usuarioExiste) {
+    throw new Error("Usuario no encontrado");
+  }
+
+  if (!edificioData.direccion?.coordenadas?.lat || !edificioData.direccion?.coordenadas?.lng) {
+    throw new Error("Coordenadas (lat, lng) son obligatorias en la dirección");
+  }
+
+  if (!edificioData.direccion?.departamento) {
+    throw new Error("Departamento es obligatorio en la dirección");
   }
 
   if (edificioData.empresaInmobiliariaId) {
@@ -312,20 +410,17 @@ const createEdificio = async (edificioData) => {
   const saved = await newEdificio.save();
 
   await redisClient.del(_getEdificiosFilterRedisKey({}));
-  if (saved.propietarioId) {
-    await redisClient.del(
-      _getEdificiosByPropietarioRedisKey(saved.propietarioId.toString())
-    );
+  if (saved.usuarioId) {
+    await redisClient.del(_getEdificiosByUsuarioRedisKey(saved.usuarioId.toString()));
   }
   if (saved.empresaInmobiliariaId) {
-    await redisClient.del(
-      _getEdificiosByEmpresaRedisKey(saved.empresaInmobiliariaId.toString())
-    );
+    await redisClient.del(_getEdificiosByEmpresaRedisKey(saved.empresaInmobiliariaId.toString()));
   }
   if (saved.direccion && saved.direccion.ciudad) {
-    await redisClient.del(
-      _getEdificiosByCiudadRedisKey(saved.direccion.ciudad)
-    );
+    await redisClient.del(_getEdificiosByCiudadRedisKey(saved.direccion.ciudad));
+  }
+  if (saved.direccion && saved.direccion.departamento) {
+    await redisClient.del(_getEdificiosByDepartamentoRedisKey(saved.direccion.departamento));
   }
   if (saved.direccion && saved.direccion.pais) {
     await redisClient.del(_getEdificiosByPaisRedisKey(saved.direccion.pais));
@@ -337,69 +432,57 @@ const createEdificio = async (edificioData) => {
 const updateEdificio = async (id, payload) => {
   const redisClient = connectToRedis();
   const edificio = await Edificio.findById(id);
-  const updated = await Edificio.findByIdAndUpdate(id, payload, { new: true });
+  
+  if (!edificio) {
+    throw new Error("Edificio no encontrado");
+  }
+
+  if (payload.usuarioId && payload.usuarioId !== edificio.usuarioId?.toString()) {
+    const usuarioExiste = await Usuario.exists({ _id: payload.usuarioId });
+    if (!usuarioExiste) {
+      throw new Error("Nuevo usuario no encontrado");
+    }
+  }
+
+  const updated = await Edificio.findByIdAndUpdate(id, payload, { new: true })
+    .populate("usuarioId", "nombre email imagen")
+    .populate("empresaInmobiliariaId", "nombre");
 
   await redisClient.del(_getEdificioRedisKey(id));
   await redisClient.del(_getEdificiosFilterRedisKey({}));
 
-  if (edificio.propietarioId) {
-    await redisClient.del(
-      _getEdificiosByPropietarioRedisKey(edificio.propietarioId.toString())
-    );
+  if (edificio.usuarioId) {
+    await redisClient.del(_getEdificiosByUsuarioRedisKey(edificio.usuarioId.toString()));
   }
-  if (
-    updated.propietarioId &&
-    (!edificio.propietarioId ||
-      edificio.propietarioId.toString() !== updated.propietarioId.toString())
-  ) {
-    await redisClient.del(
-      _getEdificiosByPropietarioRedisKey(updated.propietarioId.toString())
-    );
+  if (updated.usuarioId && (!edificio.usuarioId || edificio.usuarioId.toString() !== updated.usuarioId.toString())) {
+    await redisClient.del(_getEdificiosByUsuarioRedisKey(updated.usuarioId.toString()));
   }
 
   if (edificio.empresaInmobiliariaId) {
-    await redisClient.del(
-      _getEdificiosByEmpresaRedisKey(edificio.empresaInmobiliariaId.toString())
-    );
+    await redisClient.del(_getEdificiosByEmpresaRedisKey(edificio.empresaInmobiliariaId.toString()));
   }
-  if (
-    updated.empresaInmobiliariaId &&
-    (!edificio.empresaInmobiliariaId ||
-      edificio.empresaInmobiliariaId.toString() !==
-        updated.empresaInmobiliariaId.toString())
-  ) {
-    await redisClient.del(
-      _getEdificiosByEmpresaRedisKey(updated.empresaInmobiliariaId.toString())
-    );
+  if (updated.empresaInmobiliariaId && (!edificio.empresaInmobiliariaId || edificio.empresaInmobiliariaId.toString() !== updated.empresaInmobiliariaId.toString())) {
+    await redisClient.del(_getEdificiosByEmpresaRedisKey(updated.empresaInmobiliariaId.toString()));
   }
 
   if (edificio.direccion && edificio.direccion.ciudad) {
-    await redisClient.del(
-      _getEdificiosByCiudadRedisKey(edificio.direccion.ciudad)
-    );
+    await redisClient.del(_getEdificiosByCiudadRedisKey(edificio.direccion.ciudad));
   }
-  if (
-    updated.direccion &&
-    updated.direccion.ciudad &&
-    (!edificio.direccion ||
-      !edificio.direccion.ciudad ||
-      edificio.direccion.ciudad !== updated.direccion.ciudad)
-  ) {
-    await redisClient.del(
-      _getEdificiosByCiudadRedisKey(updated.direccion.ciudad)
-    );
+  if (updated.direccion && updated.direccion.ciudad && (!edificio.direccion || !edificio.direccion.ciudad || edificio.direccion.ciudad !== updated.direccion.ciudad)) {
+    await redisClient.del(_getEdificiosByCiudadRedisKey(updated.direccion.ciudad));
+  }
+
+  if (edificio.direccion && edificio.direccion.departamento) {
+    await redisClient.del(_getEdificiosByDepartamentoRedisKey(edificio.direccion.departamento));
+  }
+  if (updated.direccion && updated.direccion.departamento && (!edificio.direccion || !edificio.direccion.departamento || edificio.direccion.departamento !== updated.direccion.departamento)) {
+    await redisClient.del(_getEdificiosByDepartamentoRedisKey(updated.direccion.departamento));
   }
 
   if (edificio.direccion && edificio.direccion.pais) {
     await redisClient.del(_getEdificiosByPaisRedisKey(edificio.direccion.pais));
   }
-  if (
-    updated.direccion &&
-    updated.direccion.pais &&
-    (!edificio.direccion ||
-      !edificio.direccion.pais ||
-      edificio.direccion.pais !== updated.direccion.pais)
-  ) {
+  if (updated.direccion && updated.direccion.pais && (!edificio.direccion || !edificio.direccion.pais || edificio.direccion.pais !== updated.direccion.pais)) {
     await redisClient.del(_getEdificiosByPaisRedisKey(updated.direccion.pais));
   }
 
@@ -410,6 +493,10 @@ const updateEdificio = async (id, payload) => {
       }
     }
   }
+
+  await redisClient.keys('edificios:proximidad:*').then(keys => {
+    keys.forEach(key => redisClient.del(key));
+  });
 
   return updated;
 };
@@ -426,20 +513,17 @@ const deleteEdificio = async (id) => {
   await redisClient.del(_getEdificioRedisKey(id));
   await redisClient.del(_getEdificiosFilterRedisKey({}));
 
-  if (edificio.propietarioId) {
-    await redisClient.del(
-      _getEdificiosByPropietarioRedisKey(edificio.propietarioId.toString())
-    );
+  if (edificio.usuarioId) {
+    await redisClient.del(_getEdificiosByUsuarioRedisKey(edificio.usuarioId.toString()));
   }
   if (edificio.empresaInmobiliariaId) {
-    await redisClient.del(
-      _getEdificiosByEmpresaRedisKey(edificio.empresaInmobiliariaId.toString())
-    );
+    await redisClient.del(_getEdificiosByEmpresaRedisKey(edificio.empresaInmobiliariaId.toString()));
   }
   if (edificio.direccion && edificio.direccion.ciudad) {
-    await redisClient.del(
-      _getEdificiosByCiudadRedisKey(edificio.direccion.ciudad)
-    );
+    await redisClient.del(_getEdificiosByCiudadRedisKey(edificio.direccion.ciudad));
+  }
+  if (edificio.direccion && edificio.direccion.departamento) {
+    await redisClient.del(_getEdificiosByDepartamentoRedisKey(edificio.direccion.departamento));
   }
   if (edificio.direccion && edificio.direccion.pais) {
     await redisClient.del(_getEdificiosByPaisRedisKey(edificio.direccion.pais));
@@ -502,11 +586,13 @@ const actualizarHorario = async (id, horario) => {
 module.exports = {
   getEdificios,
   findEdificioById,
-  getEdificiosByPropietario,
+  getEdificiosByUsuario,
   getEdificiosByEmpresa,
   getEdificiosByCiudad,
+  getEdificiosByDepartamento,
   getEdificiosByPais,
   getEdificiosConAmenidad,
+  getEdificiosByProximidad,
   createEdificio,
   updateEdificio,
   deleteEdificio,

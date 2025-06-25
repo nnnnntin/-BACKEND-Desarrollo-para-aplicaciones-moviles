@@ -4,9 +4,9 @@ const ServicioAdicional = require("../models/servicioAdicional.model");
 const {
   getProveedores,
   findProveedorById,
+  findProveedorByUsuarioId, // ← NUEVO IMPORT
   getProveedoresByTipo,
   getProveedoresVerificados,
-  getProveedoresByServicio,
   createProveedor,
   updateProveedor,
   deleteProveedor,
@@ -118,6 +118,33 @@ const getProveedoresVerificadosController = async (req, res) => {
   }
 };
 
+const getProveedorByUsuarioIdController = async (req, res) => {
+  const { usuarioId } = req.params;
+  try {
+    const proveedor = await findProveedorByUsuarioId(usuarioId);
+    if (!proveedor) {
+      return res.status(404).json({ 
+        message: `No se ha encontrado proveedor para el usuario con id: ${usuarioId}` 
+      });
+    }
+    res.status(200).json(proveedor);
+  } catch (error) {
+    console.error(error);
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: "ID de usuario inválido",
+        details: `El formato del ID '${usuarioId}' no es válido`
+      });
+    }
+
+    res.status(500).json({
+      message: "Error al buscar el proveedor por usuario",
+      details: error.message
+    });
+  }
+};
+
 const createProveedorController = async (req, res) => {
   const { error, value } = createProveedorSchema.validate(req.body);
   if (error) {
@@ -128,47 +155,81 @@ const createProveedorController = async (req, res) => {
     });
   }
 
-  const { serviciosOfrecidos } = value;
+  const { usuarioId, serviciosOfrecidos } = value;
   
+  try {
+    const usuario = await findUsuarioById(usuarioId);
+    if (!usuario) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        details: `No se ha encontrado el usuario con id: ${usuarioId}`,
+        field: "usuarioId"
+      });
+    }
+
+    if (usuario.tipoUsuario !== 'proveedor') {
+      return res.status(400).json({
+        message: "Tipo de usuario inválido",
+        details: "Solo los usuarios de tipo 'proveedor' pueden crear un perfil de proveedor",
+        field: "usuarioId"
+      });
+    }
+
+    if (!usuario.activo) {
+      return res.status(400).json({
+        message: "Usuario inactivo",
+        details: "No se puede crear un perfil de proveedor para un usuario inactivo",
+        field: "usuarioId"
+      });
+    }
+
+    const proveedorExistente = await getProveedores({ usuarioId });
+    if (proveedorExistente && proveedorExistente.length > 0) {
+      return res.status(400).json({
+        message: "Usuario ya tiene perfil de proveedor",
+        details: "El usuario ya tiene un perfil de proveedor asociado",
+        field: "usuarioId"
+      });
+    }
+
     if (serviciosOfrecidos && serviciosOfrecidos.length > 0) {
-    try {
-      for (const servicioId of serviciosOfrecidos) {
-        const servicio = await findServicioAdicionalById(servicioId);
-        if (!servicio) {
-          return res.status(404).json({
-            message: "Servicio no encontrado",
-            details: `No se ha encontrado el servicio con id: ${servicioId}`,
+      try {
+        for (const servicioId of serviciosOfrecidos) {
+          const servicio = await findServicioAdicionalById(servicioId);
+          if (!servicio) {
+            return res.status(404).json({
+              message: "Servicio no encontrado",
+              details: `No se ha encontrado el servicio con id: ${servicioId}`,
+              field: "serviciosOfrecidos"
+            });
+          }
+          
+          if (!servicio.activo) {
+            return res.status(400).json({
+              message: "Servicio inactivo",
+              details: `El servicio con id: ${servicioId} no está activo`,
+              field: "serviciosOfrecidos"
+            });
+          }
+        }
+      } catch (error) {
+        console.error(error);
+        
+        if (error.name === 'CastError') {
+          return res.status(400).json({
+            message: "ID de servicio inválido",
+            details: "Uno o más IDs de servicios tienen formato inválido",
             field: "serviciosOfrecidos"
           });
         }
         
-                if (!servicio.activo) {
-          return res.status(400).json({
-            message: "Servicio inactivo",
-            details: `El servicio con id: ${servicioId} no está activo`,
-            field: "serviciosOfrecidos"
-          });
-        }
-      }
-    } catch (error) {
-      console.error(error);
-      
-      if (error.name === 'CastError') {
         return res.status(400).json({
-          message: "ID de servicio inválido",
-          details: "Uno o más IDs de servicios tienen formato inválido",
-          field: "serviciosOfrecidos"
+          message: "Error al verificar servicios",
+          details: error.message
         });
       }
-      
-      return res.status(400).json({
-        message: "Error al verificar servicios",
-        details: error.message
-      });
     }
-  }
 
-  try {
     const proveedor = await createProveedor(value);
     res.status(201).json({ message: "Proveedor creado correctamente", proveedor });
   } catch (error) {
@@ -176,6 +237,13 @@ const createProveedorController = async (req, res) => {
 
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
+      if (field === 'usuarioId') {
+        return res.status(400).json({
+          message: "Error de duplicación",
+          details: "El usuario ya tiene un perfil de proveedor asociado",
+          field: "usuarioId"
+        });
+      }
       return res.status(400).json({
         message: "Error de duplicación",
         details: `Ya existe un proveedor con el mismo ${field}`,
@@ -188,13 +256,6 @@ const createProveedorController = async (req, res) => {
       return res.status(400).json({
         message: "Error de validación en modelo",
         details: errors
-      });
-    }
-
-    if (error.message && error.message.includes('servicios')) {
-      return res.status(400).json({
-        message: "Error con servicios ofrecidos",
-        details: "Uno o más servicios especificados no existen"
       });
     }
 
@@ -721,6 +782,7 @@ const filtrarProveedoresController = async (req, res) => {
 module.exports = {
   getProveedoresController,
   getProveedorByIdController,
+  getProveedorByUsuarioIdController, // ← NUEVO
   getProveedoresByTipoController,
   getProveedoresVerificadosController,
   createProveedorController,

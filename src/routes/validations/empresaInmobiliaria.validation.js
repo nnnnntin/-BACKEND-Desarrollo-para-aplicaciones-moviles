@@ -1,6 +1,7 @@
 const Joi = require("joi");
 
 const createEmpresaInmobiliariaSchema = Joi.object({
+  usuarioId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
   nombre: Joi.string().required(),
   tipo: Joi.string().valid('inmobiliaria', 'propietario_directo', 'administrador_edificio').required(),
   descripcion: Joi.string(),

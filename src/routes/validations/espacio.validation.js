@@ -1,17 +1,27 @@
 const Joi = require("joi");
 
+const ubicacionEspacioSchema = Joi.object({
+  edificioId: Joi.string().required(),
+  piso: Joi.number().required(),
+  sector: Joi.string().required(),
+  coordenadas: Joi.object({
+    lat: Joi.number().min(-90).max(90).required(),
+    lng: Joi.number().min(-180).max(180).required()
+  }).required(),
+  direccionCompleta: Joi.object({
+    calle: Joi.string().required(),
+    numero: Joi.string().required(),
+    ciudad: Joi.string().required(),
+    departamento: Joi.string().required(),
+    codigoPostal: Joi.string().required(),
+    pais: Joi.string().required()
+  }).required()
+});
+
 const createEspacioSchema = Joi.object({
   nombre: Joi.string().required(),
   tipo: Joi.string().valid('oficina', 'sala_reunion', 'escritorio_flexible', 'otro').required(),
-  ubicacion: Joi.object({
-    edificioId: Joi.string(),
-    piso: Joi.number(),
-    sector: Joi.string(),
-    coordenadas: Joi.object({
-      lat: Joi.number(),
-      lng: Joi.number()
-    })
-  }),
+  ubicacion: ubicacionEspacioSchema.required(),
   capacidad: Joi.number().integer().min(1).required(),
   amenidades: Joi.array().items(Joi.string()),
   disponibilidad: Joi.object({
@@ -28,7 +38,7 @@ const createEspacioSchema = Joi.object({
   }),
   imagenes: Joi.array().items(Joi.string().uri()),
   estado: Joi.string().valid('disponible', 'ocupado', 'mantenimiento', 'reservado').default('disponible'),
-  propietarioId: Joi.string(),
+  usuarioId: Joi.string().required(),
   empresaInmobiliariaId: Joi.string(),
   activo: Joi.boolean().default(true)
 });
@@ -41,8 +51,16 @@ const updateEspacioSchema = Joi.object({
     piso: Joi.number(),
     sector: Joi.string(),
     coordenadas: Joi.object({
-      lat: Joi.number(),
-      lng: Joi.number()
+      lat: Joi.number().min(-90).max(90),
+      lng: Joi.number().min(-180).max(180)
+    }),
+    direccionCompleta: Joi.object({
+      calle: Joi.string(),
+      numero: Joi.string(),
+      ciudad: Joi.string(),
+      departamento: Joi.string(),
+      codigoPostal: Joi.string(),
+      pais: Joi.string()
     })
   }),
   capacidad: Joi.number().integer().min(1),
@@ -61,6 +79,8 @@ const updateEspacioSchema = Joi.object({
   }),
   imagenes: Joi.array().items(Joi.string().uri()),
   estado: Joi.string().valid('disponible', 'ocupado', 'mantenimiento', 'reservado'),
+  usuarioId: Joi.string(),
+  empresaInmobiliariaId: Joi.string(),
   activo: Joi.boolean()
 }).min(1);
 
@@ -72,7 +92,13 @@ const filtrarEspaciosSchema = Joi.object({
   precioMaximo: Joi.number().min(0),
   estado: Joi.string().valid('disponible', 'ocupado', 'mantenimiento', 'reservado'),
   amenidades: Joi.array().items(Joi.string()),
-  diaDisponible: Joi.string().valid('lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo')
+  diaDisponible: Joi.string().valid('lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'),
+  ciudad: Joi.string(),
+  departamento: Joi.string(),
+  pais: Joi.string(),
+  lat: Joi.number().min(-90).max(90),
+  lng: Joi.number().min(-180).max(180),
+  radioKm: Joi.number().min(0)
 });
 
 module.exports = {

@@ -8,14 +8,29 @@ const joiObjectIdString = Joi.string().custom((value, helpers) => {
   return value;
 }, 'validación de ObjectId');
 
+// Esquema de ubicación estandarizado
+const ubicacionSchema = Joi.object({
+  edificioId: joiObjectIdString.required(),
+  piso: Joi.number().required(),
+  numero: Joi.string().required(),
+  coordenadas: Joi.object({
+    lat: Joi.number().min(-90).max(90).required(),
+    lng: Joi.number().min(-180).max(180).required()
+  }).required(),
+  direccionCompleta: Joi.object({
+    calle: Joi.string().required(),
+    numero: Joi.string().required(),
+    ciudad: Joi.string().required(),
+    departamento: Joi.string().required(),
+    codigoPostal: Joi.string().required(),
+    pais: Joi.string().required()
+  }).required()
+});
+
 const createSalaReunionSchema = Joi.object({
   nombre: Joi.string().required(),
   codigo: Joi.string().required(),
-  ubicacion: Joi.object({
-    edificioId: joiObjectIdString.required(),
-    piso: Joi.number().required(),
-    numero: Joi.string().required()
-  }).required(),
+  ubicacion: ubicacionSchema.required(),
   capacidad: Joi.number().integer().min(1).required(),
   equipamiento: Joi.array().items(
     Joi.object({
@@ -39,7 +54,7 @@ const createSalaReunionSchema = Joi.object({
       Joi.string().valid('lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo')
     )
   }),
-  propietarioId: joiObjectIdString,
+  usuarioId: joiObjectIdString.required(),
   empresaInmobiliariaId: joiObjectIdString,
   estado: Joi.string().valid('disponible', 'ocupada', 'mantenimiento', 'reservada').default('disponible'),
   activo: Joi.boolean().default(true)
@@ -50,7 +65,19 @@ const updateSalaReunionSchema = Joi.object({
   ubicacion: Joi.object({
     edificioId: joiObjectIdString,
     piso: Joi.number(),
-    numero: Joi.string()
+    numero: Joi.string(),
+    coordenadas: Joi.object({
+      lat: Joi.number().min(-90).max(90),
+      lng: Joi.number().min(-180).max(180)
+    }),
+    direccionCompleta: Joi.object({
+      calle: Joi.string(),
+      numero: Joi.string(),
+      ciudad: Joi.string(),
+      departamento: Joi.string(),
+      codigoPostal: Joi.string(),
+      pais: Joi.string()
+    })
   }),
   capacidad: Joi.number().integer().min(1),
   equipamiento: Joi.array().items(
@@ -75,7 +102,7 @@ const updateSalaReunionSchema = Joi.object({
       Joi.string().valid('lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo')
     )
   }),
-  propietarioId: joiObjectIdString,
+  usuarioId: joiObjectIdString,
   empresaInmobiliariaId: joiObjectIdString,
   estado: Joi.string().valid('disponible', 'ocupada', 'mantenimiento', 'reservada'),
   activo: Joi.boolean()
@@ -88,7 +115,13 @@ const filtrarSalasReunionSchema = Joi.object({
   configuracion: Joi.string().valid('mesa_redonda', 'auditorio', 'en_u', 'aula', 'flexible'),
   precioMaximoPorHora: Joi.number().min(0),
   estado: Joi.string().valid('disponible', 'ocupada', 'mantenimiento', 'reservada'),
-  fechaDisponibilidad: Joi.date()
+  fechaDisponibilidad: Joi.date(),
+  ciudad: Joi.string(),
+  departamento: Joi.string(),
+  pais: Joi.string(),
+  lat: Joi.number().min(-90).max(90),
+  lng: Joi.number().min(-180).max(180),
+  radioKm: Joi.number().min(0)
 });
 
 module.exports = {

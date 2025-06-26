@@ -9,7 +9,7 @@ const joiObjectIdString = Joi.string().custom((value, helpers) => {
 }, 'validación de ObjectId');
 
 const ubicacionSchema = Joi.object({
-  edificioId: joiObjectIdString.required(),
+  edificioId: Joi.string().optional().allow(''),
   piso: Joi.number().required(),
   numero: Joi.string().required(),
   coordenadas: Joi.object({

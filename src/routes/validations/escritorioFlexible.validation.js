@@ -95,6 +95,7 @@ const filtrarEscritoriosFlexiblesSchema = Joi.object({
   edificioId: Joi.string(),
   piso: Joi.number(),
   zona: Joi.string(),
+  nombre: Joi.string().min(2), // Nuevo campo agregado para filtros
   tipo: Joi.string().valid('individual', 'compartido', 'standing'),
   amenidades: Joi.array().items(Joi.string()),
   precioMaximoPorDia: Joi.number().min(0),

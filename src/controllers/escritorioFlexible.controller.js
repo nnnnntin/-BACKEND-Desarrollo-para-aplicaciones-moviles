@@ -13,7 +13,8 @@ const {
   cambiarEstadoEscritorio,
   agregarAmenidad,
   eliminarAmenidad,
-  getEscritoriosDisponibles
+  getEscritoriosDisponibles,
+  getEscritoriosByNombre // Nueva función agregada
 } = require("../repositories/escritorioFlexible.repository");
 const {
   createEscritorioFlexibleSchema,
@@ -98,6 +99,29 @@ const getEscritorioFlexibleByCodigoController = async (req, res) => {
     console.error(error);
     res.status(500).json({
       message: "Error al buscar el escritorio por código",
+      details: error.message
+    });
+  }
+};
+
+// Nuevo controller para buscar por nombre
+const getEscritoriosByNombreController = async (req, res) => {
+  const { nombre } = req.params;
+  
+  if (!nombre || nombre.trim().length < 2) {
+    return res.status(400).json({
+      message: "Parámetro inválido",
+      details: "El nombre debe tener al menos 2 caracteres"
+    });
+  }
+
+  try {
+    const escritorios = await getEscritoriosByNombre(nombre.trim());
+    res.status(200).json(escritorios);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Error al buscar escritorios por nombre",
       details: error.message
     });
   }
@@ -263,7 +287,19 @@ const createEscritorioFlexibleController = async (req, res) => {
   }
 
   try {
-        if (value.ubicacion && value.ubicacion.edificioId) {
+    // Generar nombre automático si no se proporciona
+    if (!value.nombre || value.nombre.trim() === '') {
+      let nombreGenerado = 'Escritorio';
+      if (value.ubicacion?.zona) {
+        nombreGenerado += ` Zona ${value.ubicacion.zona}`;
+      }
+      if (value.ubicacion?.numero) {
+        nombreGenerado += ` #${value.ubicacion.numero}`;
+      }
+      value.nombre = nombreGenerado;
+    }
+
+    if (value.ubicacion && value.ubicacion.edificioId) {
       const edificioExiste = await Edificio.findById(value.ubicacion.edificioId);
       if (!edificioExiste) {
         return res.status(404).json({
@@ -273,7 +309,7 @@ const createEscritorioFlexibleController = async (req, res) => {
         });
       }
 
-            if (!edificioExiste.activo) {
+      if (!edificioExiste.activo) {
         return res.status(400).json({
           message: "Edificio inactivo",
           details: "El edificio especificado no está activo",
@@ -282,7 +318,7 @@ const createEscritorioFlexibleController = async (req, res) => {
       }
     }
 
-        if (value.propietarioId) {
+    if (value.propietarioId) {
       const propietarioExiste = await Usuario.findById(value.propietarioId);
       if (!propietarioExiste) {
         return res.status(404).json({
@@ -292,7 +328,7 @@ const createEscritorioFlexibleController = async (req, res) => {
         });
       }
 
-            if (!propietarioExiste.activo) {
+      if (!propietarioExiste.activo) {
         return res.status(400).json({
           message: "Propietario inactivo",
           details: "El propietario especificado no está activo",
@@ -301,7 +337,7 @@ const createEscritorioFlexibleController = async (req, res) => {
       }
     }
 
-        if (value.empresaInmobiliariaId) {
+    if (value.empresaInmobiliariaId) {
       const empresaExiste = await EmpresaInmobiliaria.findById(value.empresaInmobiliariaId);
       if (!empresaExiste) {
         return res.status(404).json({
@@ -311,7 +347,7 @@ const createEscritorioFlexibleController = async (req, res) => {
         });
       }
 
-            if (!empresaExiste.activo) {
+      if (!empresaExiste.activo) {
         return res.status(400).json({
           message: "Empresa inmobiliaria inactiva",
           details: "La empresa inmobiliaria especificada no está activa",
@@ -367,7 +403,7 @@ const updateEscritorioFlexibleController = async (req, res) => {
   }
 
   try {
-        if (value.ubicacion && value.ubicacion.edificioId) {
+    if (value.ubicacion && value.ubicacion.edificioId) {
       const edificioExiste = await Edificio.findById(value.ubicacion.edificioId);
       if (!edificioExiste) {
         return res.status(404).json({
@@ -377,7 +413,7 @@ const updateEscritorioFlexibleController = async (req, res) => {
         });
       }
 
-            if (!edificioExiste.activo) {
+      if (!edificioExiste.activo) {
         return res.status(400).json({
           message: "Edificio inactivo",
           details: "El edificio especificado no está activo",
@@ -386,7 +422,7 @@ const updateEscritorioFlexibleController = async (req, res) => {
       }
     }
 
-        if (value.propietarioId) {
+    if (value.propietarioId) {
       const propietarioExiste = await Usuario.findById(value.propietarioId);
       if (!propietarioExiste) {
         return res.status(404).json({
@@ -396,7 +432,7 @@ const updateEscritorioFlexibleController = async (req, res) => {
         });
       }
 
-            if (!propietarioExiste.activo) {
+      if (!propietarioExiste.activo) {
         return res.status(400).json({
           message: "Propietario inactivo",
           details: "El propietario especificado no está activo",
@@ -405,7 +441,7 @@ const updateEscritorioFlexibleController = async (req, res) => {
       }
     }
 
-        if (value.empresaInmobiliariaId) {
+    if (value.empresaInmobiliariaId) {
       const empresaExiste = await EmpresaInmobiliaria.findById(value.empresaInmobiliariaId);
       if (!empresaExiste) {
         return res.status(404).json({
@@ -415,7 +451,7 @@ const updateEscritorioFlexibleController = async (req, res) => {
         });
       }
 
-            if (!empresaExiste.activo) {
+      if (!empresaExiste.activo) {
         return res.status(400).json({
           message: "Empresa inmobiliaria inactiva",
           details: "La empresa inmobiliaria especificada no está activa",
@@ -728,6 +764,8 @@ const filtrarEscritoriosFlexiblesController = async (req, res) => {
     if (value.amenidades) filtros["amenidades.tipo"] = { $in: value.amenidades };
     if (value.precioMaximoPorDia !== undefined) filtros["precios.porDia"] = { $lte: parseFloat(value.precioMaximoPorDia) };
     if (value.estado) filtros.estado = value.estado;
+    // Agregar filtro por nombre si se proporciona
+    if (value.nombre) filtros.nombre = { $regex: value.nombre, $options: 'i' };
 
     const escritorios = await getEscritoriosFlexibles(filtros);
     res.status(200).json(escritorios);
@@ -751,6 +789,7 @@ module.exports = {
   getEscritoriosFlexiblesController,
   getEscritorioFlexibleByIdController,
   getEscritorioFlexibleByCodigoController,
+  getEscritoriosByNombreController, // Nuevo export agregado
   getEscritoriosByEdificioController,
   getEscritoriosByTipoController,
   getEscritoriosByAmenidadesController,

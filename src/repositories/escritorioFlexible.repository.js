@@ -9,6 +9,8 @@ const _getEscritoriosFilterRedisKey = (filtros, skip, limit) =>
   `escritorios:${JSON.stringify(filtros)}:skip=${skip}:limit=${limit}`;
 const _getEscritorioByCodigoRedisKey = (codigo) =>
   `escritorio:codigo:${codigo}`;
+const _getEscritoriosByNombreRedisKey = (nombre) =>
+  `escritorios:nombre:${nombre}`;
 const _getEscritoriosByEdificioRedisKey = (edificioId) =>
   `edificio:${edificioId}-escritorios`;
 const _getEscritoriosByTipoRedisKey = (tipo) => `escritorios:tipo:${tipo}`;
@@ -151,6 +153,51 @@ const findEscritorioFlexibleByCodigo = async (codigo) => {
   } catch (error) {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
     return await EscritorioFlexible.findOne({ codigo })
+      .populate("ubicacion.edificioId")
+      .populate("usuarioId", "nombre email imagen")
+      .populate("empresaInmobiliariaId", "nombre")
+      .lean();
+  }
+};
+
+// Nueva función para buscar por nombre
+const getEscritoriosByNombre = async (nombre) => {
+  const redisClient = connectToRedis();
+  const key = _getEscritoriosByNombreRedisKey(nombre);
+
+  try {
+    const exists = await redisClient.exists(key);
+
+    if (exists) {
+      const cached = await redisClient.get(key);
+
+      if (typeof cached === "object" && cached !== null) {
+        return cached;
+      }
+
+      if (typeof cached === "string") {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+
+    console.log("[Leyendo getEscritoriosByNombre desde MongoDB]");
+    const result = await EscritorioFlexible.find({
+      nombre: { $regex: nombre, $options: 'i' }
+    })
+      .populate("ubicacion.edificioId")
+      .populate("usuarioId", "nombre email imagen")
+      .populate("empresaInmobiliariaId", "nombre")
+      .lean();
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+
+    return result;
+  } catch (error) {
+    console.log("[Error en Redis, leyendo desde MongoDB]", error);
+    return await EscritorioFlexible.find({
+      nombre: { $regex: nombre, $options: 'i' }
+    })
       .populate("ubicacion.edificioId")
       .populate("usuarioId", "nombre email imagen")
       .populate("empresaInmobiliariaId", "nombre")
@@ -558,6 +605,9 @@ const createEscritorioFlexible = async (escritorioData) => {
   if (saved.codigo) {
     await redisClient.del(_getEscritorioByCodigoRedisKey(saved.codigo));
   }
+  if (saved.nombre) {
+    await redisClient.del(_getEscritoriosByNombreRedisKey(saved.nombre));
+  }
   if (saved.ubicacion && saved.ubicacion.edificioId) {
     await redisClient.del(
       _getEscritoriosByEdificioRedisKey(saved.ubicacion.edificioId.toString())
@@ -605,6 +655,14 @@ const updateEscritorioFlexible = async (id, payload) => {
   }
   if (updated.codigo && escritorio.codigo !== updated.codigo) {
     await redisClient.del(_getEscritorioByCodigoRedisKey(updated.codigo));
+  }
+
+  // Limpiar cache de nombres
+  if (escritorio.nombre) {
+    await redisClient.del(_getEscritoriosByNombreRedisKey(escritorio.nombre));
+  }
+  if (updated.nombre && escritorio.nombre !== updated.nombre) {
+    await redisClient.del(_getEscritoriosByNombreRedisKey(updated.nombre));
   }
 
   if (escritorio.ubicacion && escritorio.ubicacion.edificioId) {
@@ -670,6 +728,9 @@ const deleteEscritorioFlexible = async (id) => {
 
   if (escritorio.codigo) {
     await redisClient.del(_getEscritorioByCodigoRedisKey(escritorio.codigo));
+  }
+  if (escritorio.nombre) {
+    await redisClient.del(_getEscritoriosByNombreRedisKey(escritorio.nombre));
   }
   if (escritorio.ubicacion && escritorio.ubicacion.edificioId) {
     await redisClient.del(
@@ -805,6 +866,7 @@ module.exports = {
   getEscritoriosFlexibles,
   findEscritorioFlexibleById,
   findEscritorioFlexibleByCodigo,
+  getEscritoriosByNombre, // Nueva función exportada
   getEscritoriosByEdificio,
   getEscritoriosByTipo,
   getEscritoriosByAmenidades,

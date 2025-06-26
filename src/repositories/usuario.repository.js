@@ -14,11 +14,11 @@ const _getUsuariosByTipoRedisKey = (tipoUsuario) => `usuarios:tipo:${tipoUsuario
 const encryptSensitiveData = (data) => {
   const algorithm = 'aes-256-cbc';
   const keyString = process.env.ENCRYPTION_KEY || 'your-secret-key-32-characters!!';
-  
+
   // SOLUCIÓN 1: Crear un hash SHA-256 de la clave para garantizar 32 bytes
   const key = crypto.createHash('sha256').update(keyString).digest();
   const iv = crypto.randomBytes(16);
-  
+
   const cipher = crypto.createCipheriv(algorithm, key, iv);
   let encrypted = cipher.update(data, 'utf8', 'hex');
   encrypted += cipher.final('hex');
@@ -29,17 +29,17 @@ const decryptSensitiveData = (encryptedData) => {
   try {
     const algorithm = 'aes-256-cbc';
     const keyString = process.env.ENCRYPTION_KEY || 'your-secret-key-32-characters!!';
-    
+
     // Usar el mismo método para generar la clave
     const key = crypto.createHash('sha256').update(keyString).digest();
-    
+
     const [ivHex, encrypted] = encryptedData.split(':');
     const iv = Buffer.from(ivHex, 'hex');
-    
+
     const decipher = crypto.createDecipheriv(algorithm, key, iv);
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
-    
+
     return decrypted;
   } catch (error) {
     console.error('Error decrypting sensitive data:', error);
@@ -57,8 +57,8 @@ const detectCardBrand = (cardNumber) => {
   const firstFour = cardNumber.substring(0, 4);
 
   if (firstDigit === '4') return 'visa';
-  if (['51', '52', '53', '54', '55'].includes(firstTwo) || 
-      (parseInt(firstFour) >= 2221 && parseInt(firstFour) <= 2720)) return 'mastercard';
+  if (['51', '52', '53', '54', '55'].includes(firstTwo) ||
+    (parseInt(firstFour) >= 2221 && parseInt(firstFour) <= 2720)) return 'mastercard';
   if (['34', '37'].includes(firstTwo)) return 'american_express';
   if (firstFour === '6011' || firstTwo === '65') return 'discover';
   return 'otro';
@@ -67,16 +67,16 @@ const detectCardBrand = (cardNumber) => {
 // ← MODIFICADO: Función para procesar métodos de pago antes de guardar
 const processMetodosPago = (metodosPago) => {
   if (!metodosPago || !Array.isArray(metodosPago)) return [];
-  
+
   return metodosPago.map(metodo => {
     const processed = { ...metodo };
-    
+
     if (metodo.tipo === 'tarjeta_credito' || metodo.tipo === 'tarjeta_debito') {
       // Encriptar datos sensibles de tarjeta
       processed.numero = encryptSensitiveData(metodo.numero);
       processed.ultimosDigitos = getLastDigits(metodo.numero);
       processed.cvc = encryptSensitiveData(metodo.cvc);
-      
+
       // Detectar marca si no se proporciona
       if (!metodo.marca) {
         processed.marca = detectCardBrand(metodo.numero);
@@ -86,7 +86,7 @@ const processMetodosPago = (metodosPago) => {
       processed.numeroCuenta = encryptSensitiveData(metodo.numeroCuenta);
       processed.ultimosDigitos = getLastDigits(metodo.numeroCuenta);
     }
-    
+
     return processed;
   });
 };
@@ -99,7 +99,7 @@ const getUsuarios = async (filtros = {}, skip = 0, limit = 10) => {
     if (await redisClient.exists(key)) {
       const cached = await redisClient.get(key);
       if (typeof cached === "string") {
-        try { return JSON.parse(cached); } catch {}
+        try { return JSON.parse(cached); } catch { }
       } else if (cached) {
         return cached;
       }
@@ -126,30 +126,30 @@ const getUsuarios = async (filtros = {}, skip = 0, limit = 10) => {
 const findUsuarioById = async (id) => {
   const redisClient = connectToRedis();
   const key = _getUsuarioRedisKey(id);
-  
+
   try {
     const exists = await redisClient.exists(key);
-    
+
     if (exists) {
       const cached = await redisClient.get(key);
-      
+
       if (typeof cached === 'object' && cached !== null) {
         return cached;
       }
-      
+
       if (typeof cached === 'string') {
         try {
           return JSON.parse(cached);
-        } catch (parseError) {}
+        } catch (parseError) { }
       }
     }
-    
+
     console.log("[Leyendo findUsuarioById desde MongoDB]");
     const result = await Usuario.findById(id).lean();
     if (result) {
       await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
     }
-    
+
     return result;
   } catch (error) {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
@@ -160,30 +160,30 @@ const findUsuarioById = async (id) => {
 const findUsuarioByEmail = async (email) => {
   const redisClient = connectToRedis();
   const key = _getUsuarioByEmailRedisKey(email);
-  
+
   try {
     const exists = await redisClient.exists(key);
-    
+
     if (exists) {
       const cached = await redisClient.get(key);
-      
+
       if (typeof cached === 'object' && cached !== null) {
         return cached;
       }
-      
+
       if (typeof cached === 'string') {
         try {
           return JSON.parse(cached);
-        } catch (parseError) {}
+        } catch (parseError) { }
       }
     }
-    
+
     console.log("[Leyendo findUsuarioByEmail desde MongoDB]");
     const result = await Usuario.findOne({ email }).lean();
     if (result) {
       await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
     }
-    
+
     return result;
   } catch (error) {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
@@ -194,30 +194,30 @@ const findUsuarioByEmail = async (email) => {
 const findUsuarioByUsername = async (username) => {
   const redisClient = connectToRedis();
   const key = _getUsuarioByUsernameRedisKey(username);
-  
+
   try {
     const exists = await redisClient.exists(key);
-    
+
     if (exists) {
       const cached = await redisClient.get(key);
-      
+
       if (typeof cached === 'object' && cached !== null) {
         return cached;
       }
-      
+
       if (typeof cached === 'string') {
         try {
           return JSON.parse(cached);
-        } catch (parseError) {}
+        } catch (parseError) { }
       }
     }
-    
+
     console.log("[Leyendo findUsuarioByUsername desde MongoDB]");
     const result = await Usuario.findOne({ username }).lean();
     if (result) {
       await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
     }
-    
+
     return result;
   } catch (error) {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
@@ -227,44 +227,54 @@ const findUsuarioByUsername = async (username) => {
 
 const registerUsuario = async (userData) => {
   const redisClient = connectToRedis();
-  
+  // Hash de la contraseña
   const hashedPassword = await bcrypt.hash(userData.password, 10);
-  
+
+  // Fallback para nombre y apellidos
+  const nombreFinal =
+    userData.nombre && userData.nombre.trim().length > 0
+      ? userData.nombre.trim()
+      : userData.username;
+  const apellidosFinal =
+    userData.apellidos && userData.apellidos.trim().length > 0
+      ? userData.apellidos.trim()
+      : '';
+
+  // Preparación de datos para MongoDB
   const newUsuarioData = {
     ...userData,
-    password: hashedPassword
+    password: hashedPassword,
+    nombre: nombreFinal,
+    apellidos: apellidosFinal,
   };
 
-  // ← CAMBIO: Procesar métodos de pago si existen
+  // Procesar métodos de pago si existen
   if (userData.metodoPago && Array.isArray(userData.metodoPago)) {
     newUsuarioData.metodoPago = processMetodosPago(userData.metodoPago);
     console.log('🟢 [Repository] Métodos de pago procesados:', newUsuarioData.metodoPago.length);
   }
 
-  console.log('🔵 [Repository] Datos recibidos para registro:', {
-    username: userData.username,
-    email: userData.email,
-    tipoUsuario: userData.tipoUsuario,
-    imagen: userData.imagen,
-    hasImagen: !!userData.imagen,
-    imagenType: typeof userData.imagen,
-    metodosPagoCount: newUsuarioData.metodoPago?.length || 0
-  });
-
-  if (userData.imagen && typeof userData.imagen === 'string' && userData.imagen.trim()) {
+  // Incluir imagen sólo si es válida
+  if (
+    userData.imagen &&
+    typeof userData.imagen === 'string' &&
+    userData.imagen.trim()
+  ) {
     newUsuarioData.imagen = userData.imagen.trim();
     console.log('🟢 [Repository] Campo imagen incluido:', newUsuarioData.imagen);
   } else {
     console.log('🟡 [Repository] Campo imagen no incluido - valor:', userData.imagen);
+    delete newUsuarioData.imagen;
   }
-  
+
+  // Logging de datos finales (sin exponer el hash)
   console.log('🔵 [Repository] Datos finales para MongoDB:', {
     ...newUsuarioData,
     password: '[HASH]'
   });
 
+  // Creación y guardado del nuevo usuario
   const newUsuario = new Usuario(newUsuarioData);
-  
   try {
     const saved = await newUsuario.save();
     console.log('🟢 [Repository] Usuario guardado exitosamente:', {
@@ -276,17 +286,12 @@ const registerUsuario = async (userData) => {
       metodosPagoCount: saved.metodoPago?.length || 0
     });
 
+    // Invalidar cachés relacionadas
     await redisClient.del(_getUsuariosFilterRedisKey({}));
-    if (saved.email) {
-      await redisClient.del(_getUsuarioByEmailRedisKey(saved.email));
-    }
-    if (saved.username) {
-      await redisClient.del(_getUsuarioByUsernameRedisKey(saved.username));
-    }
-    if (saved.tipoUsuario) {
-      await redisClient.del(_getUsuariosByTipoRedisKey(saved.tipoUsuario));
-    }
-    
+    if (saved.email) await redisClient.del(_getUsuarioByEmailRedisKey(saved.email));
+    if (saved.username) await redisClient.del(_getUsuarioByUsernameRedisKey(saved.username));
+    if (saved.tipoUsuario) await redisClient.del(_getUsuariosByTipoRedisKey(saved.tipoUsuario));
+
     return saved;
   } catch (error) {
     console.error('🔴 [Repository] Error guardando usuario:', error);
@@ -294,13 +299,14 @@ const registerUsuario = async (userData) => {
   }
 };
 
+
 const loginUsuario = async (email, password) => {
   const usuario = await findUsuarioByEmail(email);
   if (!usuario) return null;
-  
+
   const isPasswordValid = await bcrypt.compare(password, usuario.password);
   if (!isPasswordValid) return null;
-  
+
   return usuario;
 };
 
@@ -311,7 +317,7 @@ const isValidPassword = async (password, userPassword) => {
 const updateUsuario = async (id, payload) => {
   const redisClient = connectToRedis();
   const usuario = await Usuario.findById(id);
-  
+
   if (!usuario) {
     return null;
   }
@@ -334,9 +340,9 @@ const updateUsuario = async (id, payload) => {
   if (payload.password) {
     payload.password = await bcrypt.hash(payload.password, 10);
   }
-  
+
   const updated = await Usuario.findByIdAndUpdate(id, payload, { new: true });
-  
+
   console.log('🟢 [Repository] Usuario actualizado:', {
     id: updated._id,
     imagen: updated.imagen,
@@ -346,28 +352,28 @@ const updateUsuario = async (id, payload) => {
 
   await redisClient.del(_getUsuarioRedisKey(id));
   await redisClient.del(_getUsuariosFilterRedisKey({}));
-  
+
   if (usuario.email) {
     await redisClient.del(_getUsuarioByEmailRedisKey(usuario.email));
   }
   if (updated.email && usuario.email !== updated.email) {
     await redisClient.del(_getUsuarioByEmailRedisKey(updated.email));
   }
-  
+
   if (usuario.username) {
     await redisClient.del(_getUsuarioByUsernameRedisKey(usuario.username));
   }
   if (updated.username && usuario.username !== updated.username) {
     await redisClient.del(_getUsuarioByUsernameRedisKey(updated.username));
   }
-  
+
   if (usuario.tipoUsuario) {
     await redisClient.del(_getUsuariosByTipoRedisKey(usuario.tipoUsuario));
   }
   if (updated.tipoUsuario && usuario.tipoUsuario !== updated.tipoUsuario) {
     await redisClient.del(_getUsuariosByTipoRedisKey(updated.tipoUsuario));
   }
-  
+
   return updated;
 };
 
@@ -375,10 +381,10 @@ const deleteUsuario = async (id) => {
   const redisClient = connectToRedis();
   const usuario = await Usuario.findById(id);
   const removed = await Usuario.findByIdAndDelete(id);
-  
+
   await redisClient.del(_getUsuarioRedisKey(id));
   await redisClient.del(_getUsuariosFilterRedisKey({}));
-  
+
   if (usuario.email) {
     await redisClient.del(_getUsuarioByEmailRedisKey(usuario.email));
   }
@@ -388,7 +394,7 @@ const deleteUsuario = async (id) => {
   if (usuario.tipoUsuario) {
     await redisClient.del(_getUsuariosByTipoRedisKey(usuario.tipoUsuario));
   }
-  
+
   return removed;
 };
 
@@ -399,28 +405,28 @@ const updateMembresiaUsuario = async (id, membresiaData) => {
 const getUsuariosByTipo = async (tipoUsuario) => {
   const redisClient = connectToRedis();
   const key = _getUsuariosByTipoRedisKey(tipoUsuario);
-  
+
   try {
     const exists = await redisClient.exists(key);
-    
+
     if (exists) {
       const cached = await redisClient.get(key);
-      
+
       if (typeof cached === 'object' && cached !== null) {
         return cached;
       }
-      
+
       if (typeof cached === 'string') {
         try {
           return JSON.parse(cached);
-        } catch (parseError) {}
+        } catch (parseError) { }
       }
     }
-    
+
     console.log("[Leyendo getUsuariosByTipo desde MongoDB]");
     const result = await Usuario.find({ tipoUsuario }).lean();
     await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
-    
+
     return result;
   } catch (error) {
     console.log("[Error en Redis, leyendo desde MongoDB]", error);
@@ -435,7 +441,7 @@ const cambiarRolUsuario = async (id, nuevoRol) => {
 // ← NUEVAS FUNCIONES: Gestión específica de métodos de pago
 const addMetodoPago = async (usuarioId, metodoPagoData) => {
   const redisClient = connectToRedis();
-  
+
   try {
     const usuario = await Usuario.findById(usuarioId);
     if (!usuario) {
@@ -456,10 +462,10 @@ const addMetodoPago = async (usuarioId, metodoPagoData) => {
     const usuarioActualizado = await usuario.save();
 
     await redisClient.del(_getUsuarioRedisKey(usuarioId));
-    
+
     console.log('🟢 [Repository] Método de pago agregado exitosamente');
     return usuarioActualizado;
-    
+
   } catch (error) {
     console.error('🔴 [Repository] Error agregando método de pago:', error);
     throw error;
@@ -468,7 +474,7 @@ const addMetodoPago = async (usuarioId, metodoPagoData) => {
 
 const updateMetodoPago = async (usuarioId, metodoPagoId, updateData) => {
   const redisClient = connectToRedis();
-  
+
   try {
     const usuario = await Usuario.findById(usuarioId);
     if (!usuario) {
@@ -498,10 +504,10 @@ const updateMetodoPago = async (usuarioId, metodoPagoId, updateData) => {
 
     const usuarioActualizado = await usuario.save();
     await redisClient.del(_getUsuarioRedisKey(usuarioId));
-    
+
     console.log('🟢 [Repository] Método de pago actualizado exitosamente');
     return usuarioActualizado;
-    
+
   } catch (error) {
     console.error('🔴 [Repository] Error actualizando método de pago:', error);
     throw error;
@@ -510,7 +516,7 @@ const updateMetodoPago = async (usuarioId, metodoPagoId, updateData) => {
 
 const deleteMetodoPago = async (usuarioId, metodoPagoId) => {
   const redisClient = connectToRedis();
-  
+
   try {
     const usuario = await Usuario.findById(usuarioId);
     if (!usuario) {
@@ -532,10 +538,10 @@ const deleteMetodoPago = async (usuarioId, metodoPagoId) => {
     const usuarioActualizado = await usuario.save();
 
     await redisClient.del(_getUsuarioRedisKey(usuarioId));
-    
+
     console.log('🟢 [Repository] Método de pago eliminado exitosamente');
     return usuarioActualizado;
-    
+
   } catch (error) {
     console.error('🔴 [Repository] Error eliminando método de pago:', error);
     throw error;
@@ -544,7 +550,7 @@ const deleteMetodoPago = async (usuarioId, metodoPagoId) => {
 
 const setDefaultMetodoPago = async (usuarioId, metodoPagoId) => {
   const redisClient = connectToRedis();
-  
+
   try {
     const usuario = await Usuario.findById(usuarioId);
     if (!usuario) {
@@ -567,13 +573,13 @@ const setDefaultMetodoPago = async (usuarioId, metodoPagoId) => {
 
     // Establecer como predeterminado
     metodoPago.predeterminado = true;
-    
+
     const usuarioActualizado = await usuario.save();
     await redisClient.del(_getUsuarioRedisKey(usuarioId));
-    
+
     console.log('🟢 [Repository] Método de pago establecido como predeterminado');
     return usuarioActualizado;
-    
+
   } catch (error) {
     console.error('🔴 [Repository] Error estableciendo método predeterminado:', error);
     throw error;
@@ -583,7 +589,7 @@ const setDefaultMetodoPago = async (usuarioId, metodoPagoId) => {
 // Función para obtener métodos de pago sin datos sensibles
 const getMetodosPagoSeguros = (metodosPago) => {
   if (!metodosPago || !Array.isArray(metodosPago)) return [];
-  
+
   return metodosPago.map(metodo => {
     const metodoSeguro = {
       _id: metodo._id,

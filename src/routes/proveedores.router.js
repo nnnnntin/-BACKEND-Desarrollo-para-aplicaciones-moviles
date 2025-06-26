@@ -3,7 +3,6 @@ const router = express.Router();
 
 const payloadMiddleware = require("../middlewares/payload.middleware");
 const {
-  createProveedorSchema,
   updateProveedorSchema,
   verificarProveedorSchema
 } = require("./validations/proveedor.validation");
@@ -14,7 +13,6 @@ const {
   getProveedorByUsuarioIdController, 
   getProveedoresByTipoController,
   getProveedoresVerificadosController,
-  createProveedorController,
   updateProveedorController,
   deleteProveedorController,
   activarProveedorController,
@@ -46,12 +44,6 @@ router.get("/proveedores/:id", getProveedorByIdController);
 router.get(
   "/proveedores/usuario/:usuarioId", 
   getProveedorByUsuarioIdController
-);
-
-router.post(
-  "/proveedores",
-  payloadMiddleware(createProveedorSchema),
-  createProveedorController
 );
 
 router.put(

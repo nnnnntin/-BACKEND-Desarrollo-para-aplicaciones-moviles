@@ -67,9 +67,20 @@ app.use("/", publicRoutes);
 app.use("/v1/auth", authRouter);
 
 app.use("/v1/empresas-inmobiliarias", empresasInmobiliariasRoutes);
-app.use("/v1/proveedores", proveedoresRoutes);
+
+const payloadMiddleware = require("./middlewares/payload.middleware");
+const { createProveedorSchema } = require("./routes/validations/proveedor.validation");
+const { createProveedorController } = require("./controllers/proveedor.controller");
+
+app.post(
+  "/v1/proveedores",
+  payloadMiddleware(createProveedorSchema),
+  createProveedorController
+);
 
 app.use("/v1", authMiddleWare);
+
+app.use("/v1", proveedoresRoutes);
 
 app.use("/v1", espaciosRoutes);
 app.use("/v1", membresiasRoutes);

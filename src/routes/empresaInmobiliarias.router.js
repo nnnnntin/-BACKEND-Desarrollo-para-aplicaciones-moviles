@@ -19,12 +19,19 @@ const {
   actualizarContactoController,
   getEmpresasConMasEspaciosController
 } = require("../controllers/empresaInmobiliaria.controller");
+const authMiddleware = require("../middlewares/auth.middleware");
 const payloadMiddleware = require("../middlewares/payload.middleware");
 const {
   createEmpresaInmobiliariaSchema,
   updateEmpresaInmobiliariaSchema,
   verificarEmpresaSchema
 } = require("./validations/empresaInmobiliaria.validation");
+
+router.post(
+  "/registro",
+  payloadMiddleware(createEmpresaInmobiliariaSchema),
+  createEmpresaInmobiliariaController
+);
 
 router.get(
   "/empresas-inmobiliarias",
@@ -55,6 +62,8 @@ router.get(
   "/empresas-inmobiliarias/:id",
   getEmpresaInmobiliariaByIdController
 );
+
+router.use(authMiddleware);
 
 router.post(
   "/empresas-inmobiliarias",

@@ -1,7 +1,7 @@
 const Joi = require("joi");
 
 const ubicacionEspacioSchema = Joi.object({
-  edificioId: Joi.string().required(),
+  edificioId: Joi.string().optional().allow(''),
   piso: Joi.number().required(),
   sector: Joi.string().required(),
   coordenadas: Joi.object({

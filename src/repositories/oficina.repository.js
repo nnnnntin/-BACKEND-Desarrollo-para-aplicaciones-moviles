@@ -7,7 +7,6 @@ const _getOficinasFilterRedisKey = (filtros, skip, limit) =>
 const _getOficinaByCodigoRedisKey = (codigo) => `oficina:codigo:${codigo}`;
 const _getOficinasByEdificioRedisKey = (edificioId) => `edificio:${edificioId}-oficinas`;
 const _getOficinasByTipoRedisKey = (tipo) => `oficinas:tipo:${tipo}`;
-// FIXED: Changed from propietarioId to usuarioId
 const _getOficinasByUsuarioRedisKey = (usuarioId) => `usuario:${usuarioId}-oficinas`;
 const _getOficinasByEmpresaRedisKey = (empresaId) => `empresa:${empresaId}-oficinas`;
 const _getOficinasByCapacidadRedisKey = (capacidadMinima) => `oficinas:capacidad-min:${capacidadMinima}`;
@@ -30,7 +29,6 @@ const getOficinas = async (filtros = {}, skip = 0, limit = 10) => {
     }
 
     console.log("[Mongo] getOficinas con skip/limit");
-    // FIXED: Changed propietarioId to usuarioId in populate
     const result = await Oficina.find(filtros)
       .populate("ubicacion.edificioId")
       .populate("usuarioId", "nombre email")
@@ -75,7 +73,6 @@ const findOficinaById = async (id) => {
       }
     }
     
-    // FIXED: Changed propietarioId to usuarioId in populate
     const result = await Oficina.findById(id)
       .populate('ubicacion.edificioId')
       .populate('usuarioId', 'nombre email')
@@ -117,7 +114,6 @@ const findOficinaByCodigo = async (codigo) => {
       }
     }
     
-    // FIXED: Changed propietarioId to usuarioId in populate
     const result = await Oficina.findOne({ codigo })
       .populate('ubicacion.edificioId')
       .populate('usuarioId', 'nombre email')
@@ -159,7 +155,6 @@ const getOficinasByEdificio = async (edificioId) => {
       }
     }
     
-    // FIXED: Changed propietarioId to usuarioId in populate
     const result = await Oficina.find({ 'ubicacion.edificioId': edificioId })
       .populate('usuarioId', 'nombre email')
       .populate('empresaInmobiliariaId', 'nombre')
@@ -197,7 +192,6 @@ const getOficinasByTipo = async (tipo) => {
       }
     }
     
-    // FIXED: Changed propietarioId to usuarioId in populate
     const result = await Oficina.find({ tipo })
       .populate('ubicacion.edificioId')
       .populate('usuarioId', 'nombre email')
@@ -216,7 +210,6 @@ const getOficinasByTipo = async (tipo) => {
   }
 };
 
-// FIXED: Renamed function from getOficinasByPropietario to getOficinasByUsuario
 const getOficinasByUsuario = async (usuarioId) => {
   const redisClient = connectToRedis();
   const key = _getOficinasByUsuarioRedisKey(usuarioId);
@@ -238,7 +231,6 @@ const getOficinasByUsuario = async (usuarioId) => {
       }
     }
     
-    // FIXED: Changed propietarioId to usuarioId
     const result = await Oficina.find({ usuarioId })
       .populate('ubicacion.edificioId')
       .populate('empresaInmobiliariaId', 'nombre')
@@ -276,7 +268,6 @@ const getOficinasByEmpresa = async (empresaInmobiliariaId) => {
       }
     }
     
-    // FIXED: Changed propietarioId to usuarioId in populate
     const result = await Oficina.find({ empresaInmobiliariaId })
       .populate('ubicacion.edificioId')
       .populate('usuarioId', 'nombre email')
@@ -314,7 +305,6 @@ const getOficinasByCapacidad = async (capacidadMinima) => {
       }
     }
     
-    // FIXED: Changed propietarioId to usuarioId in populate
     const result = await Oficina.find({ capacidad: { $gte: capacidadMinima } })
       .populate('ubicacion.edificioId')
       .populate('usuarioId', 'nombre email')
@@ -357,7 +347,6 @@ const getOficinasByRangoPrecio = async (precioMin, precioMax, tipoPrecio = 'porD
     const query = {};
     query[`precios.${tipoPrecio}`] = { $gte: precioMin, $lte: precioMax };
     
-    // FIXED: Changed propietarioId to usuarioId in populate
     const result = await Oficina.find(query)
       .populate('ubicacion.edificioId')
       .populate('usuarioId', 'nombre email')
@@ -416,7 +405,6 @@ const getOficinasDisponibles = async (fecha, horaInicio, horaFin) => {
     }
     const diaNombre = diasMap[fechaObj.getUTCDay()];
 
-    // FIXED: Changed propietarioId to usuarioId in populate
     const result = await Oficina.find({
       activo: true,
       "disponibilidad.dias": diaNombre,
@@ -476,7 +464,6 @@ const createOficina = async (oficinaData) => {
   if (saved.tipo) {
     await redisClient.del(_getOficinasByTipoRedisKey(saved.tipo));
   }
-  // FIXED: Changed propietarioId to usuarioId
   if (saved.usuarioId) {
     await redisClient.del(_getOficinasByUsuarioRedisKey(saved.usuarioId.toString()));
   }
@@ -523,7 +510,6 @@ const updateOficina = async (id, payload) => {
     await redisClient.del(_getOficinasByTipoRedisKey(updated.tipo));
   }
   
-  // FIXED: Changed propietarioId to usuarioId
   if (oficina.usuarioId) {
     await redisClient.del(_getOficinasByUsuarioRedisKey(oficina.usuarioId.toString()));
   }
@@ -579,7 +565,6 @@ const deleteOficina = async (id) => {
   if (oficina.tipo) {
     await redisClient.del(_getOficinasByTipoRedisKey(oficina.tipo));
   }
-  // FIXED: Changed propietarioId to usuarioId
   if (oficina.usuarioId) {
     await redisClient.del(_getOficinasByUsuarioRedisKey(oficina.usuarioId.toString()));
   }
@@ -636,7 +621,7 @@ module.exports = {
   findOficinaByCodigo,
   getOficinasByEdificio,
   getOficinasByTipo,
-  getOficinasByUsuario, // FIXED: Renamed from getOficinasByPropietario
+  getOficinasByUsuario,
   getOficinasByEmpresa,
   createOficina,
   updateOficina,

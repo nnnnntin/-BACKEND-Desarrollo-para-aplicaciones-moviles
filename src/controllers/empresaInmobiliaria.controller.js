@@ -1,7 +1,7 @@
 const {
   getEmpresasInmobiliarias,
   findEmpresaInmobiliariaById,
-  findEmpresaByUsuarioId, // ← NUEVO IMPORT
+  findEmpresaByUsuarioId, 
   getEmpresasByTipo,
   getEmpresasVerificadas,
   getEmpresasByCiudad,
@@ -169,7 +169,6 @@ const createEmpresaInmobiliariaController = async (req, res) => {
   const { usuarioId, espacios } = value;
 
   try {
-    // ← NUEVO: Validar que el usuario existe y es de tipo 'cliente'
     const usuario = await findUsuarioById(usuarioId);
     if (!usuario) {
       return res.status(404).json({
@@ -195,7 +194,6 @@ const createEmpresaInmobiliariaController = async (req, res) => {
       });
     }
 
-    // ← NUEVO: Verificar que el usuario no tenga ya una empresa inmobiliaria
     const empresaExistente = await findEmpresaInmobiliaria({ usuarioId });
     if (empresaExistente && empresaExistente.length > 0) {
       return res.status(400).json({
@@ -205,7 +203,6 @@ const createEmpresaInmobiliariaController = async (req, res) => {
       });
     }
 
-    // Validación de espacios (código existente)
     if (espacios && espacios.length > 0) {
       try {
         for (const espacioId of espacios) {
@@ -739,7 +736,7 @@ const getEmpresasConMasEspaciosController = async (req, res) => {
 module.exports = {
   getEmpresasInmobiliariasController,
   getEmpresaInmobiliariaByIdController,
-  getEmpresaByUsuarioIdController, // ← NUEVO
+  getEmpresaByUsuarioIdController,
   getEmpresasByTipoController,
   getEmpresasVerificadasController,
   getEmpresasByCiudadController,

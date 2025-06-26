@@ -11,7 +11,7 @@ const {
 const {
   getProveedoresController,
   getProveedorByIdController,
-  getProveedorByUsuarioIdController, // ← NUEVO IMPORT
+  getProveedorByUsuarioIdController, 
   getProveedoresByTipoController,
   getProveedoresVerificadosController,
   createProveedorController,

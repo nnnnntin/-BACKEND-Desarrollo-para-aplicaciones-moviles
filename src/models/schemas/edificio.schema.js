@@ -7,21 +7,17 @@ const edificioSchema = new mongoose.Schema(
       calle: { type: String, required: true },
       numero: { type: String, required: true },
       ciudad: { type: String, required: true },
-      // ← NUEVO CAMPO OBLIGATORIO
       departamento: { type: String, required: true },
       codigoPostal: { type: String, required: true },
       pais: { type: String, required: true },
-      // ← COORDENADAS OBLIGATORIAS
       coordenadas: {
         lat: { type: Number, required: true },
         lng: { type: Number, required: true }
       }
     },
-    // ← CAMBIO: propietarioId -> usuarioId y OBLIGATORIO
     usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
     empresaInmobiliariaId: { type: mongoose.Schema.Types.ObjectId, ref: 'EmpresaInmobiliaria' },
     descripcion: { type: String },
-    // ← CAMPO DE IMÁGENES MEJORADO CON VALIDACIÓN
     imagenes: [{ 
       type: String,
       validate: {
@@ -31,7 +27,6 @@ const edificioSchema = new mongoose.Schema(
         message: 'URL de imagen debe ser válida (http/https)'
       }
     }],
-    // ← CAMPO DE PLANOS MEJORADO CON VALIDACIÓN
     planos: [{ 
       type: String,
       validate: {

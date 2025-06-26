@@ -35,7 +35,6 @@ const createEscritorioFlexibleSchema = Joi.object({
     porSemana: Joi.number().min(0),
     porMes: Joi.number().min(0)
   }).required(),
-  // ← VALIDACIÓN MEJORADA PARA IMÁGENES
   imagenes: Joi.array().items(
     Joi.string().uri({ scheme: ['http', 'https'] }).message('URL de imagen debe ser válida (http/https)')
   ).max(8).messages({
@@ -79,7 +78,6 @@ const updateEscritorioFlexibleSchema = Joi.object({
     porSemana: Joi.number().min(0),
     porMes: Joi.number().min(0)
   }),
-  // ← VALIDACIÓN MEJORADA PARA IMÁGENES EN UPDATE
   imagenes: Joi.array().items(
     Joi.string().uri({ scheme: ['http', 'https'] }).message('URL de imagen debe ser válida (http/https)')
   ).max(8).messages({

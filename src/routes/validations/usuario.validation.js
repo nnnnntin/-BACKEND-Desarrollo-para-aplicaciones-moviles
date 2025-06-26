@@ -1,6 +1,5 @@
 const Joi = require("joi");
 
-// Validación para método de pago tipo tarjeta
 const metodoPagoTarjetaSchema = Joi.object({
   predeterminado: Joi.boolean().default(false),
   tipo: Joi.string().valid('tarjeta_credito', 'tarjeta_debito').required(),
@@ -28,7 +27,6 @@ const metodoPagoTarjetaSchema = Joi.object({
     .optional()
 });
 
-// Validación para método de pago tipo cuenta bancaria
 const metodoPagoCuentaSchema = Joi.object({
   predeterminado: Joi.boolean().default(false),
   tipo: Joi.string().valid('cuenta_bancaria').required(),
@@ -45,7 +43,6 @@ const metodoPagoCuentaSchema = Joi.object({
     .required()
 });
 
-// Esquema general para método de pago
 const metodoPagoSchema = Joi.alternatives().try(
   metodoPagoTarjetaSchema,
   metodoPagoCuentaSchema
@@ -59,10 +56,9 @@ const createUsuarioSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().min(8).required(),
   
-  // Fix: Convert empty strings to undefined, so they're treated as optional
   nombre: Joi.string().min(1).optional().allow('').custom((value, helpers) => {
     if (value === '') {
-      return undefined; // Convert empty string to undefined
+      return undefined; 
     }
     return value;
   }),
@@ -111,7 +107,6 @@ const createUsuarioSchema = Joi.object({
     .optional()
     .default(),
 
-  // ← CAMBIO: Nueva validación para métodos de pago
   metodoPago: Joi.array().items(metodoPagoSchema).optional(),
 
   activo: Joi.boolean().default(true),
@@ -151,7 +146,6 @@ const updateUsuarioSchema = Joi.object({
       sms: Joi.boolean()
     })
   }),
-  // ← CAMBIO: Permitir actualizar métodos de pago
   metodoPago: Joi.array().items(metodoPagoSchema).optional(),
   password: Joi.string().min(8),
   activo: Joi.boolean(),
@@ -168,7 +162,6 @@ const cambiarRolSchema = Joi.object({
   nuevoRol: Joi.string().valid('usuario', 'proveedor', 'cliente', 'administrador').required()
 });
 
-// ← NUEVO: Esquemas específicos para métodos de pago
 const addMetodoPagoSchema = metodoPagoSchema;
 
 const updateMetodoPagoSchema = Joi.object({
@@ -179,7 +172,7 @@ const updateMetodoPagoSchema = Joi.object({
   fechaVencimiento: Joi.string().pattern(/^(0[1-9]|1[0-2])\/\d{2}$/),
   banco: Joi.string().min(2).max(100),
   tipoCuenta: Joi.string().valid('corriente', 'ahorros', 'nomina')
-}).min(2); // Requiere al menos metodoPagoId y un campo más
+}).min(2); 
 
 const deleteMetodoPagoSchema = Joi.object({
   metodoPagoId: Joi.string().required()

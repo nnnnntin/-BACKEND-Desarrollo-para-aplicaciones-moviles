@@ -8,7 +8,6 @@ const cors = require("cors");
 
 const connectMongoDB = require("./models/mongo.client");
 const connectToRedis = require("./services/redis.service");
-//const loggerMiddleWare = require("./middlewares/logger.middleware");
 const authMiddleWare = require("./middlewares/auth.middleware");
 const sanitizeMiddleware = require("./middlewares/sanitizeMiddleware");
 const logger = require("./utils/logger.js");
@@ -42,7 +41,7 @@ const app = express();
     logger.info("Conexión a MongoDB establecida correctamente");
   } catch (error) {
     logger.sentryError({
-      message: "Ha ocurrido un error al intentar conectarse a MongoDB: ",
+      message: "Error al conectarse a MongoDB:",
       error,
     });
     process.exit(1);
@@ -52,15 +51,14 @@ const app = express();
 (async () => {
   try {
     await connectToRedis();
-    logger.info("Conexión a redis establecida correctamente");
+    logger.info("Conexión a Redis establecida correctamente");
   } catch (error) {
-    console.log("Ha ocurrido un error al intentar conectarse a Redis: ", error);
+    logger.error("Error al conectarse a Redis:", error);
     process.exit(1);
   }
 })();
 
 app.use(express.json());
-//app.use(loggerMiddleWare);
 app.use(morgan("dev"));
 app.use(cors());
 app.use(sanitizeMiddleware);
@@ -68,39 +66,30 @@ app.use(sanitizeMiddleware);
 app.use("/", publicRoutes);
 app.use("/v1/auth", authRouter);
 
+app.use("/v1/empresas-inmobiliarias", empresasInmobiliariasRoutes);
+app.use("/v1/proveedores", proveedoresRoutes);
+
 app.use("/v1", authMiddleWare);
 
-app.use("/v1",       espaciosRoutes);
-app.use("/v1",     membresiasRoutes);
+app.use("/v1", espaciosRoutes);
+app.use("/v1", membresiasRoutes);
 app.use("/v1", notificacionesRoutes);
-app.use("/v1",       oficinasRoutes);
-app.use("/v1",          pagosRoutes);
-app.use("/v1",        resenasRoutes);
-app.use("/v1",       reservasRoutes);
-app.use("/v1",       usuariosRoutes);
-app.use("/v1",             edificiosRoutes);
-app.use("/v1", empresasInmobiliariasRoutes);
-app.use("/v1",          salasReunionRoutes);
-app.use("/v1",  escritoriosFlexiblesRoutes);
-app.use("/v1",  serviciosAdicionalesRoutes);
-app.use("/v1",     reservasServicioRoutes);
-app.use("/v1",         proveedoresRoutes);
-app.use("/v1",            facturasRoutes);
-app.use("/v1",         promocionesRoutes);
-app.use("/v1",    disponibilidadesRoutes);
+app.use("/v1", oficinasRoutes);
+app.use("/v1", pagosRoutes);
+app.use("/v1", resenasRoutes);
+app.use("/v1", reservasRoutes);
+app.use("/v1", usuariosRoutes);
+app.use("/v1", edificiosRoutes);
+app.use("/v1", salasReunionRoutes);
+app.use("/v1", escritoriosFlexiblesRoutes);
+app.use("/v1", serviciosAdicionalesRoutes);
+app.use("/v1", reservasServicioRoutes);
+app.use("/v1", facturasRoutes);
+app.use("/v1", promocionesRoutes);
+app.use("/v1", disponibilidadesRoutes);
 
-//const PORT = process.env.PORT || 3001;
-// app.listen(PORT, () => {
-//   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}/`);
-// });
-
-app.get("/", (req, res) => {
-  res.send("🟢 API funcionando correctamente");
-});
-
-app.get("/debug-sentry", function mainHandler(req, res) {
-  throw new Error("My first Sentry error!");
-});
+app.get("/", (req, res) => res.send("🟢 API funcionando correctamente"));
+app.get("/debug-sentry", (req, res) => { throw new Error("My first Sentry error!"); });
 
 Sentry.setupExpressErrorHandler(app);
 

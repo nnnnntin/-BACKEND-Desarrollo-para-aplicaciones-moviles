@@ -3,7 +3,7 @@ const router = express.Router();
 const {
   getEmpresasInmobiliariasController,
   getEmpresaInmobiliariaByIdController,
-  getEmpresaByUsuarioIdController, // ← NUEVO IMPORT
+  getEmpresaByUsuarioIdController,
   getEmpresasByTipoController,
   getEmpresasVerificadasController,
   getEmpresasByCiudadController,

@@ -196,7 +196,6 @@ const createProveedor = async (proveedorData) => {
     await redisClient.del(_getProveedoresVerificadosRedisKey());
   }
   
-  // ← NUEVO: Limpiar cache específico del usuario
   if (saved.usuarioId) {
     await redisClient.del(`proveedor:usuario:${saved.usuarioId}`);
   }
@@ -222,7 +221,6 @@ const updateProveedor = async (id, payload) => {
   await redisClient.del(_getProveedorRedisKey(id));
   await redisClient.del(_getProveedoresFilterRedisKey({}));
   
-  // ← NUEVO: Limpiar cache específico del usuario
   if (proveedor.usuarioId) {
     await redisClient.del(`proveedor:usuario:${proveedor.usuarioId}`);
   }
@@ -266,7 +264,6 @@ const deleteProveedor = async (id) => {
   await redisClient.del(_getProveedorRedisKey(id));
   await redisClient.del(_getProveedoresFilterRedisKey({}));
   
-  // ← NUEVO: Limpiar cache específico del usuario
   if (proveedor.usuarioId) {
     await redisClient.del(`proveedor:usuario:${proveedor.usuarioId}`);
   }
@@ -485,7 +482,7 @@ const getProveedoresConMasServicios = async (limite = 5) => {
 module.exports = {
   getProveedores,
   findProveedorById,
-  findProveedorByUsuarioId, // ← NUEVO
+  findProveedorByUsuarioId,
   getProveedoresByTipo,
   getProveedoresVerificados,
   createProveedor,

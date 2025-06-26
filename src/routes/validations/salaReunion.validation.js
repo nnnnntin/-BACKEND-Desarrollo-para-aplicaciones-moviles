@@ -8,7 +8,6 @@ const joiObjectIdString = Joi.string().custom((value, helpers) => {
   return value;
 }, 'validación de ObjectId');
 
-// Esquema de ubicación estandarizado
 const ubicacionSchema = Joi.object({
   edificioId: joiObjectIdString.required(),
   piso: Joi.number().required(),
@@ -44,7 +43,6 @@ const createSalaReunionSchema = Joi.object({
     mediaDia: Joi.number().min(0),
     diaDompleto: Joi.number().min(0)
   }).required(),
-  // ← VALIDACIÓN MEJORADA PARA IMÁGENES
   imagenes: Joi.array().items(
     Joi.string().uri({ scheme: ['http', 'https'] }).message('URL de imagen debe ser válida (http/https)')
   ).max(10).messages({
@@ -97,7 +95,6 @@ const updateSalaReunionSchema = Joi.object({
     mediaDia: Joi.number().min(0),
     diaDompleto: Joi.number().min(0)
   }),
-  // ← VALIDACIÓN MEJORADA PARA IMÁGENES EN UPDATE
   imagenes: Joi.array().items(
     Joi.string().uri({ scheme: ['http', 'https'] }).message('URL de imagen debe ser válida (http/https)')
   ).max(10).messages({

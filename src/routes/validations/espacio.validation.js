@@ -36,7 +36,6 @@ const createEspacioSchema = Joi.object({
     porDia: Joi.number().min(0),
     porMes: Joi.number().min(0)
   }),
-  // ← VALIDACIÓN MEJORADA PARA IMÁGENES
   imagenes: Joi.array().items(
     Joi.string().uri({ scheme: ['http', 'https'] }).message('URL de imagen debe ser válida (http/https)')
   ).max(12).messages({
@@ -82,7 +81,6 @@ const updateEspacioSchema = Joi.object({
     porDia: Joi.number().min(0),
     porMes: Joi.number().min(0)
   }),
-  // ← VALIDACIÓN MEJORADA PARA IMÁGENES EN UPDATE
   imagenes: Joi.array().items(
     Joi.string().uri({ scheme: ['http', 'https'] }).message('URL de imagen debe ser válida (http/https)')
   ).max(12).messages({

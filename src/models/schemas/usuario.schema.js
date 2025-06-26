@@ -28,7 +28,6 @@ const usuarioSchema = new mongoose.Schema(
     apellidos: { 
       type: String 
     },
-    // Campo imagen principal para foto de perfil
     imagen: { 
       type: String,
       validate: {
@@ -70,7 +69,6 @@ const usuarioSchema = new mongoose.Schema(
       fechaVencimiento: { type: Date },
       renovacionAutomatica: { type: Boolean, default: false }
     },
-    // ← CAMBIO: Estructura completa para métodos de pago
     metodoPago: [{
       predeterminado: { type: Boolean, default: false },
       tipo: { 
@@ -80,20 +78,18 @@ const usuarioSchema = new mongoose.Schema(
       },
       activo: { type: Boolean, default: true },
       
-      // Datos para tarjetas (crédito/débito)
-      numero: { type: String }, // Número de tarjeta encriptado
-      ultimosDigitos: { type: String }, // Últimos 4 dígitos para mostrar
+      numero: { type: String },
+      ultimosDigitos: { type: String }, 
       titular: { type: String },
-      fechaVencimiento: { type: String }, // MM/AA para tarjetas
-      cvc: { type: String }, // CVC encriptado
+      fechaVencimiento: { type: String }, 
+      cvc: { type: String },
       marca: { 
         type: String, 
         enum: ['visa', 'mastercard', 'american_express', 'discover', 'otro'] 
       },
       
-      // Datos para cuenta bancaria
-      banco: { type: String }, // Nombre del banco
-      numeroCuenta: { type: String }, // Número de cuenta encriptado
+      banco: { type: String }, 
+      numeroCuenta: { type: String },
       tipoCuenta: { 
         type: String, 
         enum: ['corriente', 'ahorros', 'nomina'] 
@@ -114,7 +110,6 @@ const usuarioSchema = new mongoose.Schema(
   }
 );
 
-// Middleware para validar que solo haya un método de pago predeterminado
 usuarioSchema.pre('save', function(next) {
   const metodosPredeterminados = this.metodoPago.filter(metodo => metodo.predeterminado);
   if (metodosPredeterminados.length > 1) {

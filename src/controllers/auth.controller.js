@@ -75,7 +75,7 @@ const postAuthLogin = async (req, res) => {
           nombre: user.nombre,
           apellidos: user.apellidos,
           email: user.email,
-          imagen: user.imagen, // ← CAMBIO: Incluir imagen en la respuesta de login
+          imagen: user.imagen, 
           datosPersonales: user.datosPersonales,
           direccion: user.direccion,
           datosEmpresa: user.datosEmpresa,
@@ -117,7 +117,7 @@ const postAuthSignup = async (req, res) => {
     password,
     nombre = "",
     apellidos = "",
-    imagen // ← CAMBIO: Agregar imagen a los campos del signup
+    imagen 
   } = req.body;
   
   if (!username || !email || !password) {
@@ -160,7 +160,6 @@ const postAuthSignup = async (req, res) => {
       });
     }
   
-    // CAMBIO: Incluir imagen en los datos del nuevo usuario
     const newUserData = {
       tipoUsuario: tipoUsuario || 'usuario',
       username,
@@ -171,7 +170,6 @@ const postAuthSignup = async (req, res) => {
       activo: true
     };
 
-    // Solo agregar imagen si se proporciona
     if (imagen) {
       newUserData.imagen = imagen;
     }
@@ -184,7 +182,7 @@ const postAuthSignup = async (req, res) => {
       username: newUser.username,
       email: newUser.email,
       tipoUsuario: newUser.tipoUsuario,
-      imagen: newUser.imagen // ← CAMBIO: Incluir imagen en la respuesta del signup
+      imagen: newUser.imagen 
     });
   } catch (error) {
     console.error("Error en postAuthSignup:", error);
@@ -266,7 +264,7 @@ const validateToken = async (req, res) => {
         nombre: user.nombre,
         apellidos: user.apellidos,
         email: user.email,
-        imagen: user.imagen, // ← CAMBIO: Incluir imagen en la validación del token
+        imagen: user.imagen, 
         datosPersonales: user.datosPersonales,
         direccion: user.direccion,
         datosEmpresa: user.datosEmpresa,

@@ -4,7 +4,7 @@ const ServicioAdicional = require("../models/servicioAdicional.model");
 const {
   getProveedores,
   findProveedorById,
-  findProveedorByUsuarioId, // ← NUEVO IMPORT
+  findProveedorByUsuarioId, 
   getProveedoresByTipo,
   getProveedoresVerificados,
   createProveedor,
@@ -782,7 +782,7 @@ const filtrarProveedoresController = async (req, res) => {
 module.exports = {
   getProveedoresController,
   getProveedorByIdController,
-  getProveedorByUsuarioIdController, // ← NUEVO
+  getProveedorByUsuarioIdController, 
   getProveedoresByTipoController,
   getProveedoresVerificadosController,
   createProveedorController,

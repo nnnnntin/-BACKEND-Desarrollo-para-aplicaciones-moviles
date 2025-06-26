@@ -309,7 +309,6 @@ const deleteEmpresaInmobiliaria = async (id) => {
   await redisClient.del(_getEmpresaRedisKey(id));
   await redisClient.del(_getEmpresasFilterRedisKey({}));
   
-  // ← NUEVO: Limpiar cache específico del usuario
   if (empresa.usuarioId) {
     await redisClient.del(`empresa:usuario:${empresa.usuarioId}`);
   }

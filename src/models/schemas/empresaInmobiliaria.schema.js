@@ -32,7 +32,6 @@ const empresaInmobiliariaSchema = new mongoose.Schema(
       pais: { type: String, required: true }
     },
     sitioWeb: { type: String },
-    // ← CAMPO DE LOGO MEJORADO CON VALIDACIÓN
     logoUrl: { 
       type: String,
       validate: {
@@ -42,7 +41,6 @@ const empresaInmobiliariaSchema = new mongoose.Schema(
         message: 'URL del logo debe ser válida (http/https)'
       }
     },
-    // ← NUEVO CAMPO DE IMÁGENES ADICIONALES
     imagenes: [{ 
       type: String,
       validate: {

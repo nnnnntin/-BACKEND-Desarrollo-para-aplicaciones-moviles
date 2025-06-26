@@ -8,7 +8,6 @@ const escritorioFlexibleSchema = new mongoose.Schema(
       piso: { type: Number, required: true },
       zona: { type: String, required: true },
       numero: { type: String, required: true },
-      // ← NUEVOS CAMPOS OBLIGATORIOS
       coordenadas: {
         lat: { type: Number, required: true },
         lng: { type: Number, required: true }
@@ -33,7 +32,6 @@ const escritorioFlexibleSchema = new mongoose.Schema(
       porSemana: { type: Number },
       porMes: { type: Number }
     },
-    // ← CAMPO DE IMÁGENES MEJORADO CON VALIDACIÓN
     imagenes: [{ 
       type: String,
       validate: {
@@ -44,7 +42,6 @@ const escritorioFlexibleSchema = new mongoose.Schema(
       }
     }],
     estado: { type: String, enum: ['disponible', 'ocupado', 'mantenimiento', 'reservado'], default: 'disponible' },
-    // ← CAMBIO: propietarioId -> usuarioId y OBLIGATORIO
     usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
     empresaInmobiliariaId: { type: mongoose.Schema.Types.ObjectId, ref: 'EmpresaInmobiliaria' },
     activo: { type: Boolean, default: true }

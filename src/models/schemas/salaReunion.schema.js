@@ -8,7 +8,6 @@ const salaReunionSchema = new mongoose.Schema(
       edificioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edificio', required: true },
       piso: { type: Number, required: true },
       numero: { type: String, required: true },
-      // ← CAMPOS OBLIGATORIOS
       coordenadas: {
         lat: { type: Number, required: true },
         lng: { type: Number, required: true }
@@ -33,7 +32,6 @@ const salaReunionSchema = new mongoose.Schema(
       mediaDia: { type: Number },
       diaDompleto: { type: Number }
     },
-    // ← CAMPO DE IMÁGENES MEJORADO CON VALIDACIÓN
     imagenes: [{ 
       type: String,
       validate: {
@@ -50,7 +48,6 @@ const salaReunionSchema = new mongoose.Schema(
       },
       dias: [{ type: String, enum: ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'] }]
     },
-    // ← CAMBIO: propietarioId -> usuarioId y OBLIGATORIO
     usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
     empresaInmobiliariaId: { type: mongoose.Schema.Types.ObjectId, ref: 'EmpresaInmobiliaria' },
     estado: { type: String, enum: ['disponible', 'ocupada', 'mantenimiento', 'reservada'], default: 'disponible' },

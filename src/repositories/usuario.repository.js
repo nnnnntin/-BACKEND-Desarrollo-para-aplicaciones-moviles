@@ -10,12 +10,10 @@ const _getUsuariosFilterRedisKey = (filtros, skip, limit) =>
   `usuarios:${JSON.stringify(filtros)}:skip=${skip}:limit=${limit}`;
 const _getUsuariosByTipoRedisKey = (tipoUsuario) => `usuarios:tipo:${tipoUsuario}`;
 
-// ← NUEVO: Funciones para encriptar datos sensibles
 const encryptSensitiveData = (data) => {
   const algorithm = 'aes-256-cbc';
   const keyString = process.env.ENCRYPTION_KEY || 'your-secret-key-32-characters!!';
 
-  // SOLUCIÓN 1: Crear un hash SHA-256 de la clave para garantizar 32 bytes
   const key = crypto.createHash('sha256').update(keyString).digest();
   const iv = crypto.randomBytes(16);
 
@@ -30,7 +28,6 @@ const decryptSensitiveData = (encryptedData) => {
     const algorithm = 'aes-256-cbc';
     const keyString = process.env.ENCRYPTION_KEY || 'your-secret-key-32-characters!!';
 
-    // Usar el mismo método para generar la clave
     const key = crypto.createHash('sha256').update(keyString).digest();
 
     const [ivHex, encrypted] = encryptedData.split(':');
@@ -64,7 +61,6 @@ const detectCardBrand = (cardNumber) => {
   return 'otro';
 };
 
-// ← MODIFICADO: Función para procesar métodos de pago antes de guardar
 const processMetodosPago = (metodosPago) => {
   if (!metodosPago || !Array.isArray(metodosPago)) return [];
 
@@ -72,17 +68,14 @@ const processMetodosPago = (metodosPago) => {
     const processed = { ...metodo };
 
     if (metodo.tipo === 'tarjeta_credito' || metodo.tipo === 'tarjeta_debito') {
-      // Encriptar datos sensibles de tarjeta
       processed.numero = encryptSensitiveData(metodo.numero);
       processed.ultimosDigitos = getLastDigits(metodo.numero);
       processed.cvc = encryptSensitiveData(metodo.cvc);
 
-      // Detectar marca si no se proporciona
       if (!metodo.marca) {
         processed.marca = detectCardBrand(metodo.numero);
       }
     } else if (metodo.tipo === 'cuenta_bancaria') {
-      // Encriptar número de cuenta
       processed.numeroCuenta = encryptSensitiveData(metodo.numeroCuenta);
       processed.ultimosDigitos = getLastDigits(metodo.numeroCuenta);
     }
@@ -227,10 +220,8 @@ const findUsuarioByUsername = async (username) => {
 
 const registerUsuario = async (userData) => {
   const redisClient = connectToRedis();
-  // Hash de la contraseña
   const hashedPassword = await bcrypt.hash(userData.password, 10);
 
-  // Fallback para nombre y apellidos
   const nombreFinal =
     userData.nombre && userData.nombre.trim().length > 0
       ? userData.nombre.trim()
@@ -240,7 +231,6 @@ const registerUsuario = async (userData) => {
       ? userData.apellidos.trim()
       : '';
 
-  // Preparación de datos para MongoDB
   const newUsuarioData = {
     ...userData,
     password: hashedPassword,
@@ -248,13 +238,11 @@ const registerUsuario = async (userData) => {
     apellidos: apellidosFinal,
   };
 
-  // Procesar métodos de pago si existen
   if (userData.metodoPago && Array.isArray(userData.metodoPago)) {
     newUsuarioData.metodoPago = processMetodosPago(userData.metodoPago);
     console.log('🟢 [Repository] Métodos de pago procesados:', newUsuarioData.metodoPago.length);
   }
 
-  // Incluir imagen sólo si es válida
   if (
     userData.imagen &&
     typeof userData.imagen === 'string' &&
@@ -267,13 +255,11 @@ const registerUsuario = async (userData) => {
     delete newUsuarioData.imagen;
   }
 
-  // Logging de datos finales (sin exponer el hash)
   console.log('🔵 [Repository] Datos finales para MongoDB:', {
     ...newUsuarioData,
     password: '[HASH]'
   });
 
-  // Creación y guardado del nuevo usuario
   const newUsuario = new Usuario(newUsuarioData);
   try {
     const saved = await newUsuario.save();
@@ -286,7 +272,6 @@ const registerUsuario = async (userData) => {
       metodosPagoCount: saved.metodoPago?.length || 0
     });
 
-    // Invalidar cachés relacionadas
     await redisClient.del(_getUsuariosFilterRedisKey({}));
     if (saved.email) await redisClient.del(_getUsuarioByEmailRedisKey(saved.email));
     if (saved.username) await redisClient.del(_getUsuarioByUsernameRedisKey(saved.username));
@@ -331,7 +316,6 @@ const updateUsuario = async (id, payload) => {
     otherFields: Object.keys(payload).filter(key => !['imagen', 'password', 'metodoPago'].includes(key))
   });
 
-  // ← CAMBIO: Procesar métodos de pago en actualización
   if (payload.metodoPago && Array.isArray(payload.metodoPago)) {
     payload.metodoPago = processMetodosPago(payload.metodoPago);
     console.log('🟢 [Repository] Métodos de pago procesados para actualización');
@@ -438,7 +422,6 @@ const cambiarRolUsuario = async (id, nuevoRol) => {
   return await updateUsuario(id, { rol: nuevoRol });
 };
 
-// ← NUEVAS FUNCIONES: Gestión específica de métodos de pago
 const addMetodoPago = async (usuarioId, metodoPagoData) => {
   const redisClient = connectToRedis();
 
@@ -448,10 +431,8 @@ const addMetodoPago = async (usuarioId, metodoPagoData) => {
       throw new Error('Usuario no encontrado');
     }
 
-    // Procesar el método de pago
     const metodoProcesado = processMetodosPago([metodoPagoData])[0];
 
-    // Si es predeterminado, quitar predeterminado de otros métodos
     if (metodoProcesado.predeterminado) {
       usuario.metodoPago.forEach(metodo => {
         metodo.predeterminado = false;
@@ -486,7 +467,6 @@ const updateMetodoPago = async (usuarioId, metodoPagoId, updateData) => {
       throw new Error('Método de pago no encontrado');
     }
 
-    // Si se está estableciendo como predeterminado, quitar de otros
     if (updateData.predeterminado === true) {
       usuario.metodoPago.forEach(metodo => {
         if (metodo._id.toString() !== metodoPagoId) {
@@ -495,7 +475,6 @@ const updateMetodoPago = async (usuarioId, metodoPagoId, updateData) => {
       });
     }
 
-    // Actualizar campos permitidos
     Object.keys(updateData).forEach(key => {
       if (key !== 'metodoPagoId' && updateData[key] !== undefined) {
         metodoPago[key] = updateData[key];
@@ -528,7 +507,6 @@ const deleteMetodoPago = async (usuarioId, metodoPagoId) => {
       throw new Error('Método de pago no encontrado');
     }
 
-    // No permitir eliminar si es el único método de pago activo
     const metodosActivos = usuario.metodoPago.filter(metodo => metodo.activo);
     if (metodosActivos.length === 1 && metodoPago.activo) {
       throw new Error('No se puede eliminar el único método de pago activo');
@@ -566,12 +544,10 @@ const setDefaultMetodoPago = async (usuarioId, metodoPagoId) => {
       throw new Error('No se puede establecer como predeterminado un método de pago inactivo');
     }
 
-    // Quitar predeterminado de todos los métodos
     usuario.metodoPago.forEach(metodo => {
       metodo.predeterminado = false;
     });
 
-    // Establecer como predeterminado
     metodoPago.predeterminado = true;
 
     const usuarioActualizado = await usuario.save();
@@ -586,7 +562,6 @@ const setDefaultMetodoPago = async (usuarioId, metodoPagoId) => {
   }
 };
 
-// Función para obtener métodos de pago sin datos sensibles
 const getMetodosPagoSeguros = (metodosPago) => {
   if (!metodosPago || !Array.isArray(metodosPago)) return [];
 
@@ -604,13 +579,11 @@ const getMetodosPagoSeguros = (metodosPago) => {
       metodoSeguro.titular = metodo.titular;
       metodoSeguro.fechaVencimiento = metodo.fechaVencimiento;
       metodoSeguro.marca = metodo.marca;
-      // No incluir número ni CVC completos
     } else if (metodo.tipo === 'cuenta_bancaria') {
       metodoSeguro.banco = metodo.banco;
       metodoSeguro.ultimosDigitos = metodo.ultimosDigitos;
       metodoSeguro.titular = metodo.titular;
       metodoSeguro.tipoCuenta = metodo.tipoCuenta;
-      // No incluir número de cuenta completo
     }
 
     return metodoSeguro;
@@ -630,7 +603,6 @@ module.exports = {
   updateMembresiaUsuario,
   getUsuariosByTipo,
   cambiarRolUsuario,
-  // ← NUEVAS FUNCIONES EXPORTADAS
   addMetodoPago,
   updateMetodoPago,
   deleteMetodoPago,

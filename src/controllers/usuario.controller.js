@@ -7,7 +7,6 @@ const {
   getUsuariosByTipo,
   cambiarRolUsuario,
   updateMembresiaUsuario,
-  // ← NUEVOS IMPORTS para métodos de pago
   addMetodoPago,
   updateMetodoPago,
   deleteMetodoPago,
@@ -23,7 +22,6 @@ const {
   createUsuarioSchema,
   updateUsuarioSchema,
   cambiarRolSchema,
-  // ← NUEVOS IMPORTS para validaciones de métodos de pago
   addMetodoPagoSchema,
   updateMetodoPagoSchema,
   deleteMetodoPagoSchema
@@ -67,7 +65,6 @@ const getUsuarioByIdController = async (req, res) => {
       return res.status(404).json({ message: `No se ha encontrado el usuario con id: ${id}` });
     }
     
-    // ← CAMBIO: Filtrar datos sensibles de métodos de pago
     const usuarioSeguro = {
       ...usuario,
       metodoPago: getMetodosPagoSeguros(usuario.metodoPago)
@@ -139,7 +136,6 @@ const registerUsuarioController = async (req, res) => {
       datosEmpresa: usuario.datosEmpresa,
       preferencias: usuario.preferencias,
       membresia: usuario.membresia,
-      // ← CAMBIO: Filtrar métodos de pago seguros
       metodoPago: getMetodosPagoSeguros(usuario.metodoPago),
       activo: usuario.activo,
       verificado: usuario.verificado,
@@ -233,7 +229,6 @@ const updateUsuarioController = async (req, res) => {
       datosEmpresa: usuario.datosEmpresa,
       preferencias: usuario.preferencias,
       membresia: usuario.membresia,
-      // ← CAMBIO: Filtrar métodos de pago seguros
       metodoPago: getMetodosPagoSeguros(usuario.metodoPago),
       activo: usuario.activo,
       verificado: usuario.verificado,
@@ -495,7 +490,6 @@ const getPerfilCompletoUsuarioController = async (req, res) => {
         direccion: usuario.direccion,
         datosEmpresa: usuario.datosEmpresa,
         preferencias: usuario.preferencias,
-        // ← CAMBIO: Filtrar métodos de pago seguros
         metodoPago: getMetodosPagoSeguros(usuario.metodoPago),
         activo: usuario.activo,
         verificado: usuario.verificado,
@@ -505,7 +499,6 @@ const getPerfilCompletoUsuarioController = async (req, res) => {
       }
     };
 
-    // Agregar perfil específico según tipo de usuario
     if (usuario.tipoUsuario === 'cliente') {
       const empresa = await findEmpresaByUsuarioId(id);
       perfil.empresaInmobiliaria = empresa;
@@ -531,8 +524,6 @@ const getPerfilCompletoUsuarioController = async (req, res) => {
     });
   }
 };
-
-// ← NUEVOS CONTROLADORES para métodos de pago
 
 const addMetodoPagoController = async (req, res) => {
   const { id } = req.params;
@@ -796,7 +787,6 @@ module.exports = {
   cambiarRolUsuarioController,
   updateMembresiaUsuarioController,
   getPerfilCompletoUsuarioController,
-  // ← NUEVOS CONTROLADORES EXPORTADOS
   addMetodoPagoController,
   updateMetodoPagoController,
   deleteMetodoPagoController,

@@ -9,7 +9,6 @@ const oficinaSchema = new mongoose.Schema(
       edificioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edificio', required: true },
       piso: { type: Number, required: true },
       numero: { type: String, required: true },
-      // ← NUEVOS CAMPOS OBLIGATORIOS
       coordenadas: {
         lat: { type: Number, required: true },
         lng: { type: Number, required: true }
@@ -26,7 +25,6 @@ const oficinaSchema = new mongoose.Schema(
     capacidad: { type: Number, required: true },
     superficieM2: { type: Number },
     amenidades: [{ type: String }],
-    // ← CAMPO ESTANDARIZADO: Cambié fotosPrincipales por imagenes para consistencia
     imagenes: [{ 
       type: String,
       validate: {
@@ -36,7 +34,6 @@ const oficinaSchema = new mongoose.Schema(
         message: 'URL de imagen debe ser válida (http/https)'
       }
     }],
-    // ← CAMPO DE PLANO MEJORADO CON VALIDACIÓN
     planoUrl: { 
       type: String,
       validate: {
@@ -62,7 +59,6 @@ const oficinaSchema = new mongoose.Schema(
       porMes: { type: Number }
     },
     estado: { type: String, enum: ['disponible', 'ocupada', 'mantenimiento', 'reservada'], default: 'disponible' },
-    // ← CAMBIO: propietarioId -> usuarioId y OBLIGATORIO
     usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
     empresaInmobiliariaId: { type: mongoose.Schema.Types.ObjectId, ref: 'EmpresaInmobiliaria' },
     calificacionPromedio: { type: Number, default: 0 },

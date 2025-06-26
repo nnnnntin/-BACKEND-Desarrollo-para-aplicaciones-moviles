@@ -5,7 +5,7 @@ const espacioSchema = new mongoose.Schema(
     nombre: { type: String, required: true },
     tipo: { type: String, required: true, enum: ['oficina', 'sala_reunion', 'escritorio_flexible', 'otro'] },
     ubicacion: {
-      edificioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edificio', required: true },
+      edificioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edificio' },
       piso: { type: Number, required: true },
       sector: { type: String, required: true },
       coordenadas: {

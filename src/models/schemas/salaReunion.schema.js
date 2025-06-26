@@ -5,7 +5,7 @@ const salaReunionSchema = new mongoose.Schema(
     nombre: { type: String, required: true },
     codigo: { type: String, required: true, unique: true },
     ubicacion: {
-      edificioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edificio', required: true },
+      edificioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edificio' },
       piso: { type: Number, required: true },
       numero: { type: String, required: true },
       coordenadas: {

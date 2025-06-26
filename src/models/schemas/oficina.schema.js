@@ -6,7 +6,7 @@ const oficinaSchema = new mongoose.Schema(
     codigo: { type: String, required: true, unique: true },
     tipo: { type: String, enum: ['privada', 'compartida', 'coworking'], default: 'privada' },
     ubicacion: {
-      edificioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edificio', required: true },
+      edificioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edificio' },
       piso: { type: Number, required: true },
       numero: { type: String, required: true },
       coordenadas: {

@@ -4,7 +4,7 @@ const escritorioFlexibleSchema = new mongoose.Schema(
   {
     codigo: { type: String, required: true, unique: true },
     ubicacion: {
-      edificioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edificio', required: true },
+      edificioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edificio' },
       piso: { type: Number, required: true },
       zona: { type: String, required: true },
       numero: { type: String, required: true },

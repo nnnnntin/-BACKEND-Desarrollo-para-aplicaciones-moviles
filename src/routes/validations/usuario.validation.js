@@ -58,10 +58,23 @@ const createUsuarioSchema = Joi.object({
   username: Joi.string().min(3).max(30).required(),
   email: Joi.string().email().required(),
   password: Joi.string().min(8).required(),
-  nombre: Joi.string().optional(),
-  apellidos: Joi.string().optional(),
+  
+  // Fix: Convert empty strings to undefined, so they're treated as optional
+  nombre: Joi.string().min(1).optional().allow('').custom((value, helpers) => {
+    if (value === '') {
+      return undefined; // Convert empty string to undefined
+    }
+    return value;
+  }),
+  
+  apellidos: Joi.string().min(1).optional().allow('').custom((value, helpers) => {
+    if (value === '') {
+      return undefined;
+    }
+    return value;
+  }),
+  
   imagen: Joi.string().uri().optional(),
-
   datosPersonales: Joi.object({
     telefono: Joi.string().optional(),
     documentoIdentidad: Joi.string().optional(),
@@ -109,8 +122,8 @@ const createUsuarioSchema = Joi.object({
 });
 
 const updateUsuarioSchema = Joi.object({
-  nombre: Joi.string(),
-  apellidos: Joi.string(),
+  nombre: Joi.string().min(1),
+  apellidos: Joi.string().min(1),
   imagen: Joi.string().uri(),
   datosPersonales: Joi.object({
     telefono: Joi.string(),

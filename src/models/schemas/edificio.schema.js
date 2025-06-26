@@ -21,8 +21,26 @@ const edificioSchema = new mongoose.Schema(
     usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
     empresaInmobiliariaId: { type: mongoose.Schema.Types.ObjectId, ref: 'EmpresaInmobiliaria' },
     descripcion: { type: String },
-    imagenes: [{ type: String }],
-    planos: [{ type: String }],
+    // ← CAMPO DE IMÁGENES MEJORADO CON VALIDACIÓN
+    imagenes: [{ 
+      type: String,
+      validate: {
+        validator: function(v) {
+          return /^https?:\/\/.+/.test(v);
+        },
+        message: 'URL de imagen debe ser válida (http/https)'
+      }
+    }],
+    // ← CAMPO DE PLANOS MEJORADO CON VALIDACIÓN
+    planos: [{ 
+      type: String,
+      validate: {
+        validator: function(v) {
+          return /^https?:\/\/.+/.test(v);
+        },
+        message: 'URL de plano debe ser válida (http/https)'
+      }
+    }],
     amenidades: [{
       tipo: { type: String },
       descripcion: { type: String },

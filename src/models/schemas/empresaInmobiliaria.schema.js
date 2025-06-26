@@ -32,7 +32,26 @@ const empresaInmobiliariaSchema = new mongoose.Schema(
       pais: { type: String, required: true }
     },
     sitioWeb: { type: String },
-    logoUrl: { type: String },
+    // ← CAMPO DE LOGO MEJORADO CON VALIDACIÓN
+    logoUrl: { 
+      type: String,
+      validate: {
+        validator: function(v) {
+          return !v || /^https?:\/\/.+/.test(v);
+        },
+        message: 'URL del logo debe ser válida (http/https)'
+      }
+    },
+    // ← NUEVO CAMPO DE IMÁGENES ADICIONALES
+    imagenes: [{ 
+      type: String,
+      validate: {
+        validator: function(v) {
+          return /^https?:\/\/.+/.test(v);
+        },
+        message: 'URL de imagen debe ser válida (http/https)'
+      }
+    }],
     comision: { type: Number, default: 0 },
     metodoPago: {
       titular: { type: String },

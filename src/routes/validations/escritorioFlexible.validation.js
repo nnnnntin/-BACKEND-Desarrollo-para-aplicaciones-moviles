@@ -35,7 +35,12 @@ const createEscritorioFlexibleSchema = Joi.object({
     porSemana: Joi.number().min(0),
     porMes: Joi.number().min(0)
   }).required(),
-  imagenes: Joi.array().items(Joi.string().uri()),
+  // ← VALIDACIÓN MEJORADA PARA IMÁGENES
+  imagenes: Joi.array().items(
+    Joi.string().uri({ scheme: ['http', 'https'] }).message('URL de imagen debe ser válida (http/https)')
+  ).max(8).messages({
+    'array.max': 'Máximo 8 imágenes permitidas'
+  }),
   estado: Joi.string().valid('disponible', 'ocupado', 'mantenimiento', 'reservado').default('disponible'),
   usuarioId: Joi.string().required(),
   empresaInmobiliariaId: Joi.string(),
@@ -74,7 +79,12 @@ const updateEscritorioFlexibleSchema = Joi.object({
     porSemana: Joi.number().min(0),
     porMes: Joi.number().min(0)
   }),
-  imagenes: Joi.array().items(Joi.string().uri()),
+  // ← VALIDACIÓN MEJORADA PARA IMÁGENES EN UPDATE
+  imagenes: Joi.array().items(
+    Joi.string().uri({ scheme: ['http', 'https'] }).message('URL de imagen debe ser válida (http/https)')
+  ).max(8).messages({
+    'array.max': 'Máximo 8 imágenes permitidas'
+  }),
   estado: Joi.string().valid('disponible', 'ocupado', 'mantenimiento', 'reservado'),
   usuarioId: Joi.string(),
   empresaInmobiliariaId: Joi.string(),

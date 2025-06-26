@@ -8,7 +8,7 @@ const salaReunionSchema = new mongoose.Schema(
       edificioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edificio', required: true },
       piso: { type: Number, required: true },
       numero: { type: String, required: true },
-      // ← NUEVOS CAMPOS OBLIGATORIOS
+      // ← CAMPOS OBLIGATORIOS
       coordenadas: {
         lat: { type: Number, required: true },
         lng: { type: Number, required: true }
@@ -33,7 +33,16 @@ const salaReunionSchema = new mongoose.Schema(
       mediaDia: { type: Number },
       diaDompleto: { type: Number }
     },
-    imagenes: [{ type: String }],
+    // ← CAMPO DE IMÁGENES MEJORADO CON VALIDACIÓN
+    imagenes: [{ 
+      type: String,
+      validate: {
+        validator: function(v) {
+          return /^https?:\/\/.+/.test(v);
+        },
+        message: 'URL de imagen debe ser válida (http/https)'
+      }
+    }],
     disponibilidad: {
       horario: {
         apertura: { type: String, default: "09:00" },

@@ -19,7 +19,13 @@ const createEmpresaInmobiliariaSchema = Joi.object({
     pais: Joi.string().required()
   }).required(),
   sitioWeb: Joi.string().uri(),
-  logoUrl: Joi.string().uri(),
+  // ← VALIDACIONES MEJORADAS PARA IMÁGENES
+  logoUrl: Joi.string().uri({ scheme: ['http', 'https'] }).message('URL del logo debe ser válida (http/https)'),
+  imagenes: Joi.array().items(
+    Joi.string().uri({ scheme: ['http', 'https'] }).message('URL de imagen debe ser válida (http/https)')
+  ).max(8).messages({
+    'array.max': 'Máximo 8 imágenes permitidas'
+  }),
   comision: Joi.number().min(0).default(0),
   metodoPago: Joi.object({
     titular: Joi.string(),
@@ -47,7 +53,13 @@ const updateEmpresaInmobiliariaSchema = Joi.object({
     pais: Joi.string()
   }),
   sitioWeb: Joi.string().uri(),
-  logoUrl: Joi.string().uri(),
+  // ← VALIDACIONES MEJORADAS PARA IMÁGENES EN UPDATE
+  logoUrl: Joi.string().uri({ scheme: ['http', 'https'] }).message('URL del logo debe ser válida (http/https)'),
+  imagenes: Joi.array().items(
+    Joi.string().uri({ scheme: ['http', 'https'] }).message('URL de imagen debe ser válida (http/https)')
+  ).max(8).messages({
+    'array.max': 'Máximo 8 imágenes permitidas'
+  }),
   comision: Joi.number().min(0),
   metodoPago: Joi.object({
     titular: Joi.string(),

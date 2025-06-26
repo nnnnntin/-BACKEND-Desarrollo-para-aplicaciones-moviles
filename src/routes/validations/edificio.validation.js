@@ -17,8 +17,18 @@ const createEdificioSchema = Joi.object({
   usuarioId: Joi.string().required(),
   empresaInmobiliariaId: Joi.string(),
   descripcion: Joi.string(),
-  imagenes: Joi.array().items(Joi.string().uri()),
-  planos: Joi.array().items(Joi.string().uri()),
+  // ← VALIDACIÓN MEJORADA PARA IMÁGENES
+  imagenes: Joi.array().items(
+    Joi.string().uri({ scheme: ['http', 'https'] }).message('URL de imagen debe ser válida (http/https)')
+  ).max(15).messages({
+    'array.max': 'Máximo 15 imágenes permitidas'
+  }),
+  // ← VALIDACIÓN PARA PLANOS
+  planos: Joi.array().items(
+    Joi.string().uri({ scheme: ['http', 'https'] }).message('URL de plano debe ser válida (http/https)')
+  ).max(5).messages({
+    'array.max': 'Máximo 5 planos permitidos'
+  }),
   amenidades: Joi.array().items(
     Joi.object({
       tipo: Joi.string(),
@@ -55,8 +65,17 @@ const updateEdificioSchema = Joi.object({
   usuarioId: Joi.string(),
   empresaInmobiliariaId: Joi.string(),
   descripcion: Joi.string(),
-  imagenes: Joi.array().items(Joi.string().uri()),
-  planos: Joi.array().items(Joi.string().uri()),
+  // ← VALIDACIÓN MEJORADA PARA IMÁGENES EN UPDATE
+  imagenes: Joi.array().items(
+    Joi.string().uri({ scheme: ['http', 'https'] }).message('URL de imagen debe ser válida (http/https)')
+  ).max(15).messages({
+    'array.max': 'Máximo 15 imágenes permitidas'
+  }),
+  planos: Joi.array().items(
+    Joi.string().uri({ scheme: ['http', 'https'] }).message('URL de plano debe ser válida (http/https)')
+  ).max(5).messages({
+    'array.max': 'Máximo 5 planos permitidos'
+  }),
   amenidades: Joi.array().items(
     Joi.object({
       tipo: Joi.string(),

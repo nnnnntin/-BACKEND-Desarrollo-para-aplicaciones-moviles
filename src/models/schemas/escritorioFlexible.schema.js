@@ -33,7 +33,16 @@ const escritorioFlexibleSchema = new mongoose.Schema(
       porSemana: { type: Number },
       porMes: { type: Number }
     },
-    imagenes: [{ type: String }],
+    // ← CAMPO DE IMÁGENES MEJORADO CON VALIDACIÓN
+    imagenes: [{ 
+      type: String,
+      validate: {
+        validator: function(v) {
+          return /^https?:\/\/.+/.test(v);
+        },
+        message: 'URL de imagen debe ser válida (http/https)'
+      }
+    }],
     estado: { type: String, enum: ['disponible', 'ocupado', 'mantenimiento', 'reservado'], default: 'disponible' },
     // ← CAMBIO: propietarioId -> usuarioId y OBLIGATORIO
     usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },

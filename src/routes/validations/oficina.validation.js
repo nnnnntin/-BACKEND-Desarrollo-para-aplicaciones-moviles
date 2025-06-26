@@ -26,8 +26,14 @@ const createOficinaSchema = Joi.object({
   capacidad: Joi.number().integer().min(1).required(),
   superficieM2: Joi.number().positive(),
   amenidades: Joi.array().items(Joi.string()),
-  fotosPrincipales: Joi.array().items(Joi.string().uri()),
-  planoUrl: Joi.string().uri(),
+  // ← CAMPO ESTANDARIZADO: imagenes en lugar de fotosPrincipales
+  imagenes: Joi.array().items(
+    Joi.string().uri({ scheme: ['http', 'https'] }).message('URL de imagen debe ser válida (http/https)')
+  ).max(12).messages({
+    'array.max': 'Máximo 12 imágenes permitidas'
+  }),
+  // ← VALIDACIÓN MEJORADA PARA PLANO
+  planoUrl: Joi.string().uri({ scheme: ['http', 'https'] }).message('URL del plano debe ser válida (http/https)'),
   disponibilidad: Joi.object({
     horario: Joi.object({
       apertura: Joi.string().pattern(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).default("09:00"),
@@ -71,8 +77,13 @@ const updateOficinaSchema = Joi.object({
   capacidad: Joi.number().integer().min(1),
   superficieM2: Joi.number().positive(),
   amenidades: Joi.array().items(Joi.string()),
-  fotosPrincipales: Joi.array().items(Joi.string().uri()),
-  planoUrl: Joi.string().uri(),
+  // ← VALIDACIÓN MEJORADA PARA IMÁGENES EN UPDATE
+  imagenes: Joi.array().items(
+    Joi.string().uri({ scheme: ['http', 'https'] }).message('URL de imagen debe ser válida (http/https)')
+  ).max(12).messages({
+    'array.max': 'Máximo 12 imágenes permitidas'
+  }),
+  planoUrl: Joi.string().uri({ scheme: ['http', 'https'] }).message('URL del plano debe ser válida (http/https)'),
   disponibilidad: Joi.object({
     horario: Joi.object({
       apertura: Joi.string().pattern(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),

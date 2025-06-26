@@ -44,7 +44,12 @@ const createSalaReunionSchema = Joi.object({
     mediaDia: Joi.number().min(0),
     diaDompleto: Joi.number().min(0)
   }).required(),
-  imagenes: Joi.array().items(Joi.string().uri()),
+  // ← VALIDACIÓN MEJORADA PARA IMÁGENES
+  imagenes: Joi.array().items(
+    Joi.string().uri({ scheme: ['http', 'https'] }).message('URL de imagen debe ser válida (http/https)')
+  ).max(10).messages({
+    'array.max': 'Máximo 10 imágenes permitidas'
+  }),
   disponibilidad: Joi.object({
     horario: Joi.object({
       apertura: Joi.string().pattern(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).default("09:00"),
@@ -92,7 +97,12 @@ const updateSalaReunionSchema = Joi.object({
     mediaDia: Joi.number().min(0),
     diaDompleto: Joi.number().min(0)
   }),
-  imagenes: Joi.array().items(Joi.string().uri()),
+  // ← VALIDACIÓN MEJORADA PARA IMÁGENES EN UPDATE
+  imagenes: Joi.array().items(
+    Joi.string().uri({ scheme: ['http', 'https'] }).message('URL de imagen debe ser válida (http/https)')
+  ).max(10).messages({
+    'array.max': 'Máximo 10 imágenes permitidas'
+  }),
   disponibilidad: Joi.object({
     horario: Joi.object({
       apertura: Joi.string().pattern(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),

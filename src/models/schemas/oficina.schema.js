@@ -26,8 +26,26 @@ const oficinaSchema = new mongoose.Schema(
     capacidad: { type: Number, required: true },
     superficieM2: { type: Number },
     amenidades: [{ type: String }],
-    fotosPrincipales: [{ type: String }],
-    planoUrl: { type: String },
+    // ← CAMPO ESTANDARIZADO: Cambié fotosPrincipales por imagenes para consistencia
+    imagenes: [{ 
+      type: String,
+      validate: {
+        validator: function(v) {
+          return /^https?:\/\/.+/.test(v);
+        },
+        message: 'URL de imagen debe ser válida (http/https)'
+      }
+    }],
+    // ← CAMPO DE PLANO MEJORADO CON VALIDACIÓN
+    planoUrl: { 
+      type: String,
+      validate: {
+        validator: function(v) {
+          return !v || /^https?:\/\/.+/.test(v);
+        },
+        message: 'URL del plano debe ser válida (http/https)'
+      }
+    },
     disponibilidad: {
       horario: {
         apertura: { type: String, default: "09:00" },

@@ -21,6 +21,7 @@ const ubicacionEscritorioSchema = Joi.object({
 
 const createEscritorioFlexibleSchema = Joi.object({
   codigo: Joi.string().required(),
+  nombre: Joi.string().optional().allow(''), // Nuevo campo agregado
   ubicacion: ubicacionEscritorioSchema.required(),
   tipo: Joi.string().valid('individual', 'compartido', 'standing').default('individual'),
   amenidades: Joi.array().items(
@@ -47,6 +48,7 @@ const createEscritorioFlexibleSchema = Joi.object({
 });
 
 const updateEscritorioFlexibleSchema = Joi.object({
+  nombre: Joi.string().optional().allow(''), // Nuevo campo agregado
   ubicacion: Joi.object({
     edificioId: Joi.string(),
     piso: Joi.number(),

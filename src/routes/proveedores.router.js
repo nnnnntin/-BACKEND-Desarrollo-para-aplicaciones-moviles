@@ -1,4 +1,4 @@
-// routes/proveedor.routes.js
+// src/routes/proveedores.router.js
 const express = require("express");
 const router = express.Router();
 
@@ -10,7 +10,7 @@ const {
   getProveedorByIdController,
   getProveedorByUsuarioIdController,
   getProveedoresByTipoController,
-  getProveedoresVerificadasController,
+  getProveedoresVerificadosController,
   filtrarProveedoresController,
   getProveedoresPorCalificacionController,
   getProveedoresConMasServiciosController,
@@ -31,7 +31,7 @@ const {
 } = require("./validations/proveedor.validation");
 
 router.get("/proveedores", getProveedoresController);
-router.get("/proveedores/verificados", getProveedoresVerificadasController);
+router.get("/proveedores/verificados", getProveedoresVerificadosController);
 router.get("/proveedores/tipo/:tipo", getProveedoresByTipoController);
 router.get("/proveedores/filtrar", filtrarProveedoresController);
 router.get("/proveedores/calificacion", getProveedoresPorCalificacionController);

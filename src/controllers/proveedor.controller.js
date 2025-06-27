@@ -20,6 +20,7 @@ const {
   getProveedoresPorCalificacion,
   getProveedoresConMasServicios
 } = require("../repositories/proveedor.repository");
+const { findUsuarioById } = require("../repositories/usuario.repository");
 const {
   createProveedorSchema,
   updateProveedorSchema,

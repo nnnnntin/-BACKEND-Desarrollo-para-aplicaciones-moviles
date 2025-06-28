@@ -3,7 +3,11 @@ const Joi = require("joi");
 const createFacturaSchema = Joi.object({
   numeroFactura: Joi.string().required(),
   usuarioId: Joi.string().required(),
-  emisorId: Joi.string().required(),
+  emisorId: Joi.when('tipoEmisor', {
+    is: 'plataforma',
+    then: Joi.string().allow('plataforma', 'plataforma_id').default('plataforma'),
+    otherwise: Joi.string().required()
+  }),
   tipoEmisor: Joi.string().valid('plataforma', 'inmobiliaria', 'proveedor').required(),
   fechaEmision: Joi.date().required(),
   fechaVencimiento: Joi.date().required(),
@@ -22,9 +26,9 @@ const createFacturaSchema = Joi.object({
   descuentoTotal: Joi.number().min(0).default(0),
   total: Joi.number().min(0).required(),
   estado: Joi.string().valid('pendiente', 'pagada', 'vencida', 'cancelada').default('pendiente'),
-  metodoPago: Joi.string(),
-  pdfUrl: Joi.string().uri(),
-  pagosIds: Joi.array().items(Joi.string())
+  metodoPago: Joi.string().allow('', null),
+  pdfUrl: Joi.string().uri().allow('', null), 
+  pagosIds: Joi.array().items(Joi.string()).default([]) 
 });
 
 const updateFacturaSchema = Joi.object({
@@ -44,8 +48,8 @@ const updateFacturaSchema = Joi.object({
   descuentoTotal: Joi.number().min(0),
   total: Joi.number().min(0),
   estado: Joi.string().valid('pendiente', 'pagada', 'vencida', 'cancelada'),
-  metodoPago: Joi.string(),
-  pdfUrl: Joi.string().uri(),
+  metodoPago: Joi.string().allow('', null),
+  pdfUrl: Joi.string().uri().allow('', null),
   pagosIds: Joi.array().items(Joi.string())
 }).min(1);
 

@@ -15,13 +15,13 @@ const createPagoSchema = Joi.object({
     detalles: Joi.object()
   }).required(),
   estado: Joi.string().valid('pendiente', 'completado', 'fallido', 'reembolsado').default('pendiente'),
-  comprobante: Joi.string().uri(),
+  comprobante: Joi.string(),
   facturaId: Joi.string()
 });
 
 const updatePagoSchema = Joi.object({
   estado: Joi.string().valid('pendiente', 'completado', 'fallido', 'reembolsado'),
-  comprobante: Joi.string().uri(),
+  comprobante: Joi.string(),
   facturaId: Joi.string()
 }).min(1);
 

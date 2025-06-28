@@ -1,5 +1,7 @@
+const mongoose = require("mongoose");
 const Factura = require("../models/factura.model");
 const Usuario = require("../models/usuario.model");
+const Pago = require("../models/pago.model");
 const connectToRedis = require("../services/redis.service");
 
 const _getFacturaRedisKey = (id) => `id:${id}-factura`;

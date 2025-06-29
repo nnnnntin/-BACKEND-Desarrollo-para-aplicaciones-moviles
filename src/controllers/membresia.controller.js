@@ -482,6 +482,16 @@ const suscribirMembresiaController = async (req, res) => {
   const { usuarioId, membresiaId, fechaInicio, metodoPagoId, renovacionAutomatica, codigoPromocional } = value;
 
   try {
+    // ✅ DEBUG: Log de datos recibidos
+    console.log('🔵 [Backend] Datos de suscripción recibidos:', {
+      usuarioId,
+      membresiaId,
+      fechaInicio,
+      metodoPagoId,
+      renovacionAutomatica,
+      codigoPromocional
+    });
+
     const usuario = await findUsuarioById(usuarioId);
     if (!usuario) {
       return res.status(404).json({
@@ -499,6 +509,21 @@ const suscribirMembresiaController = async (req, res) => {
         field: "membresiaId"
       });
     }
+
+    // ✅ DEBUG: Log de usuario y membresía encontrados
+    console.log('🔵 [Backend] Usuario encontrado:', {
+      id: usuario._id,
+      username: usuario.username,
+      membresiaActual: usuario.membresia
+    });
+
+    console.log('🔵 [Backend] Membresía encontrada:', {
+      id: membresia._id,
+      nombre: membresia.nombre,
+      tipo: membresia.tipo,
+      activo: membresia.activo,
+      duracion: membresia.duracion
+    });
 
     if (!membresia.activo) {
       return res.status(400).json({
@@ -524,12 +549,16 @@ const suscribirMembresiaController = async (req, res) => {
     const vencimiento = new Date(inicio);
     vencimiento.setDate(vencimiento.getDate() + membresia.duracion);
 
+    // ✅ CORRECCIÓN CRÍTICA: Estructura de datos correcta y renovación automática
     const membresiaData = {
-      tipoMembresiaId: membresiaId,
+      tipoMembresiaId: membresiaId, // ⚠️ El schema espera 'tipoMembresiaId'
       fechaInicio: inicio,
       fechaVencimiento: vencimiento,
-      renovacionAutomatica: renovacionAutomatica || false
+      renovacionAutomatica: renovacionAutomatica !== undefined ? renovacionAutomatica : true // ✅ CORRECCIÓN: usar valor real
     };
+
+    // ✅ DEBUG: Log antes de actualizar
+    console.log('🔵 [Backend] Datos de membresía a guardar:', membresiaData);
 
     const usuarioActualizado = await updateMembresiaUsuario(usuarioId, membresiaData);
     if (!usuarioActualizado) {
@@ -539,6 +568,23 @@ const suscribirMembresiaController = async (req, res) => {
       });
     }
 
+    // ✅ DEBUG: Log después de actualizar
+    console.log('🟢 [Backend] Usuario actualizado exitosamente:', {
+      id: usuarioActualizado._id,
+      username: usuarioActualizado.username,
+      membresia: usuarioActualizado.membresia
+    });
+
+    // ✅ VERIFICACIÓN: Asegurar que la membresía se guardó correctamente
+    if (!usuarioActualizado.membresia || !usuarioActualizado.membresia.tipoMembresiaId) {
+      console.error('🔴 [Backend] Error: Usuario actualizado sin membresía válida');
+      return res.status(500).json({
+        message: "Error al asignar membresía",
+        details: "La membresía no se asignó correctamente al usuario"
+      });
+    }
+
+    // ✅ RESPUESTA COMPLETA con todos los datos necesarios
     res.status(200).json({
       message: "Suscripción a membresía realizada correctamente",
       usuario: {
@@ -546,21 +592,32 @@ const suscribirMembresiaController = async (req, res) => {
         username: usuarioActualizado.username,
         email: usuarioActualizado.email,
         tipoUsuario: usuarioActualizado.tipoUsuario,
-        membresia: usuarioActualizado.membresia
+        nombre: usuarioActualizado.nombre,
+        apellidos: usuarioActualizado.apellidos,
+        imagen: usuarioActualizado.imagen,
+        membresia: usuarioActualizado.membresia, // ⚠️ CRUCIAL: membresía completa
+        metodoPago: usuarioActualizado.metodoPago,
+        activo: usuarioActualizado.activo,
+        verificado: usuarioActualizado.verificado,
+        rol: usuarioActualizado.rol,
+        updatedAt: usuarioActualizado.updatedAt
       },
       suscripcion: {
         usuarioId,
         membresiaId,
         nombreMembresia: membresia.nombre,
+        tipoMembresia: membresia.tipo,
         fechaInicio: inicio,
         fechaVencimiento: vencimiento,
-        renovacionAutomatica: renovacionAutomatica || false,
-        codigoPromocional: codigoPromocional || null
+        renovacionAutomatica: renovacionAutomatica !== undefined ? renovacionAutomatica : true,
+        codigoPromocional: codigoPromocional || null,
+        duracion: membresia.duracion,
+        precio: membresia.precio
       }
     });
 
   } catch (error) {
-    console.error(error);
+    console.error('🔴 [Backend] Error completo en suscripción:', error);
 
     if (error.name === 'CastError') {
       const field = error.path;
@@ -633,9 +690,9 @@ const cancelarMembresiaController = async (req, res) => {
       });
     }
 
-    if (!usuario.membresia || 
-        !usuario.membresia.tipoMembresiaId || 
-        usuario.membresia.tipoMembresiaId.toString() !== membresiaId) {
+    if (!usuario.membresia ||
+      !usuario.membresia.tipoMembresiaId ||
+      usuario.membresia.tipoMembresiaId.toString() !== membresiaId) {
       return res.status(400).json({
         message: "Sin suscripción activa",
         details: "El usuario no tiene una suscripción activa a esta membresía",

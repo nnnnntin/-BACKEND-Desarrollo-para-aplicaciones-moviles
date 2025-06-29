@@ -13,8 +13,8 @@ const {
   getMembresiasPorRangoPrecio,
   actualizarBeneficios
 } = require("../repositories/membresia.repository");
-
 const { findUsuarioById } = require("../repositories/usuario.repository");
+const { updateMembresiaUsuario } = require("../repositories/usuario.repository");
 
 const {
   createMembresiaSchema,
@@ -482,7 +482,7 @@ const suscribirMembresiaController = async (req, res) => {
   const { usuarioId, membresiaId, fechaInicio, metodoPagoId, renovacionAutomatica, codigoPromocional } = value;
 
   try {
-        const usuario = await findUsuarioById(usuarioId);
+    const usuario = await findUsuarioById(usuarioId);
     if (!usuario) {
       return res.status(404).json({
         message: "Usuario no encontrado",
@@ -491,7 +491,7 @@ const suscribirMembresiaController = async (req, res) => {
       });
     }
 
-        const membresia = await findMembresiaById(membresiaId);
+    const membresia = await findMembresiaById(membresiaId);
     if (!membresia) {
       return res.status(404).json({
         message: "Membresía no encontrada",
@@ -524,8 +524,30 @@ const suscribirMembresiaController = async (req, res) => {
     const vencimiento = new Date(inicio);
     vencimiento.setDate(vencimiento.getDate() + membresia.duracion);
 
+    const membresiaData = {
+      tipoMembresiaId: membresiaId,
+      fechaInicio: inicio,
+      fechaVencimiento: vencimiento,
+      renovacionAutomatica: renovacionAutomatica || false
+    };
+
+    const usuarioActualizado = await updateMembresiaUsuario(usuarioId, membresiaData);
+    if (!usuarioActualizado) {
+      return res.status(500).json({
+        message: "Error al actualizar membresía",
+        details: "No se pudo actualizar la membresía del usuario"
+      });
+    }
+
     res.status(200).json({
       message: "Suscripción a membresía realizada correctamente",
+      usuario: {
+        _id: usuarioActualizado._id,
+        username: usuarioActualizado.username,
+        email: usuarioActualizado.email,
+        tipoUsuario: usuarioActualizado.tipoUsuario,
+        membresia: usuarioActualizado.membresia
+      },
       suscripcion: {
         usuarioId,
         membresiaId,
@@ -536,6 +558,7 @@ const suscribirMembresiaController = async (req, res) => {
         codigoPromocional: codigoPromocional || null
       }
     });
+
   } catch (error) {
     console.error(error);
 
@@ -592,7 +615,7 @@ const cancelarMembresiaController = async (req, res) => {
   const { usuarioId, membresiaId, motivo, fechaCancelacion, reembolsoParcial } = value;
 
   try {
-        const usuario = await findUsuarioById(usuarioId);
+    const usuario = await findUsuarioById(usuarioId);
     if (!usuario) {
       return res.status(404).json({
         message: "Usuario no encontrado",
@@ -601,12 +624,22 @@ const cancelarMembresiaController = async (req, res) => {
       });
     }
 
-        const membresia = await findMembresiaById(membresiaId);
+    const membresia = await findMembresiaById(membresiaId);
     if (!membresia) {
       return res.status(404).json({
         message: "Membresía no encontrada",
         details: `No se ha encontrado la membresía con id: ${membresiaId}`,
         field: "membresiaId"
+      });
+    }
+
+    if (!usuario.membresia || 
+        !usuario.membresia.tipoMembresiaId || 
+        usuario.membresia.tipoMembresiaId.toString() !== membresiaId) {
+      return res.status(400).json({
+        message: "Sin suscripción activa",
+        details: "El usuario no tiene una suscripción activa a esta membresía",
+        field: "usuarioId"
       });
     }
 
@@ -622,17 +655,42 @@ const cancelarMembresiaController = async (req, res) => {
       }
     }
 
+    const fechaCancelacionFinal = fechaCancelacionObj || new Date();
+    const membresiaData = {
+      ...usuario.membresia,
+      renovacionAutomatica: false,
+      fechaCancelacion: fechaCancelacionFinal,
+      motivoCancelacion: motivo
+    };
+
+    const usuarioActualizado = await updateMembresiaUsuario(usuarioId, membresiaData);
+    if (!usuarioActualizado) {
+      return res.status(500).json({
+        message: "Error al cancelar membresía",
+        details: "No se pudo actualizar la membresía del usuario"
+      });
+    }
+
     res.status(200).json({
       message: "Membresía cancelada correctamente",
+      usuario: {
+        _id: usuarioActualizado._id,
+        username: usuarioActualizado.username,
+        email: usuarioActualizado.email,
+        tipoUsuario: usuarioActualizado.tipoUsuario,
+        membresia: usuarioActualizado.membresia
+      },
       cancelacion: {
         usuarioId,
         membresiaId,
         nombreMembresia: membresia.nombre,
-        fechaCancelacion: fechaCancelacionObj || new Date(),
+        fechaCancelacion: fechaCancelacionFinal,
         motivo,
-        reembolsoParcial: reembolsoParcial || false
+        reembolsoParcial: reembolsoParcial || false,
+        mantenerHasta: usuario.membresia.fechaVencimiento
       }
     });
+
   } catch (error) {
     console.error(error);
 
@@ -642,14 +700,6 @@ const cancelarMembresiaController = async (req, res) => {
         message: `ID de ${field} inválido`,
         details: `El formato del ID no es válido`,
         field
-      });
-    }
-
-    if (error.message && error.message.includes('no tiene suscripción activa')) {
-      return res.status(400).json({
-        message: "Sin suscripción activa",
-        details: "El usuario no tiene una suscripción activa a esta membresía",
-        field: "usuarioId"
       });
     }
 

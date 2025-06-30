@@ -46,7 +46,6 @@ const postAuthLogin = async (req, res) => {
     const userId = user._id.toString();
   
     if (!AUTH_SECRET_KEY) {
-      console.error("ERROR: AUTH_SECRET_KEY no está configurada en variables de entorno");
       return res.status(500).json({ 
         message: "Error de configuración del servidor", 
         details: "No se pudo completar la autenticación debido a un error de configuración"
@@ -86,14 +85,12 @@ const postAuthLogin = async (req, res) => {
         }
       });
     } catch (jwtError) {
-      console.error("Error al generar el token JWT:", jwtError);
       return res.status(500).json({ 
         message: "Error al generar el token de autenticación", 
         details: "Ocurrió un problema al crear la sesión"
       });
     }
   } catch (error) {
-    console.error("Error en postAuthLogin:", error);
     
     if (error.name === 'MongoError' || error.name === 'MongooseError') {
       return res.status(500).json({ 
@@ -185,7 +182,6 @@ const postAuthSignup = async (req, res) => {
       imagen: newUser.imagen 
     });
   } catch (error) {
-    console.error("Error en postAuthSignup:", error);
   
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
@@ -230,7 +226,6 @@ const validateToken = async (req, res) => {
   
   try {
     if (!AUTH_SECRET_KEY) {
-      console.error("ERROR: AUTH_SECRET_KEY no está configurada en variables de entorno");
       return res.status(500).json({ 
         message: "Error de configuración del servidor", 
         details: "No se pudo completar la validación debido a un error de configuración"
@@ -274,9 +269,7 @@ const validateToken = async (req, res) => {
         activo: user.activo
       }
     });
-  } catch (error) {
-    console.error("Error validando token:", error);
-    
+  } catch (error) {    
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({ 
         message: "Token expirado", 

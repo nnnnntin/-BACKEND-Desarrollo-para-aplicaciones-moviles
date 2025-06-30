@@ -46,7 +46,7 @@ const getServiciosAdicionalesController = async (req, res) => {
     const servicios = await getServiciosAdicionales(filtros, skipNum, limitNum);
     return res.status(200).json(servicios);
   } catch (error) {
-    console.error("[Controller] Error al obtener servicios adicionales", error);
+    console.error(error);
     return res.status(500).json({
       message: "Error al obtener los servicios adicionales",
       details: error.message

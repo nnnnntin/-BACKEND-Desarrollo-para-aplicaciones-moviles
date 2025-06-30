@@ -49,7 +49,7 @@ const getSalasReunionController = async (req, res) => {
     const salas = await getSalasReunion(filtros, skipNum, limitNum);
     return res.status(200).json(salas);
   } catch (error) {
-    console.error("[Controller] Error al obtener salas de reunión", error);
+    console.error(error);
     return res.status(500).json({
       message: "Error al obtener las salas de reunión",
       details: error.message
@@ -593,7 +593,7 @@ const agregarEquipamientoController = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error en agregarEquipamientoController:", error);
+    console.error(error);
 
     if (error.name === "CastError") {
       return res.status(400).json({
@@ -714,7 +714,7 @@ const actualizarPreciosController = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error en actualizarPreciosController:", error);
+    console.error(error);
 
     if (error.name === "CastError") {
       return res.status(400).json({

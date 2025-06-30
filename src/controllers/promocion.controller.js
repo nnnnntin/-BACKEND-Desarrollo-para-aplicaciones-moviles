@@ -148,7 +148,6 @@ const getPromocionesController = async (req, res) => {
     const promociones = await getPromociones(filtros, skipNum, limitNum);
     return res.status(200).json(promociones);
   } catch (error) {
-    console.error("[Controller] Error al obtener promociones", error);
     return res.status(500).json({
       message: "Error al obtener las promociones",
       details: error.message

@@ -170,7 +170,6 @@ const getNotificacionesController = async (req, res) => {
     const notificaciones = await getNotificaciones(filtros, skipNum, limitNum);
     return res.status(200).json(notificaciones);
   } catch (error) {
-    console.error("[Error Controller] al obtener notificaciones", error);
     return res.status(500).json({
       message: "Error al obtener las notificaciones",
       details: error.message,

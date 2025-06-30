@@ -51,7 +51,6 @@ const getReservasServicioController = async (req, res) => {
     const reservas = await getReservasServicio(filtros, skipNum, limitNum);
     return res.status(200).json(reservas);
   } catch (error) {
-    console.error("[Controller] Error al obtener reservas de servicio", error);
     return res.status(500).json({
       message: "Error al obtener las reservas de servicio",
       details: error.message
@@ -307,7 +306,7 @@ const createReservaServicioController = async (req, res) => {
       reserva
     });
   } catch (error) {
-    console.error("[Controller] Error al crear reserva:", error);
+    console.error(error);
 
     if (error.name === 'CastError') {
       return res.status(400).json({

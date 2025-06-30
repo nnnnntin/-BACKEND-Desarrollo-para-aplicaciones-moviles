@@ -51,7 +51,6 @@ const getProveedoresController = async (req, res) => {
     const proveedores = await getProveedores(filtros, skipNum, limitNum);
     return res.status(200).json(proveedores);
   } catch (error) {
-    console.error("[Controller] Error al obtener proveedores", error);
     return res.status(500).json({
       message: "Error al obtener los proveedores",
       details: error.message

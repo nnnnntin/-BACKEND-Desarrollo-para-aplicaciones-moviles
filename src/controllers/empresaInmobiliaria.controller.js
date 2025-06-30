@@ -47,7 +47,6 @@ const getEmpresasInmobiliariasController = async (req, res) => {
     const empresas = await getEmpresasInmobiliarias(filtros, skipNum, limitNum);
     return res.status(200).json(empresas);
   } catch (error) {
-    console.error("[Error Controller] al obtener empresas inmobiliarias", error);
     return res.status(500).json({
       message: "Error al obtener las empresas inmobiliarias",
       details: error.message

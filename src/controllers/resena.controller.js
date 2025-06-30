@@ -213,7 +213,6 @@ const getResenasController = async (req, res) => {
     const resenas = await getResenas(filtros, skipNum, limitNum);
     return res.status(200).json(resenas);
   } catch (error) {
-    console.error("[Controller] Error al obtener reseñas", error);
     return res.status(500).json({
       message: "Error al obtener las reseñas",
       details: error.message
@@ -429,7 +428,6 @@ const createResenaController = async (req, res) => {
         }
       });
     } catch (promError) {
-      console.error("Error al actualizar promedio:", promError);
       res.status(201).json({
         message: "Reseña creada correctamente, pero ocurrió un error al actualizar calificación promedio",
         resena,
@@ -529,7 +527,6 @@ const updateResenaController = async (req, res) => {
           resenaCompleta.entidadResenada.id
         );
       } catch (promError) {
-        console.error("Error al actualizar promedio:", promError);
         return res.status(200).json({
           message: "Reseña actualizada, pero ocurrió un error al actualizar calificación promedio",
           resena,
@@ -590,7 +587,6 @@ const deleteResenaController = async (req, res) => {
         resena.entidadResenada.id
       );
     } catch (promError) {
-      console.error("Error al actualizar promedio:", promError);
       return res.status(200).json({
         message: "Reseña eliminada correctamente, pero ocurrió un error al actualizar calificación promedio",
         warning: "No se pudo actualizar la calificación promedio de la entidad"
@@ -650,7 +646,6 @@ const cambiarEstadoResenaController = async (req, res) => {
           resena.entidadResenada.id
         );
       } catch (promError) {
-        console.error("Error al actualizar promedio:", promError);
         return res.status(200).json({
           message: "Estado actualizado correctamente, pero ocurrió un error al actualizar calificación promedio",
           resena,
@@ -790,7 +785,6 @@ const moderarResenaController = async (req, res) => {
         resena.entidadResenada.id
       );
     } catch (promError) {
-      console.error("Error al actualizar promedio:", promError);
       return res.status(200).json({
         message: `Reseña ${estado === 'aprobada' ? 'aprobada' : 'rechazada'} correctamente, pero ocurrió un error al actualizar calificación promedio`,
         resena,
@@ -907,7 +901,7 @@ const actualizarPromedioEntidad = async (tipoEntidad, entidadId) => {
 
     return promedio;
   } catch (error) {
-    console.error('Error al actualizar promedio:', error);
+    console.error(error);
     throw error;
   }
 };

@@ -221,7 +221,6 @@ const getFacturasController = async (req, res) => {
     const facturas = await getFacturas(filtros, skipNum, limitNum);
     return res.status(200).json(facturas);
   } catch (error) {
-    console.error("[Error Controller] al obtener facturas", error);
     return res.status(500).json({
       message: "Error al obtener las facturas",
       details: error.message

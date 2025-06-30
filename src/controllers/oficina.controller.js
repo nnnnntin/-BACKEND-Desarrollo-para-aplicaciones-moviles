@@ -47,7 +47,6 @@ const getOficinasController = async (req, res) => {
     const oficinas = await getOficinas(filtros, skipNum, limitNum);
     return res.status(200).json(oficinas);
   } catch (error) {
-    console.error("[Controller] Error al obtener oficinas", error);
     return res.status(500).json({
       message: "Error al obtener las oficinas",
       details: error.message
@@ -665,7 +664,6 @@ const getOficinasDisponiblesController = async (req, res) => {
     const oficinas = await getOficinasDisponibles(fecha, horaInicio, horaFin);
     return res.status(200).json(oficinas);
   } catch (error) {
-    console.error("Error en getOficinasDisponiblesController:", error);
     return res.status(500).json({
       message: "Error al obtener oficinas disponibles",
       details: error.message

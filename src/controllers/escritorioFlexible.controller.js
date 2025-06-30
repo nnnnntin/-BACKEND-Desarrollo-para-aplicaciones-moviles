@@ -48,7 +48,6 @@ const getEscritoriosFlexiblesController = async (req, res) => {
     const escritorios = await getEscritoriosFlexibles(filtros, skipNum, limitNum);
     return res.status(200).json(escritorios);
   } catch (error) {
-    console.error("[Error Controller] al obtener escritorios flexibles", error);
     return res.status(500).json({
       message: "Error al obtener los escritorios flexibles",
       details: error.message

@@ -45,7 +45,6 @@ const getMembresiasController = async (req, res) => {
     const membresias = await getMembresias(filtros, skipNum, limitNum);
     return res.status(200).json(membresias);
   } catch (error) {
-    console.error("[Error Controller] al obtener membresías", error);
     return res.status(500).json({
       message: "Error al obtener las membresías",
       details: error.message,
@@ -482,15 +481,6 @@ const suscribirMembresiaController = async (req, res) => {
   const { usuarioId, membresiaId, fechaInicio, metodoPagoId, renovacionAutomatica, codigoPromocional } = value;
 
   try {
-    console.log('🔵 [Backend] Datos de suscripción recibidos:', {
-      usuarioId,
-      membresiaId,
-      fechaInicio,
-      metodoPagoId,
-      renovacionAutomatica,
-      codigoPromocional
-    });
-
     const usuario = await findUsuarioById(usuarioId);
     if (!usuario) {
       return res.status(404).json({
@@ -508,20 +498,6 @@ const suscribirMembresiaController = async (req, res) => {
         field: "membresiaId"
       });
     }
-
-    console.log('🔵 [Backend] Usuario encontrado:', {
-      id: usuario._id,
-      username: usuario.username,
-      membresiaActual: usuario.membresia
-    });
-
-    console.log('🔵 [Backend] Membresía encontrada:', {
-      id: membresia._id,
-      nombre: membresia.nombre,
-      tipo: membresia.tipo,
-      activo: membresia.activo,
-      duracion: membresia.duracion
-    });
 
     if (!membresia.activo) {
       return res.status(400).json({
@@ -554,8 +530,6 @@ const suscribirMembresiaController = async (req, res) => {
       renovacionAutomatica: renovacionAutomatica !== undefined ? renovacionAutomatica : true 
     };
 
-    console.log('🔵 [Backend] Datos de membresía a guardar:', membresiaData);
-
     const usuarioActualizado = await updateMembresiaUsuario(usuarioId, membresiaData);
     if (!usuarioActualizado) {
       return res.status(500).json({
@@ -564,14 +538,7 @@ const suscribirMembresiaController = async (req, res) => {
       });
     }
 
-    console.log('🟢 [Backend] Usuario actualizado exitosamente:', {
-      id: usuarioActualizado._id,
-      username: usuarioActualizado.username,
-      membresia: usuarioActualizado.membresia
-    });
-
     if (!usuarioActualizado.membresia || !usuarioActualizado.membresia.tipoMembresiaId) {
-      console.error('🔴 [Backend] Error: Usuario actualizado sin membresía válida');
       return res.status(500).json({
         message: "Error al asignar membresía",
         details: "La membresía no se asignó correctamente al usuario"
@@ -610,7 +577,6 @@ const suscribirMembresiaController = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('🔴 [Backend] Error completo en suscripción:', error);
 
     if (error.name === 'CastError') {
       const field = error.path;

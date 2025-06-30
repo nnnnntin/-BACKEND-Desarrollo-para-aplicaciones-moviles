@@ -171,7 +171,6 @@ const getPagosController = async (req, res) => {
     const pagos = await getPagos(filtros, skipNum, limitNum);
     return res.status(200).json(pagos);
   } catch (error) {
-    console.error("[Controller] Error al obtener pagos", error);
     return res.status(500).json({
       message: "Error al obtener los pagos",
       details: error.message

@@ -44,7 +44,6 @@ const getEspaciosController = async (req, res) => {
     const espacios = await getEspacios(filtros, skipNum, limitNum);
     return res.status(200).json(espacios);
   } catch (error) {
-    console.error("[Error Controller] al obtener espacios", error);
     return res.status(500).json({
       message: "Error al obtener los espacios",
       details: error.message,

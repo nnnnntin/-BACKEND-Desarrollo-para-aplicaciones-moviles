@@ -49,7 +49,7 @@ const getUsuariosController = async (req, res) => {
     const usuarios = await getUsuarios(filtros, skipNum, limitNum);
     return res.status(200).json(usuarios);
   } catch (error) {
-    console.error("[Controller] Error al obtener usuarios", error);
+    console.error(error);
     return res.status(500).json({
       message: "Error al obtener los usuarios",
       details: error.message
@@ -538,12 +538,6 @@ const addMetodoPagoController = async (req, res) => {
   }
 
   try {
-    console.log('🔵 [Controller] Agregando método de pago para usuario:', id);
-    console.log('🔵 [Controller] Datos recibidos:', {
-      tipo: value.tipo,
-      predeterminado: value.predeterminado
-    });
-
     const usuario = await addMetodoPago(id, value);
     
     const usuarioResponse = {
@@ -558,7 +552,7 @@ const addMetodoPagoController = async (req, res) => {
       usuario: usuarioResponse
     });
   } catch (error) {
-    console.error('🔴 [Controller] Error agregando método de pago:', error);
+    console.error(error);
     
     if (error.message === 'Usuario no encontrado') {
       return res.status(404).json({
@@ -618,7 +612,7 @@ const updateMetodoPagoController = async (req, res) => {
       usuario: usuarioResponse
     });
   } catch (error) {
-    console.error('🔴 [Controller] Error actualizando método de pago:', error);
+    console.error(error);
     
     if (error.message === 'Usuario no encontrado') {
       return res.status(404).json({
@@ -677,7 +671,7 @@ const deleteMetodoPagoController = async (req, res) => {
       usuario: usuarioResponse
     });
   } catch (error) {
-    console.error('🔴 [Controller] Error eliminando método de pago:', error);
+    console.error(error);
     
     if (error.message === 'Usuario no encontrado') {
       return res.status(404).json({
@@ -740,7 +734,7 @@ const setDefaultMetodoPagoController = async (req, res) => {
       usuario: usuarioResponse
     });
   } catch (error) {
-    console.error('🔴 [Controller] Error estableciendo método predeterminado:', error);
+    console.error(error);
     
     if (error.message === 'Usuario no encontrado') {
       return res.status(404).json({

@@ -183,7 +183,6 @@ const getReservasController = async (req, res) => {
     const reservas = await getReservas(filtros, skipNum, limitNum);
     return res.status(200).json(reservas);
   } catch (error) {
-    console.error("[Controller] Error al obtener reservas", error);
     return res.status(500).json({
       message: "Error al obtener las reservas",
       details: error.message
@@ -907,7 +906,6 @@ const cancelarReservaController = async (req, res) => {
         reserva: reservaActualizada
       });
     } catch (updateError) {
-      console.error("Error al actualizar detalles de cancelación:", updateError);
       res.status(200).json({
         message: "Reserva cancelada pero con error al actualizar detalles",
         reserva,

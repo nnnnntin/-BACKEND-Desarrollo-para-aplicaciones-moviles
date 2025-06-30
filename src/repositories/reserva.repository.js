@@ -393,21 +393,188 @@ const getEstadisticasGananciasCliente = async (clienteId, fechaInicio, fechaFin)
   }
 };
 
+// Agregar estas funciones al archivo reserva.repository.js después de getReservasByEntidad
+
+const getReservasPendientesAprobacion = async () => {
+  const redisClient = connectToRedis();
+  const key = _getReservasPendientesAprobacionRedisKey();
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    console.log("[Mongo] getReservasPendientesAprobacion");
+    const result = await Reserva.find({ 
+      estado: 'pendiente',
+      'aprobador.necesitaAprobacion': true 
+    })
+      .populate('usuarioId', 'nombre email')
+      .populate('clienteId', 'nombre email')
+      .populate('pagoId')
+      .populate('serviciosAdicionales')
+      .lean();
+    
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    console.log("[Error Redis] fallback a Mongo sin cache", error);
+    return await Reserva.find({ 
+      estado: 'pendiente',
+      'aprobador.necesitaAprobacion': true 
+    })
+      .populate('usuarioId', 'nombre email')
+      .populate('clienteId', 'nombre email')
+      .populate('pagoId')
+      .populate('serviciosAdicionales')
+      .lean();
+  }
+};
+
+const getReservasPorFecha = async (fechaInicio, fechaFin) => {
+  const redisClient = connectToRedis();
+  const key = _getReservasPorFechaRedisKey(fechaInicio.toISOString().split('T')[0], fechaFin.toISOString().split('T')[0]);
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    console.log("[Mongo] getReservasPorFecha");
+    const result = await Reserva.find({
+      $or: [
+        {
+          fechaInicio: { $gte: fechaInicio, $lte: fechaFin }
+        },
+        {
+          fechaFin: { $gte: fechaInicio, $lte: fechaFin }
+        },
+        {
+          fechaInicio: { $lte: fechaInicio },
+          fechaFin: { $gte: fechaFin }
+        }
+      ]
+    })
+      .populate('usuarioId', 'nombre email')
+      .populate('clienteId', 'nombre email')
+      .populate('pagoId')
+      .populate('serviciosAdicionales')
+      .populate('aprobador.usuarioId', 'nombre email')
+      .lean();
+    
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    console.log("[Error Redis] fallback a Mongo sin cache", error);
+    return await Reserva.find({
+      $or: [
+        {
+          fechaInicio: { $gte: fechaInicio, $lte: fechaFin }
+        },
+        {
+          fechaFin: { $gte: fechaInicio, $lte: fechaFin }
+        },
+        {
+          fechaInicio: { $lte: fechaInicio },
+          fechaFin: { $gte: fechaFin }
+        }
+      ]
+    })
+      .populate('usuarioId', 'nombre email')
+      .populate('clienteId', 'nombre email')
+      .populate('pagoId')
+      .populate('serviciosAdicionales')
+      .populate('aprobador.usuarioId', 'nombre email')
+      .lean();
+  }
+};
+
+const getReservasRecurrentes = async () => {
+  const redisClient = connectToRedis();
+  const key = _getReservasRecurrentesRedisKey();
+  
+  try {
+    const exists = await redisClient.exists(key);
+    
+    if (exists) {
+      const cached = await redisClient.get(key);
+      
+      if (typeof cached === 'object' && cached !== null) {
+        return cached;
+      }
+      
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached);
+        } catch (parseError) {}
+      }
+    }
+    
+    console.log("[Mongo] getReservasRecurrentes");
+    const result = await Reserva.find({ esRecurrente: true })
+      .populate('usuarioId', 'nombre email')
+      .populate('clienteId', 'nombre email')
+      .populate('pagoId')
+      .populate('serviciosAdicionales')
+      .populate('aprobador.usuarioId', 'nombre email')
+      .lean();
+    
+    await redisClient.set(key, JSON.stringify(result), { ex: 3600 });
+    
+    return result;
+  } catch (error) {
+    console.log("[Error Redis] fallback a Mongo sin cache", error);
+    return await Reserva.find({ esRecurrente: true })
+      .populate('usuarioId', 'nombre email')
+      .populate('clienteId', 'nombre email')
+      .populate('pagoId')
+      .populate('serviciosAdicionales')
+      .populate('aprobador.usuarioId', 'nombre email')
+      .lean();
+  }
+};
+
 module.exports = {
   getReservas,
   findReservaById,
   getReservasByUsuario,
   getReservasByCliente, // NUEVO
   getReservasByEntidad,
-  getReservasPendientesAprobacion,
-  getReservasPorFecha,
+  getReservasPendientesAprobacion, // Ahora implementada
+  getReservasPorFecha, // Ahora implementada
+  getReservasRecurrentes, // Ahora implementada
   createReserva,
   updateReserva,
   deleteReserva,
   cambiarEstadoReserva,
   aprobarReserva,
   rechazarReserva,
-  getReservasRecurrentes,
   vincularPagoReserva,
   agregarServicioAdicional,
   getEstadisticasGananciasCliente // NUEVO

@@ -968,10 +968,6 @@ const cancelarReservaController = async (req, res) => {
   }
 };
 
-// Nuevas funciones para agregar al reserva.controller.js
-
-const { getReservasByCliente, getEstadisticasGananciasCliente } = require("../repositories/reserva.repository");
-
 // NUEVA: Obtener reservas por cliente/propietario
 const getReservasByClienteController = async (req, res) => {
   const { clienteId } = req.params;

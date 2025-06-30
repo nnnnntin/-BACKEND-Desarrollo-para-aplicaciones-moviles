@@ -362,20 +362,6 @@ const createReservaController = async (req, res) => {
         details: validacionEntidad.message
       });
     }
-
-    // NUEVO: Validar que la entidad pertenece al cliente especificado
-    const entidadCompleta = validacionEntidad.entity;
-    const propietarioEntidad = entidadCompleta.propietarioId ||
-      entidadCompleta.usuarioId ||
-      entidadCompleta.clienteId;
-
-    if (propietarioEntidad && propietarioEntidad.toString() !== value.clienteId.toString()) {
-      return res.status(400).json({
-        message: "Error de validación",
-        details: "El cliente especificado no es el propietario de la entidad reservada"
-      });
-    }
-
     // Validar servicios adicionales si existen
     if (value.serviciosAdicionales && value.serviciosAdicionales.length > 0) {
       const validacionServicios = await validarServiciosAdicionalesExisten(value.serviciosAdicionales);

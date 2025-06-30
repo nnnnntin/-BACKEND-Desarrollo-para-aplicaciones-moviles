@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const reservaSchema = new mongoose.Schema(
   {
     usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
+    clienteId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true }, // NUEVO: ID del propietario del espacio
     entidadReservada: {
       tipo: { type: String, enum: ['oficina', 'sala_reunion', 'escritorio_flexible'], required: true },
       id: { type: mongoose.Schema.Types.ObjectId, required: true }
@@ -16,6 +17,7 @@ const reservaSchema = new mongoose.Schema(
     cantidadPersonas: { type: Number, default: 1 },
     proposito: { type: String },
     precioTotal: { type: Number, required: true },
+    precioFinalPagado: { type: Number, required: true }, // NUEVO: Precio final que pagó el usuario (después de descuentos)
     descuento: {
       porcentaje: { type: Number, default: 0 },
       codigo: { type: String },
@@ -40,5 +42,11 @@ const reservaSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Índices para optimizar consultas
+reservaSchema.index({ usuarioId: 1, fechaInicio: 1 });
+reservaSchema.index({ clienteId: 1, fechaInicio: 1 }); // NUEVO: Índice para consultas del propietario
+reservaSchema.index({ 'entidadReservada.tipo': 1, 'entidadReservada.id': 1 });
+reservaSchema.index({ estado: 1 });
 
 module.exports = reservaSchema;

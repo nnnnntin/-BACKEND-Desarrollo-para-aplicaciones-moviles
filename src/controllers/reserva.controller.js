@@ -26,6 +26,7 @@ const { findOficinaById } = require("../repositories/oficina.repository");
 const { findSalaReunionById } = require("../repositories/salaReunion.repository");
 const { findEscritorioFlexibleById } = require("../repositories/escritorioFlexible.repository");
 const { findServicioAdicionalById } = require("../repositories/servicioAdicional.repository");
+const { getReservasByCliente, getEstadisticasGananciasCliente } = require("../repositories/reserva.repository");
 
 const ENTIDAD_RESERVABLE_MAP = {
   'oficina': findOficinaById,
@@ -44,7 +45,7 @@ const ESTADOS_RESERVA_VALIDOS = ['pendiente', 'confirmada', 'cancelada', 'comple
 const validarUsuarioExiste = async (usuarioId) => {
   try {
     const usuario = await findUsuarioById(usuarioId);
-    
+
     if (!usuario) {
       return {
         valid: false,
@@ -78,7 +79,7 @@ const validarUsuarioExiste = async (usuarioId) => {
  */
 const validarEntidadReservableExiste = async (tipoEntidad, entidadId) => {
   const findEntidadById = ENTIDAD_RESERVABLE_MAP[tipoEntidad];
-  
+
   if (!findEntidadById) {
     return {
       valid: false,
@@ -89,7 +90,7 @@ const validarEntidadReservableExiste = async (tipoEntidad, entidadId) => {
 
   try {
     const entidad = await findEntidadById(entidadId);
-    
+
     if (!entidad) {
       return {
         valid: false,
@@ -132,7 +133,7 @@ const validarServiciosAdicionalesExisten = async (serviciosIds) => {
 
   const invalidIds = [];
   const services = [];
-  
+
   for (const servicioId of serviciosIds) {
     try {
       const servicio = await findServicioAdicionalById(servicioId);
@@ -154,7 +155,7 @@ const validarServiciosAdicionalesExisten = async (serviciosIds) => {
     valid: invalidIds.length === 0,
     invalidIds,
     services,
-    message: invalidIds.length > 0 
+    message: invalidIds.length > 0
       ? `No se encontraron los siguientes servicios adicionales: ${invalidIds.join(', ')}`
       : 'Todos los servicios adicionales son válidos'
   };
@@ -192,12 +193,12 @@ const getReservasController = async (req, res) => {
 
 const getReservaByIdController = async (req, res) => {
   const { id } = req.params;
-  
+
   try {
     const reserva = await findReservaById(id);
     if (!reserva) {
-      return res.status(404).json({ 
-        message: `No se ha encontrado la reserva con id: ${id}` 
+      return res.status(404).json({
+        message: `No se ha encontrado la reserva con id: ${id}`
       });
     }
     res.status(200).json(reserva);
@@ -220,9 +221,9 @@ const getReservaByIdController = async (req, res) => {
 
 const getReservasByUsuarioController = async (req, res) => {
   const { usuarioId } = req.params;
-  
+
   try {
-        const validacionUsuario = await validarUsuarioExiste(usuarioId);
+    const validacionUsuario = await validarUsuarioExiste(usuarioId);
     if (!validacionUsuario.valid) {
       return res.status(404).json({
         message: "Usuario no encontrado",
@@ -243,7 +244,7 @@ const getReservasByUsuarioController = async (req, res) => {
 
 const getReservasByEntidadController = async (req, res) => {
   const { tipoEntidad, entidadId } = req.params;
-  
+
   try {
     if (!ENTIDADES_RESERVABLES_VALIDAS.includes(tipoEntidad)) {
       return res.status(400).json({
@@ -252,7 +253,7 @@ const getReservasByEntidadController = async (req, res) => {
       });
     }
 
-        const validacionEntidad = await validarEntidadReservableExiste(tipoEntidad, entidadId);
+    const validacionEntidad = await validarEntidadReservableExiste(tipoEntidad, entidadId);
     if (!validacionEntidad.valid) {
       return res.status(404).json({
         message: "Entidad no encontrada",
@@ -334,7 +335,8 @@ const createReservaController = async (req, res) => {
   }
 
   try {
-        const validacionUsuario = await validarUsuarioExiste(value.usuarioId);
+    // Validar que el usuario existe
+    const validacionUsuario = await validarUsuarioExiste(value.usuarioId);
     if (!validacionUsuario.valid) {
       return res.status(404).json({
         message: "Usuario no encontrado",
@@ -342,7 +344,17 @@ const createReservaController = async (req, res) => {
       });
     }
 
-        const { tipo: tipoEntidad, id: entidadId } = value.entidadReservada;
+    // NUEVO: Validar que el cliente/propietario existe
+    const validacionCliente = await validarUsuarioExiste(value.clienteId);
+    if (!validacionCliente.valid) {
+      return res.status(404).json({
+        message: "Cliente/propietario no encontrado",
+        details: validacionCliente.message
+      });
+    }
+
+    // Validar que la entidad reservable existe
+    const { tipo: tipoEntidad, id: entidadId } = value.entidadReservada;
     const validacionEntidad = await validarEntidadReservableExiste(tipoEntidad, entidadId);
     if (!validacionEntidad.valid) {
       return res.status(404).json({
@@ -351,7 +363,21 @@ const createReservaController = async (req, res) => {
       });
     }
 
-        if (value.serviciosAdicionales && value.serviciosAdicionales.length > 0) {
+    // NUEVO: Validar que la entidad pertenece al cliente especificado
+    const entidadCompleta = validacionEntidad.entity;
+    const propietarioEntidad = entidadCompleta.propietarioId ||
+      entidadCompleta.usuarioId ||
+      entidadCompleta.clienteId;
+
+    if (propietarioEntidad && propietarioEntidad.toString() !== value.clienteId.toString()) {
+      return res.status(400).json({
+        message: "Error de validación",
+        details: "El cliente especificado no es el propietario de la entidad reservada"
+      });
+    }
+
+    // Validar servicios adicionales si existen
+    if (value.serviciosAdicionales && value.serviciosAdicionales.length > 0) {
       const validacionServicios = await validarServiciosAdicionalesExisten(value.serviciosAdicionales);
       if (!validacionServicios.valid) {
         return res.status(404).json({
@@ -362,7 +388,8 @@ const createReservaController = async (req, res) => {
       }
     }
 
-        const fechaInicio = new Date(value.fechaInicio);
+    // Validar fechas
+    const fechaInicio = new Date(value.fechaInicio);
     const fechaFin = new Date(value.fechaFin);
     const fechaActual = new Date();
 
@@ -387,19 +414,55 @@ const createReservaController = async (req, res) => {
       });
     }
 
+    // NUEVO: Validar coherencia de precios
+    if (value.precioFinalPagado > value.precioTotal) {
+      return res.status(400).json({
+        message: "Error en los precios",
+        details: "El precio final pagado no puede ser mayor al precio total"
+      });
+    }
+
+    // NUEVO: Si hay descuento, validar que el precio final sea correcto
+    if (value.descuento && value.descuento.porcentaje > 0) {
+      const descuentoEsperado = value.precioTotal * (value.descuento.porcentaje / 100);
+      const precioFinalEsperado = value.precioTotal - descuentoEsperado;
+      const diferencia = Math.abs(value.precioFinalPagado - precioFinalEsperado);
+
+      // Permitir una pequeña diferencia por redondeo (centavos)
+      if (diferencia > 0.01) {
+        return res.status(400).json({
+          message: "Error en el cálculo del precio",
+          details: `El precio final pagado (${value.precioFinalPagado}) no coincide con el precio esperado después del descuento (${precioFinalEsperado.toFixed(2)})`
+        });
+      }
+    }
+
+    // Crear la reserva
     const reserva = await createReserva(value);
-    res.status(201).json({ 
-      message: "Reserva creada correctamente", 
+
+    res.status(201).json({
+      message: "Reserva creada correctamente",
       reserva,
       usuarioValidado: {
         id: validacionUsuario.user._id,
         nombre: validacionUsuario.user.nombre,
         email: validacionUsuario.user.email
       },
+      clienteValidado: { // NUEVO
+        id: validacionCliente.user._id,
+        nombre: validacionCliente.user.nombre,
+        email: validacionCliente.user.email
+      },
       entidadValidada: {
         tipo: tipoEntidad,
         id: validacionEntidad.entity._id,
         nombre: validacionEntidad.entity.nombre || validacionEntidad.entity.codigo
+      },
+      resumenPrecios: { // NUEVO
+        precioTotal: value.precioTotal,
+        precioFinalPagado: value.precioFinalPagado,
+        descuento: value.descuento || null,
+        ahorro: value.precioTotal - value.precioFinalPagado
       }
     });
   } catch (error) {
@@ -437,7 +500,7 @@ const createReservaController = async (req, res) => {
 const updateReservaController = async (req, res) => {
   const { id } = req.params;
   const { error, value } = updateReservaSchema.validate(req.body);
-  
+
   if (error) {
     return res.status(400).json({
       message: "Error de validación",
@@ -447,14 +510,14 @@ const updateReservaController = async (req, res) => {
   }
 
   try {
-        const reservaExistente = await findReservaById(id);
+    const reservaExistente = await findReservaById(id);
     if (!reservaExistente) {
-      return res.status(404).json({ 
-        message: `No se ha encontrado la reserva con id: ${id}` 
+      return res.status(404).json({
+        message: `No se ha encontrado la reserva con id: ${id}`
       });
     }
 
-        if (value.usuarioId) {
+    if (value.usuarioId) {
       const validacionUsuario = await validarUsuarioExiste(value.usuarioId);
       if (!validacionUsuario.valid) {
         return res.status(404).json({
@@ -464,7 +527,7 @@ const updateReservaController = async (req, res) => {
       }
     }
 
-        if (value.entidadReservada) {
+    if (value.entidadReservada) {
       const { tipo: tipoEntidad, id: entidadId } = value.entidadReservada;
       const validacionEntidad = await validarEntidadReservableExiste(tipoEntidad, entidadId);
       if (!validacionEntidad.valid) {
@@ -475,7 +538,7 @@ const updateReservaController = async (req, res) => {
       }
     }
 
-        if (value.serviciosAdicionales && value.serviciosAdicionales.length > 0) {
+    if (value.serviciosAdicionales && value.serviciosAdicionales.length > 0) {
       const validacionServicios = await validarServiciosAdicionalesExisten(value.serviciosAdicionales);
       if (!validacionServicios.valid) {
         return res.status(404).json({
@@ -486,7 +549,7 @@ const updateReservaController = async (req, res) => {
       }
     }
 
-        if (value.fechaInicio || value.fechaFin) {
+    if (value.fechaInicio || value.fechaFin) {
       const fechaInicio = new Date(value.fechaInicio || reservaExistente.fechaInicio);
       const fechaFin = new Date(value.fechaFin || reservaExistente.fechaFin);
 
@@ -548,12 +611,12 @@ const updateReservaController = async (req, res) => {
 
 const deleteReservaController = async (req, res) => {
   const { id } = req.params;
-  
+
   try {
     const reserva = await deleteReserva(id);
     if (!reserva) {
-      return res.status(404).json({ 
-        message: `No se ha encontrado la reserva con id: ${id}` 
+      return res.status(404).json({
+        message: `No se ha encontrado la reserva con id: ${id}`
       });
     }
     res.status(200).json({ message: "Reserva eliminada correctamente" });
@@ -600,17 +663,17 @@ const cambiarEstadoReservaController = async (req, res) => {
   }
 
   try {
-        const reservaExistente = await findReservaById(id);
+    const reservaExistente = await findReservaById(id);
     if (!reservaExistente) {
-      return res.status(404).json({ 
-        message: `No se ha encontrado la reserva con id: ${id}` 
+      return res.status(404).json({
+        message: `No se ha encontrado la reserva con id: ${id}`
       });
     }
 
     const reserva = await cambiarEstadoReserva(id, estado);
-    res.status(200).json({ 
-      message: "Estado actualizado correctamente", 
-      reserva 
+    res.status(200).json({
+      message: "Estado actualizado correctamente",
+      reserva
     });
   } catch (error) {
     console.error(error);
@@ -648,14 +711,14 @@ const aprobarReservaController = async (req, res) => {
   }
 
   try {
-        const reservaExistente = await findReservaById(id);
+    const reservaExistente = await findReservaById(id);
     if (!reservaExistente) {
-      return res.status(404).json({ 
-        message: `No se ha encontrado la reserva con id: ${id}` 
+      return res.status(404).json({
+        message: `No se ha encontrado la reserva con id: ${id}`
       });
     }
 
-        const validacionAprobador = await validarUsuarioExiste(aprobadorId);
+    const validacionAprobador = await validarUsuarioExiste(aprobadorId);
     if (!validacionAprobador.valid) {
       return res.status(404).json({
         message: "Aprobador no encontrado",
@@ -664,8 +727,8 @@ const aprobarReservaController = async (req, res) => {
     }
 
     const reserva = await aprobarReserva(id, aprobadorId, notas);
-    res.status(200).json({ 
-      message: "Reserva aprobada correctamente", 
+    res.status(200).json({
+      message: "Reserva aprobada correctamente",
       reserva,
       aprobador: {
         id: validacionAprobador.user._id,
@@ -709,14 +772,14 @@ const rechazarReservaController = async (req, res) => {
   }
 
   try {
-        const reservaExistente = await findReservaById(id);
+    const reservaExistente = await findReservaById(id);
     if (!reservaExistente) {
       return res.status(404).json({
         message: `No se ha encontrado la reserva con id: ${id}`
       });
     }
 
-        const validacionAprobador = await validarUsuarioExiste(aprobadorId);
+    const validacionAprobador = await validarUsuarioExiste(aprobadorId);
     if (!validacionAprobador.valid) {
       return res.status(404).json({
         message: "Aprobador no encontrado",
@@ -783,17 +846,17 @@ const vincularPagoReservaController = async (req, res) => {
   }
 
   try {
-        const reservaExistente = await findReservaById(id);
+    const reservaExistente = await findReservaById(id);
     if (!reservaExistente) {
-      return res.status(404).json({ 
-        message: `No se ha encontrado la reserva con id: ${id}` 
+      return res.status(404).json({
+        message: `No se ha encontrado la reserva con id: ${id}`
       });
     }
 
     const reserva = await vincularPagoReserva(id, pagoId);
-    res.status(200).json({ 
-      message: "Pago vinculado correctamente", 
-      reserva 
+    res.status(200).json({
+      message: "Pago vinculado correctamente",
+      reserva
     });
   } catch (error) {
     console.error(error);
@@ -846,10 +909,10 @@ const cancelarReservaController = async (req, res) => {
   const { reservaId, motivo, solicitarReembolso } = value;
 
   try {
-        const reservaExistente = await findReservaById(reservaId);
+    const reservaExistente = await findReservaById(reservaId);
     if (!reservaExistente) {
-      return res.status(404).json({ 
-        message: `No se ha encontrado la reserva con id: ${reservaId}` 
+      return res.status(404).json({
+        message: `No se ha encontrado la reserva con id: ${reservaId}`
       });
     }
 
@@ -862,9 +925,9 @@ const cancelarReservaController = async (req, res) => {
         reembolsoSolicitado: solicitarReembolso
       });
 
-      res.status(200).json({ 
-        message: "Reserva cancelada correctamente", 
-        reserva: reservaActualizada 
+      res.status(200).json({
+        message: "Reserva cancelada correctamente",
+        reserva: reservaActualizada
       });
     } catch (updateError) {
       console.error("Error al actualizar detalles de cancelación:", updateError);
@@ -905,6 +968,175 @@ const cancelarReservaController = async (req, res) => {
   }
 };
 
+// Nuevas funciones para agregar al reserva.controller.js
+
+const { getReservasByCliente, getEstadisticasGananciasCliente } = require("../repositories/reserva.repository");
+
+// NUEVA: Obtener reservas por cliente/propietario
+const getReservasByClienteController = async (req, res) => {
+  const { clienteId } = req.params;
+
+  try {
+    // Validar que el cliente existe
+    const validacionCliente = await validarUsuarioExiste(clienteId);
+    if (!validacionCliente.valid) {
+      return res.status(404).json({
+        message: "Cliente no encontrado",
+        details: validacionCliente.message
+      });
+    }
+
+    const reservas = await getReservasByCliente(clienteId);
+
+    // Agregar información adicional
+    const resumen = {
+      totalReservas: reservas.length,
+      reservasConfirmadas: reservas.filter(r => r.estado === 'confirmada').length,
+      reservasCompletadas: reservas.filter(r => r.estado === 'completada').length,
+      reservasCanceladas: reservas.filter(r => r.estado === 'cancelada').length,
+      ingresosTotales: reservas
+        .filter(r => ['confirmada', 'completada'].includes(r.estado))
+        .reduce((total, r) => total + (r.precioFinalPagado || 0), 0)
+    };
+
+    res.status(200).json({
+      cliente: {
+        id: validacionCliente.user._id,
+        nombre: validacionCliente.user.nombre,
+        email: validacionCliente.user.email
+      },
+      resumen,
+      reservas
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Error al obtener reservas del cliente",
+      details: error.message
+    });
+  }
+};
+
+// NUEVA: Obtener estadísticas de ganancias por cliente
+const getEstadisticasGananciasClienteController = async (req, res) => {
+  const { clienteId } = req.params;
+  const { fechaInicio, fechaFin } = req.query;
+
+  try {
+    // Validar que el cliente existe
+    const validacionCliente = await validarUsuarioExiste(clienteId);
+    if (!validacionCliente.valid) {
+      return res.status(404).json({
+        message: "Cliente no encontrado",
+        details: validacionCliente.message
+      });
+    }
+
+    // Validar fechas si se proporcionan
+    let inicio = null;
+    let fin = null;
+
+    if (fechaInicio) {
+      inicio = new Date(fechaInicio);
+      if (isNaN(inicio.getTime())) {
+        return res.status(400).json({
+          message: "Formato de fecha inválido",
+          details: "La fecha de inicio debe tener un formato válido (YYYY-MM-DD)"
+        });
+      }
+    }
+
+    if (fechaFin) {
+      fin = new Date(fechaFin);
+      if (isNaN(fin.getTime())) {
+        return res.status(400).json({
+          message: "Formato de fecha inválido",
+          details: "La fecha de fin debe tener un formato válido (YYYY-MM-DD)"
+        });
+      }
+    }
+
+    if (inicio && fin && inicio > fin) {
+      return res.status(400).json({
+        message: "Rango de fechas inválido",
+        details: "La fecha de inicio debe ser anterior a la fecha de fin"
+      });
+    }
+
+    const estadisticas = await getEstadisticasGananciasCliente(clienteId, inicio, fin);
+
+    // Agregar estadísticas adicionales
+    const reservasPorMes = {};
+    const ingresosPorMes = {};
+
+    estadisticas.reservas.forEach(reserva => {
+      const fecha = new Date(reserva.fechaInicio);
+      const mesAno = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+
+      reservasPorMes[mesAno] = (reservasPorMes[mesAno] || 0) + 1;
+      ingresosPorMes[mesAno] = (ingresosPorMes[mesAno] || 0) + (reserva.precioFinalPagado || 0);
+    });
+
+    // Estadísticas por tipo de entidad
+    const estadisticasPorTipo = {};
+    estadisticas.reservas.forEach(reserva => {
+      const tipo = reserva.entidadReservada?.tipo || 'desconocido';
+      if (!estadisticasPorTipo[tipo]) {
+        estadisticasPorTipo[tipo] = {
+          cantidad: 0,
+          ingresos: 0
+        };
+      }
+      estadisticasPorTipo[tipo].cantidad += 1;
+      estadisticasPorTipo[tipo].ingresos += reserva.precioFinalPagado || 0;
+    });
+
+    res.status(200).json({
+      cliente: {
+        id: validacionCliente.user._id,
+        nombre: validacionCliente.user.nombre,
+        email: validacionCliente.user.email
+      },
+      periodo: {
+        fechaInicio: inicio?.toISOString().split('T')[0] || 'Sin límite',
+        fechaFin: fin?.toISOString().split('T')[0] || 'Sin límite'
+      },
+      estadisticasGenerales: {
+        totalReservas: estadisticas.totalReservas,
+        totalGanancias: Math.round(estadisticas.totalGanancias * 100) / 100,
+        promedioGananciasPorReserva: Math.round(estadisticas.promedioGananciasPorReserva * 100) / 100
+      },
+      estadisticasPorMes: {
+        reservasPorMes,
+        ingresosPorMes: Object.fromEntries(
+          Object.entries(ingresosPorMes).map(([mes, ingreso]) => [
+            mes,
+            Math.round(ingreso * 100) / 100
+          ])
+        )
+      },
+      estadisticasPorTipo,
+      reservasDetalle: estadisticas.reservas.map(reserva => ({
+        id: reserva._id,
+        fechaInicio: reserva.fechaInicio,
+        fechaFin: reserva.fechaFin,
+        estado: reserva.estado,
+        precioTotal: reserva.precioTotal,
+        precioFinalPagado: reserva.precioFinalPagado,
+        entidadReservada: reserva.entidadReservada,
+        usuario: reserva.usuarioId
+      }))
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Error al obtener estadísticas de ganancias",
+      details: error.message
+    });
+  }
+};
+
+// Actualización del filtrarReservasController para incluir clienteId
 const filtrarReservasController = async (req, res) => {
   const { error, value } = filtrarReservasSchema.validate(req.query);
   if (error) {
@@ -918,7 +1150,8 @@ const filtrarReservasController = async (req, res) => {
   try {
     const filtros = {};
 
-        if (value.usuarioId) {
+    // Validar usuario si se proporciona
+    if (value.usuarioId) {
       const validacionUsuario = await validarUsuarioExiste(value.usuarioId);
       if (!validacionUsuario.valid) {
         return res.status(404).json({
@@ -929,7 +1162,20 @@ const filtrarReservasController = async (req, res) => {
       filtros.usuarioId = value.usuarioId;
     }
 
-        if (value.tipoEntidad) {
+    // NUEVO: Validar cliente si se proporciona
+    if (value.clienteId) {
+      const validacionCliente = await validarUsuarioExiste(value.clienteId);
+      if (!validacionCliente.valid) {
+        return res.status(404).json({
+          message: "Cliente no encontrado en filtros",
+          details: validacionCliente.message
+        });
+      }
+      filtros.clienteId = value.clienteId;
+    }
+
+    // Validar tipo de entidad
+    if (value.tipoEntidad) {
       if (!ENTIDADES_RESERVABLES_VALIDAS.includes(value.tipoEntidad)) {
         return res.status(400).json({
           message: "Tipo de entidad inválido en filtros",
@@ -984,10 +1230,34 @@ const filtrarReservasController = async (req, res) => {
       filtros.fechaFin = { $lte: fechaFin };
     }
 
+    // NUEVO: Filtros por precio
+    if (value.precioMinimo !== undefined) {
+      filtros.precioFinalPagado = { ...filtros.precioFinalPagado, $gte: value.precioMinimo };
+    }
+
+    if (value.precioMaximo !== undefined) {
+      filtros.precioFinalPagado = { ...filtros.precioFinalPagado, $lte: value.precioMaximo };
+    }
+
     if (value.esRecurrente !== undefined) filtros.esRecurrente = value.esRecurrente;
 
     const reservas = await getReservas(filtros);
-    res.status(200).json(reservas);
+
+    // Agregar estadísticas de los resultados filtrados
+    const estadisticas = {
+      totalResultados: reservas.length,
+      ingresosTotales: reservas.reduce((total, r) => total + (r.precioFinalPagado || 0), 0),
+      estadoDistribucion: reservas.reduce((acc, r) => {
+        acc[r.estado] = (acc[r.estado] || 0) + 1;
+        return acc;
+      }, {})
+    };
+
+    res.status(200).json({
+      filtrosAplicados: value,
+      estadisticas,
+      reservas
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -1013,5 +1283,8 @@ module.exports = {
   getReservasRecurrentesController,
   vincularPagoReservaController,
   cancelarReservaController,
-  filtrarReservasController
+  filtrarReservasController,
+  getReservasByClienteController,
+  getEstadisticasGananciasClienteController,
+  filtrarReservasController // Actualizada
 };

@@ -5,7 +5,7 @@ const _getReservasRedisKey = (id) => `id:${id}-reservas`;
 const _getReservasFilterRedisKey = (filtros, skip, limit) =>
   `reservas:${JSON.stringify(filtros)}:skip=${skip}:limit=${limit}`;
 const _getReservasByUsuarioRedisKey = (usuarioId) => `usuario:${usuarioId}-reservas`;
-const _getReservasByClienteRedisKey = (clienteId) => `cliente:${clienteId}-reservas`; // NUEVO
+const _getReservasByClienteRedisKey = (clienteId) => `cliente:${clienteId}-reservas`; 
 const _getReservasByEntidadRedisKey = (tipoEntidad, entidadId) => `entidad:${tipoEntidad}:${entidadId}-reservas`;
 const _getReservasPendientesAprobacionRedisKey = () => `reservas:pendientes-aprobacion`;
 const _getReservasPorFechaRedisKey = (fechaInicio, fechaFin) => `reservas:fecha:${fechaInicio}-${fechaFin}`;
@@ -29,7 +29,7 @@ const getReservas = async (filtros = {}, skip = 0, limit = 10) => {
     console.log("[Mongo] getReservas con skip/limit");
     const result = await Reserva.find(filtros)
       .populate("usuarioId", "nombre email")
-      .populate("clienteId", "nombre email") // NUEVO: Poblar datos del cliente
+      .populate("clienteId", "nombre email")
       .populate("pagoId")
       .populate("serviciosAdicionales")
       .populate("aprobador.usuarioId", "nombre email")
@@ -44,7 +44,7 @@ const getReservas = async (filtros = {}, skip = 0, limit = 10) => {
     console.log("[Error Redis] fallback a Mongo sin cache", err);
     return await Reserva.find(filtros)
       .populate("usuarioId", "nombre email")
-      .populate("clienteId", "nombre email") // NUEVO
+      .populate("clienteId", "nombre email")
       .populate("pagoId")
       .populate("serviciosAdicionales")
       .populate("aprobador.usuarioId", "nombre email")
@@ -77,7 +77,7 @@ const findReservaById = async (id) => {
     
     const doc = await Reserva.findById(id)
       .populate('usuarioId', 'nombre email')
-      .populate('clienteId', 'nombre email') // NUEVO
+      .populate('clienteId', 'nombre email')
       .populate('pagoId')
       .populate('serviciosAdicionales')
       .populate('aprobador.usuarioId', 'nombre email')
@@ -91,7 +91,7 @@ const findReservaById = async (id) => {
   } catch (error) {
     return await Reserva.findById(id)
       .populate('usuarioId', 'nombre email')
-      .populate('clienteId', 'nombre email') // NUEVO
+      .populate('clienteId', 'nombre email') 
       .populate('pagoId')
       .populate('serviciosAdicionales')
       .populate('aprobador.usuarioId', 'nombre email')
@@ -99,7 +99,6 @@ const findReservaById = async (id) => {
   }
 };
 
-// NUEVO: Obtener reservas por cliente/propietario
 const getReservasByCliente = async (clienteId) => {
   const redisClient = connectToRedis();
   const key = _getReservasByClienteRedisKey(clienteId);
@@ -161,7 +160,7 @@ const getReservasByUsuario = async (usuarioId) => {
     }
     
     const result = await Reserva.find({ usuarioId })
-      .populate('clienteId', 'nombre email') // NUEVO: Poblar cliente
+      .populate('clienteId', 'nombre email')
       .populate('pagoId')
       .populate('serviciosAdicionales')
       .lean();
@@ -171,7 +170,7 @@ const getReservasByUsuario = async (usuarioId) => {
     return result;
   } catch (error) {
     return await Reserva.find({ usuarioId })
-      .populate('clienteId', 'nombre email') // NUEVO
+      .populate('clienteId', 'nombre email')
       .populate('pagoId')
       .populate('serviciosAdicionales')
       .lean();
@@ -183,12 +182,11 @@ const createReserva = async (reservaData) => {
   const newReserva = new Reserva(reservaData);
   const saved = await newReserva.save();
   
-  // Limpiar caches relevantes
   await redisClient.del(_getReservasFilterRedisKey({}));
   if (saved.usuarioId) {
     await redisClient.del(_getReservasByUsuarioRedisKey(saved.usuarioId.toString()));
   }
-  if (saved.clienteId) { // NUEVO: Limpiar cache del cliente
+  if (saved.clienteId) { 
     await redisClient.del(_getReservasByClienteRedisKey(saved.clienteId.toString()));
   }
   if (saved.entidadReservada && saved.entidadReservada.tipo && saved.entidadReservada.id) {
@@ -210,7 +208,6 @@ const updateReserva = async (id, payload) => {
   const reserva = await Reserva.findById(id);
   const updated = await Reserva.findByIdAndUpdate(id, payload, { new: true });
   
-  // Limpiar caches
   await redisClient.del(_getReservasRedisKey(id));
   await redisClient.del(_getReservasFilterRedisKey({}));
   
@@ -221,7 +218,6 @@ const updateReserva = async (id, payload) => {
     await redisClient.del(_getReservasByUsuarioRedisKey(updated.usuarioId.toString()));
   }
   
-  // NUEVO: Limpiar caches del cliente
   if (reserva.clienteId) {
     await redisClient.del(_getReservasByClienteRedisKey(reserva.clienteId.toString()));
   }
@@ -258,7 +254,7 @@ const deleteReserva = async (id) => {
   if (reserva.usuarioId) {
     await redisClient.del(_getReservasByUsuarioRedisKey(reserva.usuarioId.toString()));
   }
-  if (reserva.clienteId) { // NUEVO
+  if (reserva.clienteId) { 
     await redisClient.del(_getReservasByClienteRedisKey(reserva.clienteId.toString()));
   }
   if (reserva.entidadReservada && reserva.entidadReservada.tipo && reserva.entidadReservada.id) {
@@ -275,9 +271,7 @@ const deleteReserva = async (id) => {
   return removed;
 };
 
-// Resto de funciones sin cambios...
 const getReservasByEntidad = async (tipoEntidad, entidadId) => {
-  // Implementación sin cambios (solo agregar populate para clienteId)
   const redisClient = connectToRedis();
   const key = _getReservasByEntidadRedisKey(tipoEntidad, entidadId);
   
@@ -303,7 +297,7 @@ const getReservasByEntidad = async (tipoEntidad, entidadId) => {
       'entidadReservada.id': entidadId
     })
       .populate('usuarioId', 'nombre email')
-      .populate('clienteId', 'nombre email') // NUEVO
+      .populate('clienteId', 'nombre email') 
       .populate('pagoId')
       .populate('serviciosAdicionales')
       .lean();
@@ -317,14 +311,13 @@ const getReservasByEntidad = async (tipoEntidad, entidadId) => {
       'entidadReservada.id': entidadId
     })
       .populate('usuarioId', 'nombre email')
-      .populate('clienteId', 'nombre email') // NUEVO
+      .populate('clienteId', 'nombre email') 
       .populate('pagoId')
       .populate('serviciosAdicionales')
       .lean();
   }
 };
 
-// Funciones adicionales sin cambios...
 const cambiarEstadoReserva = async (id, nuevoEstado) => {
   return await updateReserva(id, { estado: nuevoEstado });
 };
@@ -364,7 +357,6 @@ const agregarServicioAdicional = async (id, servicioId) => {
   return updated;
 };
 
-// NUEVO: Obtener estadísticas de ganancias por cliente
 const getEstadisticasGananciasCliente = async (clienteId, fechaInicio, fechaFin) => {
   try {
     const filtros = { 
@@ -393,7 +385,6 @@ const getEstadisticasGananciasCliente = async (clienteId, fechaInicio, fechaFin)
   }
 };
 
-// Agregar estas funciones al archivo reserva.repository.js después de getReservasByEntidad
 
 const getReservasPendientesAprobacion = async () => {
   const redisClient = connectToRedis();
@@ -564,11 +555,11 @@ module.exports = {
   getReservas,
   findReservaById,
   getReservasByUsuario,
-  getReservasByCliente, // NUEVO
+  getReservasByCliente, 
   getReservasByEntidad,
-  getReservasPendientesAprobacion, // Ahora implementada
-  getReservasPorFecha, // Ahora implementada
-  getReservasRecurrentes, // Ahora implementada
+  getReservasPendientesAprobacion, 
+  getReservasPorFecha, 
+  getReservasRecurrentes, 
   createReserva,
   updateReserva,
   deleteReserva,
@@ -577,5 +568,5 @@ module.exports = {
   rechazarReserva,
   vincularPagoReserva,
   agregarServicioAdicional,
-  getEstadisticasGananciasCliente // NUEVO
+  getEstadisticasGananciasCliente 
 };

@@ -13,7 +13,6 @@ const sanitizeMiddleware = require("./middlewares/sanitizeMiddleware");
 const payloadMiddleware = require("./middlewares/payload.middleware");
 const logger = require("./utils/logger.js");
 
-// Controllers y Schemas que necesitamos exponer públicamente
 const {
   createEmpresaInmobiliariaController
 } = require("./controllers/empresaInmobiliaria.controller");
@@ -27,7 +26,6 @@ const {
   createProveedorSchema
 } = require("./routes/validations/proveedor.validation");
 
-// Routers
 const publicRoutes = require("./routes/public.router");
 const authRouter = require("./routes/auth.router");
 const espaciosRoutes = require("./routes/espacios.router");
@@ -47,13 +45,11 @@ const facturasRoutes = require("./routes/facturas.router");
 const promocionesRoutes = require("./routes/promociones.router");
 const disponibilidadesRoutes = require("./routes/disponibilidades.router");
 
-// Routers que ya manejan sus propias rutas protegidas/no protegidas
 const empresasInmobiliariasRoutes = require("./routes/empresaInmobiliarias.router");
 const proveedoresRoutes = require("./routes/proveedores.router");
 
 const app = express();
 
-// Conexiones iniciales
 (async () => {
   try {
     await connectMongoDB();
@@ -73,42 +69,30 @@ const app = express();
   }
 })();
 
-// Middlewares globales
 app.use(express.json());
 app.use(morgan("dev"));
 app.use(cors());
 app.use(sanitizeMiddleware);
 
-// Rutas totalmente públicas
 app.use("/", publicRoutes);
 app.use("/v1/auth", authRouter);
 
-// ———————————————————————————————————
-// **EXPOSICIÓN PÚBLICA** de creación de empresa  
-// (antes de montar authMiddleWare)
-// POST /v1/empresas-inmobiliarias
 app.post(
   "/v1/empresas-inmobiliarias",
   payloadMiddleware(createEmpresaInmobiliariaSchema),
   createEmpresaInmobiliariaController
 );
 
-// **EXPOSICIÓN PÚBLICA** de creación de proveedor
-// POST /v1/proveedores
 app.post(
   "/v1/proveedores",
   payloadMiddleware(createProveedorSchema),
   createProveedorController
 );
 
-// Si lo deseas, puedes seguir montando el router completo—pero
-// tu llamada directa arriba tendrá prioridad para el POST /v1/empresas-inmobiliarias
 app.use("/v1/empresas-inmobiliarias", empresasInmobiliariasRoutes);
 
-// A partir de aquí, TODO lo que venga bajo `/v1/*` va a requerir token
 app.use("/v1", authMiddleWare);
 
-// Routers protegidos
 app.use("/v1", proveedoresRoutes);
 app.use("/v1", espaciosRoutes);
 app.use("/v1", membresiasRoutes);
@@ -127,7 +111,6 @@ app.use("/v1", facturasRoutes);
 app.use("/v1", promocionesRoutes);
 app.use("/v1", disponibilidadesRoutes);
 
-// Health-checks y Sentry
 app.get("/", (req, res) => res.send("🟢 API funcionando correctamente"));
 app.get("/debug-sentry", (req, res) => { throw new Error("My first Sentry error!"); });
 Sentry.setupExpressErrorHandler(app);

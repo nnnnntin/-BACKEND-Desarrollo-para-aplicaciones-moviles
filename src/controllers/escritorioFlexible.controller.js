@@ -14,7 +14,7 @@ const {
   agregarAmenidad,
   eliminarAmenidad,
   getEscritoriosDisponibles,
-  getEscritoriosByNombre // Nueva función agregada
+  getEscritoriosByNombre
 } = require("../repositories/escritorioFlexible.repository");
 const {
   createEscritorioFlexibleSchema,
@@ -104,7 +104,6 @@ const getEscritorioFlexibleByCodigoController = async (req, res) => {
   }
 };
 
-// Nuevo controller para buscar por nombre
 const getEscritoriosByNombreController = async (req, res) => {
   const { nombre } = req.params;
   
@@ -287,7 +286,6 @@ const createEscritorioFlexibleController = async (req, res) => {
   }
 
   try {
-    // Generar nombre automático si no se proporciona
     if (!value.nombre || value.nombre.trim() === '') {
       let nombreGenerado = 'Escritorio';
       if (value.ubicacion?.zona) {
@@ -764,7 +762,6 @@ const filtrarEscritoriosFlexiblesController = async (req, res) => {
     if (value.amenidades) filtros["amenidades.tipo"] = { $in: value.amenidades };
     if (value.precioMaximoPorDia !== undefined) filtros["precios.porDia"] = { $lte: parseFloat(value.precioMaximoPorDia) };
     if (value.estado) filtros.estado = value.estado;
-    // Agregar filtro por nombre si se proporciona
     if (value.nombre) filtros.nombre = { $regex: value.nombre, $options: 'i' };
 
     const escritorios = await getEscritoriosFlexibles(filtros);
@@ -789,7 +786,7 @@ module.exports = {
   getEscritoriosFlexiblesController,
   getEscritorioFlexibleByIdController,
   getEscritorioFlexibleByCodigoController,
-  getEscritoriosByNombreController, // Nuevo export agregado
+  getEscritoriosByNombreController, 
   getEscritoriosByEdificioController,
   getEscritoriosByTipoController,
   getEscritoriosByAmenidadesController,

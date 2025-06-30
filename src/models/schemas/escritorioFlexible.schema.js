@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const escritorioFlexibleSchema = new mongoose.Schema(
   {
     codigo: { type: String, required: true, unique: true },
-    nombre: { type: String, required: false }, // Nuevo campo agregado
+    nombre: { type: String, required: false }, 
     ubicacion: {
       edificioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edificio' },
       piso: { type: Number, required: true },

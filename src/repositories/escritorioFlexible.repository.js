@@ -160,7 +160,6 @@ const findEscritorioFlexibleByCodigo = async (codigo) => {
   }
 };
 
-// Nueva función para buscar por nombre
 const getEscritoriosByNombre = async (nombre) => {
   const redisClient = connectToRedis();
   const key = _getEscritoriosByNombreRedisKey(nombre);
@@ -657,7 +656,6 @@ const updateEscritorioFlexible = async (id, payload) => {
     await redisClient.del(_getEscritorioByCodigoRedisKey(updated.codigo));
   }
 
-  // Limpiar cache de nombres
   if (escritorio.nombre) {
     await redisClient.del(_getEscritoriosByNombreRedisKey(escritorio.nombre));
   }
@@ -866,7 +864,7 @@ module.exports = {
   getEscritoriosFlexibles,
   findEscritorioFlexibleById,
   findEscritorioFlexibleByCodigo,
-  getEscritoriosByNombre, // Nueva función exportada
+  getEscritoriosByNombre, 
   getEscritoriosByEdificio,
   getEscritoriosByTipo,
   getEscritoriosByAmenidades,

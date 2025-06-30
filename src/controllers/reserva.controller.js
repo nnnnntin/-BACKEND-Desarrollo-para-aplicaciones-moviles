@@ -335,7 +335,6 @@ const createReservaController = async (req, res) => {
   }
 
   try {
-    // Validar que el usuario existe
     const validacionUsuario = await validarUsuarioExiste(value.usuarioId);
     if (!validacionUsuario.valid) {
       return res.status(404).json({
@@ -344,7 +343,6 @@ const createReservaController = async (req, res) => {
       });
     }
 
-    // NUEVO: Validar que el cliente/propietario existe
     const validacionCliente = await validarUsuarioExiste(value.clienteId);
     if (!validacionCliente.valid) {
       return res.status(404).json({
@@ -353,7 +351,6 @@ const createReservaController = async (req, res) => {
       });
     }
 
-    // Validar que la entidad reservable existe
     const { tipo: tipoEntidad, id: entidadId } = value.entidadReservada;
     const validacionEntidad = await validarEntidadReservableExiste(tipoEntidad, entidadId);
     if (!validacionEntidad.valid) {
@@ -362,7 +359,6 @@ const createReservaController = async (req, res) => {
         details: validacionEntidad.message
       });
     }
-    // Validar servicios adicionales si existen
     if (value.serviciosAdicionales && value.serviciosAdicionales.length > 0) {
       const validacionServicios = await validarServiciosAdicionalesExisten(value.serviciosAdicionales);
       if (!validacionServicios.valid) {
@@ -374,7 +370,6 @@ const createReservaController = async (req, res) => {
       }
     }
 
-    // Validar fechas
     const fechaInicio = new Date(value.fechaInicio);
     const fechaFin = new Date(value.fechaFin);
     const fechaActual = new Date();
@@ -400,7 +395,6 @@ const createReservaController = async (req, res) => {
       });
     }
 
-    // NUEVO: Validar coherencia de precios
     if (value.precioFinalPagado > value.precioTotal) {
       return res.status(400).json({
         message: "Error en los precios",
@@ -408,13 +402,11 @@ const createReservaController = async (req, res) => {
       });
     }
 
-    // NUEVO: Si hay descuento, validar que el precio final sea correcto
     if (value.descuento && value.descuento.porcentaje > 0) {
       const descuentoEsperado = value.precioTotal * (value.descuento.porcentaje / 100);
       const precioFinalEsperado = value.precioTotal - descuentoEsperado;
       const diferencia = Math.abs(value.precioFinalPagado - precioFinalEsperado);
 
-      // Permitir una pequeña diferencia por redondeo (centavos)
       if (diferencia > 0.01) {
         return res.status(400).json({
           message: "Error en el cálculo del precio",
@@ -423,7 +415,6 @@ const createReservaController = async (req, res) => {
       }
     }
 
-    // Crear la reserva
     const reserva = await createReserva(value);
 
     res.status(201).json({
@@ -434,7 +425,7 @@ const createReservaController = async (req, res) => {
         nombre: validacionUsuario.user.nombre,
         email: validacionUsuario.user.email
       },
-      clienteValidado: { // NUEVO
+      clienteValidado: { 
         id: validacionCliente.user._id,
         nombre: validacionCliente.user.nombre,
         email: validacionCliente.user.email
@@ -444,7 +435,7 @@ const createReservaController = async (req, res) => {
         id: validacionEntidad.entity._id,
         nombre: validacionEntidad.entity.nombre || validacionEntidad.entity.codigo
       },
-      resumenPrecios: { // NUEVO
+      resumenPrecios: { 
         precioTotal: value.precioTotal,
         precioFinalPagado: value.precioFinalPagado,
         descuento: value.descuento || null,
@@ -954,12 +945,10 @@ const cancelarReservaController = async (req, res) => {
   }
 };
 
-// NUEVA: Obtener reservas por cliente/propietario
 const getReservasByClienteController = async (req, res) => {
   const { clienteId } = req.params;
 
   try {
-    // Validar que el cliente existe
     const validacionCliente = await validarUsuarioExiste(clienteId);
     if (!validacionCliente.valid) {
       return res.status(404).json({
@@ -970,7 +959,6 @@ const getReservasByClienteController = async (req, res) => {
 
     const reservas = await getReservasByCliente(clienteId);
 
-    // Agregar información adicional
     const resumen = {
       totalReservas: reservas.length,
       reservasConfirmadas: reservas.filter(r => r.estado === 'confirmada').length,
@@ -999,13 +987,11 @@ const getReservasByClienteController = async (req, res) => {
   }
 };
 
-// NUEVA: Obtener estadísticas de ganancias por cliente
 const getEstadisticasGananciasClienteController = async (req, res) => {
   const { clienteId } = req.params;
   const { fechaInicio, fechaFin } = req.query;
 
   try {
-    // Validar que el cliente existe
     const validacionCliente = await validarUsuarioExiste(clienteId);
     if (!validacionCliente.valid) {
       return res.status(404).json({
@@ -1014,7 +1000,6 @@ const getEstadisticasGananciasClienteController = async (req, res) => {
       });
     }
 
-    // Validar fechas si se proporcionan
     let inicio = null;
     let fin = null;
 
@@ -1047,7 +1032,6 @@ const getEstadisticasGananciasClienteController = async (req, res) => {
 
     const estadisticas = await getEstadisticasGananciasCliente(clienteId, inicio, fin);
 
-    // Agregar estadísticas adicionales
     const reservasPorMes = {};
     const ingresosPorMes = {};
 
@@ -1059,7 +1043,6 @@ const getEstadisticasGananciasClienteController = async (req, res) => {
       ingresosPorMes[mesAno] = (ingresosPorMes[mesAno] || 0) + (reserva.precioFinalPagado || 0);
     });
 
-    // Estadísticas por tipo de entidad
     const estadisticasPorTipo = {};
     estadisticas.reservas.forEach(reserva => {
       const tipo = reserva.entidadReservada?.tipo || 'desconocido';
@@ -1118,7 +1101,6 @@ const getEstadisticasGananciasClienteController = async (req, res) => {
   }
 };
 
-// Actualización del filtrarReservasController para incluir clienteId
 const filtrarReservasController = async (req, res) => {
   const { error, value } = filtrarReservasSchema.validate(req.query);
   if (error) {
@@ -1132,7 +1114,6 @@ const filtrarReservasController = async (req, res) => {
   try {
     const filtros = {};
 
-    // Validar usuario si se proporciona
     if (value.usuarioId) {
       const validacionUsuario = await validarUsuarioExiste(value.usuarioId);
       if (!validacionUsuario.valid) {
@@ -1144,7 +1125,6 @@ const filtrarReservasController = async (req, res) => {
       filtros.usuarioId = value.usuarioId;
     }
 
-    // NUEVO: Validar cliente si se proporciona
     if (value.clienteId) {
       const validacionCliente = await validarUsuarioExiste(value.clienteId);
       if (!validacionCliente.valid) {
@@ -1156,7 +1136,6 @@ const filtrarReservasController = async (req, res) => {
       filtros.clienteId = value.clienteId;
     }
 
-    // Validar tipo de entidad
     if (value.tipoEntidad) {
       if (!ENTIDADES_RESERVABLES_VALIDAS.includes(value.tipoEntidad)) {
         return res.status(400).json({
@@ -1212,7 +1191,6 @@ const filtrarReservasController = async (req, res) => {
       filtros.fechaFin = { $lte: fechaFin };
     }
 
-    // NUEVO: Filtros por precio
     if (value.precioMinimo !== undefined) {
       filtros.precioFinalPagado = { ...filtros.precioFinalPagado, $gte: value.precioMinimo };
     }
@@ -1225,7 +1203,6 @@ const filtrarReservasController = async (req, res) => {
 
     const reservas = await getReservas(filtros);
 
-    // Agregar estadísticas de los resultados filtrados
     const estadisticas = {
       totalResultados: reservas.length,
       ingresosTotales: reservas.reduce((total, r) => total + (r.precioFinalPagado || 0), 0),
@@ -1268,5 +1245,5 @@ module.exports = {
   filtrarReservasController,
   getReservasByClienteController,
   getEstadisticasGananciasClienteController,
-  filtrarReservasController // Actualizada
+  filtrarReservasController 
 };

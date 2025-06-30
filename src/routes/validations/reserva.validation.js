@@ -2,7 +2,7 @@ const Joi = require("joi");
 
 const createReservaSchema = Joi.object({
   usuarioId: Joi.string().required(),
-  clienteId: Joi.string().required(), // NUEVO: ID del propietario del espacio
+  clienteId: Joi.string().required(), 
   entidadReservada: Joi.object({
     tipo: Joi.string().valid('oficina', 'sala_reunion', 'escritorio_flexible').required(),
     id: Joi.string().required()
@@ -16,7 +16,7 @@ const createReservaSchema = Joi.object({
   cantidadPersonas: Joi.number().integer().min(1).default(1),
   proposito: Joi.string(),
   precioTotal: Joi.number().min(0).required(),
-  precioFinalPagado: Joi.number().min(0).required(), // NUEVO: Precio final pagado
+  precioFinalPagado: Joi.number().min(0).required(), 
   descuento: Joi.object({
     porcentaje: Joi.number().min(0).max(100).default(0),
     codigo: Joi.string(),
@@ -45,7 +45,7 @@ const createReservaSchema = Joi.object({
 });
 
 const updateReservaSchema = Joi.object({
-  clienteId: Joi.string(), // NUEVO: Permitir actualizar el cliente
+  clienteId: Joi.string(), 
   fechaInicio: Joi.date(),
   fechaFin: Joi.date(),
   horaInicio: Joi.string().pattern(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
@@ -53,7 +53,7 @@ const updateReservaSchema = Joi.object({
   estado: Joi.string().valid('pendiente', 'confirmada', 'cancelada', 'completada', 'no_asistio'),
   cantidadPersonas: Joi.number().integer().min(1),
   proposito: Joi.string(),
-  precioFinalPagado: Joi.number().min(0), // NUEVO: Permitir actualizar precio final
+  precioFinalPagado: Joi.number().min(0), 
   pagoId: Joi.string(),
   aprobador: Joi.object({
     necesitaAprobacion: Joi.boolean(),
@@ -66,15 +66,15 @@ const updateReservaSchema = Joi.object({
 
 const filtrarReservasSchema = Joi.object({
   usuarioId: Joi.string(),
-  clienteId: Joi.string(), // NUEVO: Filtrar por cliente/propietario
+  clienteId: Joi.string(), 
   tipoEntidad: Joi.string().valid('oficina', 'sala_reunion', 'escritorio_flexible'),
   entidadId: Joi.string(),
   estado: Joi.string().valid('pendiente', 'confirmada', 'cancelada', 'completada', 'no_asistio'),
   fechaInicio: Joi.date(),
   fechaFin: Joi.date(),
   esRecurrente: Joi.boolean(),
-  precioMinimo: Joi.number().min(0), // NUEVO: Filtrar por rango de precio
-  precioMaximo: Joi.number().min(0)  // NUEVO: Filtrar por rango de precio
+  precioMinimo: Joi.number().min(0), 
+  precioMaximo: Joi.number().min(0) 
 });
 
 const cancelarReservaSchema = Joi.object({

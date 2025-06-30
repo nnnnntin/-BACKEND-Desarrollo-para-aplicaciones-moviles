@@ -4,7 +4,7 @@ const {
   getEscritoriosFlexiblesController,
   getEscritorioFlexibleByIdController,
   getEscritorioFlexibleByCodigoController,
-  getEscritoriosByNombreController, // Nuevo import agregado
+  getEscritoriosByNombreController, 
   getEscritoriosByEdificioController,
   getEscritoriosByTipoController,
   getEscritoriosByAmenidadesController,
@@ -33,7 +33,7 @@ router.get("/escritorios-flexibles/propietario/:propietarioId", getEscritoriosBy
 router.get("/escritorios-flexibles/tipo/:tipo", getEscritoriosByTipoController);
 router.get("/escritorios-flexibles/edificio/:edificioId", getEscritoriosByEdificioController);
 router.get("/escritorios-flexibles/codigo/:codigo", getEscritorioFlexibleByCodigoController);
-router.get("/escritorios-flexibles/nombre/:nombre", getEscritoriosByNombreController); // Nueva ruta agregada
+router.get("/escritorios-flexibles/nombre/:nombre", getEscritoriosByNombreController);
 
 router.get("/escritorios-flexibles", getEscritoriosFlexiblesController);
 router.get("/escritorios-flexibles/:id", getEscritorioFlexibleByIdController);

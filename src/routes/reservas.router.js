@@ -5,7 +5,7 @@ const {
   getReservasController,
   getReservaByIdController,
   getReservasByUsuarioController,
-  getReservasByClienteController, // NUEVO
+  getReservasByClienteController,
   getReservasByEntidadController,
   getReservasPendientesAprobacionController,
   getReservasPorFechaController,
@@ -19,7 +19,7 @@ const {
   vincularPagoReservaController,
   cancelarReservaController,
   filtrarReservasController,
-  getEstadisticasGananciasClienteController // NUEVO
+  getEstadisticasGananciasClienteController 
 } = require("../controllers/reserva.controller");
 
 const payloadMiddleware = require("../middlewares/payload.middleware");
@@ -29,17 +29,14 @@ const {
   cancelarReservaSchema
 } = require("../routes/validations/reserva.validation");
 
-// Rutas específicas (deben ir antes de las rutas con parámetros)
 router.get("/reservas/pendientes", getReservasPendientesAprobacionController);
 router.get("/reservas/fecha", getReservasPorFechaController);
 router.get("/reservas/recurrentes", getReservasRecurrentesController);
 router.get("/reservas/filtrar", filtrarReservasController);
 
-// NUEVAS RUTAS
-router.get("/reservas/cliente/:clienteId", getReservasByClienteController); // Reservas por cliente/propietario
-router.get("/reservas/cliente/:clienteId/estadisticas", getEstadisticasGananciasClienteController); // Estadísticas de ganancias
+router.get("/reservas/cliente/:clienteId", getReservasByClienteController); 
+router.get("/reservas/cliente/:clienteId/estadisticas", getEstadisticasGananciasClienteController); 
 
-// Rutas existentes
 router.get("/reservas/usuario/:usuarioId", getReservasByUsuarioController);
 router.get("/reservas/entidad/:tipoEntidad/:entidadId", getReservasByEntidadController);
 

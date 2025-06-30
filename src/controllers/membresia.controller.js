@@ -482,7 +482,6 @@ const suscribirMembresiaController = async (req, res) => {
   const { usuarioId, membresiaId, fechaInicio, metodoPagoId, renovacionAutomatica, codigoPromocional } = value;
 
   try {
-    // ✅ DEBUG: Log de datos recibidos
     console.log('🔵 [Backend] Datos de suscripción recibidos:', {
       usuarioId,
       membresiaId,
@@ -510,7 +509,6 @@ const suscribirMembresiaController = async (req, res) => {
       });
     }
 
-    // ✅ DEBUG: Log de usuario y membresía encontrados
     console.log('🔵 [Backend] Usuario encontrado:', {
       id: usuario._id,
       username: usuario.username,
@@ -549,15 +547,13 @@ const suscribirMembresiaController = async (req, res) => {
     const vencimiento = new Date(inicio);
     vencimiento.setDate(vencimiento.getDate() + membresia.duracion);
 
-    // ✅ CORRECCIÓN CRÍTICA: Estructura de datos correcta y renovación automática
     const membresiaData = {
-      tipoMembresiaId: membresiaId, // ⚠️ El schema espera 'tipoMembresiaId'
+      tipoMembresiaId: membresiaId, 
       fechaInicio: inicio,
       fechaVencimiento: vencimiento,
-      renovacionAutomatica: renovacionAutomatica !== undefined ? renovacionAutomatica : true // ✅ CORRECCIÓN: usar valor real
+      renovacionAutomatica: renovacionAutomatica !== undefined ? renovacionAutomatica : true 
     };
 
-    // ✅ DEBUG: Log antes de actualizar
     console.log('🔵 [Backend] Datos de membresía a guardar:', membresiaData);
 
     const usuarioActualizado = await updateMembresiaUsuario(usuarioId, membresiaData);
@@ -568,14 +564,12 @@ const suscribirMembresiaController = async (req, res) => {
       });
     }
 
-    // ✅ DEBUG: Log después de actualizar
     console.log('🟢 [Backend] Usuario actualizado exitosamente:', {
       id: usuarioActualizado._id,
       username: usuarioActualizado.username,
       membresia: usuarioActualizado.membresia
     });
 
-    // ✅ VERIFICACIÓN: Asegurar que la membresía se guardó correctamente
     if (!usuarioActualizado.membresia || !usuarioActualizado.membresia.tipoMembresiaId) {
       console.error('🔴 [Backend] Error: Usuario actualizado sin membresía válida');
       return res.status(500).json({
@@ -584,7 +578,6 @@ const suscribirMembresiaController = async (req, res) => {
       });
     }
 
-    // ✅ RESPUESTA COMPLETA con todos los datos necesarios
     res.status(200).json({
       message: "Suscripción a membresía realizada correctamente",
       usuario: {
@@ -595,7 +588,7 @@ const suscribirMembresiaController = async (req, res) => {
         nombre: usuarioActualizado.nombre,
         apellidos: usuarioActualizado.apellidos,
         imagen: usuarioActualizado.imagen,
-        membresia: usuarioActualizado.membresia, // ⚠️ CRUCIAL: membresía completa
+        membresia: usuarioActualizado.membresia, 
         metodoPago: usuarioActualizado.metodoPago,
         activo: usuarioActualizado.activo,
         verificado: usuarioActualizado.verificado,

@@ -21,7 +21,7 @@ const ubicacionEscritorioSchema = Joi.object({
 
 const createEscritorioFlexibleSchema = Joi.object({
   codigo: Joi.string().required(),
-  nombre: Joi.string().optional().allow(''), // Nuevo campo agregado
+  nombre: Joi.string().optional().allow(''), 
   ubicacion: ubicacionEscritorioSchema.required(),
   tipo: Joi.string().valid('individual', 'compartido', 'standing').default('individual'),
   amenidades: Joi.array().items(
@@ -48,7 +48,7 @@ const createEscritorioFlexibleSchema = Joi.object({
 });
 
 const updateEscritorioFlexibleSchema = Joi.object({
-  nombre: Joi.string().optional().allow(''), // Nuevo campo agregado
+  nombre: Joi.string().optional().allow(''),
   ubicacion: Joi.object({
     edificioId: Joi.string(),
     piso: Joi.number(),
@@ -95,7 +95,7 @@ const filtrarEscritoriosFlexiblesSchema = Joi.object({
   edificioId: Joi.string(),
   piso: Joi.number(),
   zona: Joi.string(),
-  nombre: Joi.string().min(2), // Nuevo campo agregado para filtros
+  nombre: Joi.string().min(2), 
   tipo: Joi.string().valid('individual', 'compartido', 'standing'),
   amenidades: Joi.array().items(Joi.string()),
   precioMaximoPorDia: Joi.number().min(0),

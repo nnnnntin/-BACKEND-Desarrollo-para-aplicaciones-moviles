@@ -947,6 +947,8 @@ const getReservasByProveedorController = async (req, res) => {
   const { proveedorId } = req.params;
 
   try {
+    console.log(`🔍 Iniciando búsqueda para proveedor: ${proveedorId}`);
+
     // Validar que el proveedor existe
     const validacionProveedor = await validarUsuarioExiste(proveedorId);
     if (!validacionProveedor.valid) {
@@ -966,6 +968,13 @@ const getReservasByProveedorController = async (req, res) => {
       proveedorId: proveedorObjectId 
     }).lean();
     
+    console.log(`📋 Encontrados ${serviciosDelProveedor.length} servicios para proveedor ${proveedorId}`);
+    console.log('📋 Servicios encontrados:', serviciosDelProveedor.map(s => ({
+      id: s._id.toString(),
+      nombre: s.nombre,
+      activo: s.activo
+    })));
+    
     if (!serviciosDelProveedor || serviciosDelProveedor.length === 0) {
       return res.status(200).json({
         proveedor: {
@@ -984,20 +993,24 @@ const getReservasByProveedorController = async (req, res) => {
       });
     }
 
-    console.log(`Encontrados ${serviciosDelProveedor.length} servicios para proveedor ${proveedorId}`);
-
     // Obtener los IDs de los servicios del proveedor
     const idsServiciosProveedor = serviciosDelProveedor.map(s => s._id.toString());
-    console.log('IDs servicios del proveedor:', idsServiciosProveedor);
+    console.log('🎯 IDs servicios del proveedor:', idsServiciosProveedor);
 
     // Buscar todas las reservas y filtrar las que contengan servicios del proveedor
     const todasLasReservas = await getReservas({}, 0, 10000);
-    console.log(`Total de reservas encontradas: ${todasLasReservas.length}`);
+    console.log(`📊 Total de reservas encontradas: ${todasLasReservas.length}`);
     
     const reservasConServiciosProveedor = [];
     
-    for (const reserva of todasLasReservas) {
+    for (let i = 0; i < todasLasReservas.length; i++) {
+      const reserva = todasLasReservas[i];
+      
       if (reserva.serviciosAdicionales && reserva.serviciosAdicionales.length > 0) {
+        console.log(`\n🔎 Analizando reserva ${i + 1}/${todasLasReservas.length}: ${reserva._id}`);
+        console.log(`   Estado: ${reserva.estado}`);
+        console.log(`   Servicios en reserva (raw):`, reserva.serviciosAdicionales);
+        
         // Convertir servicios de la reserva a strings para comparar
         const serviciosReservaIds = reserva.serviciosAdicionales.map(s => {
           if (typeof s === 'object' && s._id) {
@@ -1009,20 +1022,22 @@ const getReservasByProveedorController = async (req, res) => {
           return s.toString();
         });
         
-        console.log(`Reserva ${reserva._id} tiene servicios:`, serviciosReservaIds);
+        console.log(`   Servicios convertidos a IDs:`, serviciosReservaIds);
         
         // Verificar si algún servicio de la reserva pertenece al proveedor
-        const tieneServicioDelProveedor = serviciosReservaIds.some(servicioId => 
+        const coincidencias = serviciosReservaIds.filter(servicioId => 
           idsServiciosProveedor.includes(servicioId)
         );
         
-        if (tieneServicioDelProveedor) {
-          console.log(`Reserva ${reserva._id} contiene servicios del proveedor`);
+        if (coincidencias.length > 0) {
+          console.log(`   ✅ COINCIDENCIA! Servicios del proveedor en esta reserva:`, coincidencias);
           
           // Obtener los servicios del proveedor en esta reserva
           const serviciosProveedorEnReserva = serviciosDelProveedor.filter(servicio =>
             serviciosReservaIds.includes(servicio._id.toString())
           );
+          
+          console.log(`   📝 Servicios completos encontrados:`, serviciosProveedorEnReserva.map(s => s.nombre));
           
           // Agregar información de servicios del proveedor a la reserva
           const reservaConServicios = {
@@ -1031,11 +1046,18 @@ const getReservasByProveedorController = async (req, res) => {
           };
           
           reservasConServiciosProveedor.push(reservaConServicios);
+        } else {
+          console.log(`   ❌ No hay coincidencias para esta reserva`);
+        }
+      } else {
+        // Solo log cada 10 reservas sin servicios para no saturar
+        if (i % 10 === 0) {
+          console.log(`📄 Reserva ${i + 1}: ${reserva._id} - Sin servicios adicionales`);
         }
       }
     }
 
-    console.log(`Encontradas ${reservasConServiciosProveedor.length} reservas con servicios del proveedor`);
+    console.log(`\n🎉 RESULTADO: Encontradas ${reservasConServiciosProveedor.length} reservas con servicios del proveedor`);
 
     // Calcular estadísticas
     const estadisticas = {
@@ -1065,7 +1087,7 @@ const getReservasByProveedorController = async (req, res) => {
       reservas: reservasConServiciosProveedor
     });
   } catch (error) {
-    console.error('Error en getReservasByProveedorController:', error);
+    console.error('❌ Error en getReservasByProveedorController:', error);
     console.error('Stack trace:', error.stack);
     res.status(500).json({
       message: "Error al obtener reservas del proveedor",

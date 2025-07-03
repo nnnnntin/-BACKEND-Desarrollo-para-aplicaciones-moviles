@@ -958,7 +958,13 @@ const getReservasByProveedorController = async (req, res) => {
 
     // Buscar servicios adicionales del proveedor directamente
     const ServicioAdicional = require("../models/servicioAdicional.model");
-    const serviciosDelProveedor = await ServicioAdicional.find({ proveedorId }).lean();
+    const mongoose = require('mongoose');
+    
+    // Convertir proveedorId a ObjectId correctamente
+    const proveedorObjectId = new mongoose.Types.ObjectId(proveedorId);
+    const serviciosDelProveedor = await ServicioAdicional.find({ 
+      proveedorId: proveedorObjectId 
+    }).lean();
     
     if (!serviciosDelProveedor || serviciosDelProveedor.length === 0) {
       return res.status(200).json({
@@ -996,6 +1002,9 @@ const getReservasByProveedorController = async (req, res) => {
         const serviciosReservaIds = reserva.serviciosAdicionales.map(s => {
           if (typeof s === 'object' && s._id) {
             return s._id.toString();
+          }
+          if (typeof s === 'object' && s.toString) {
+            return s.toString();
           }
           return s.toString();
         });

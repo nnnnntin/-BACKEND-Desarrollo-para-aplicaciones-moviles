@@ -958,22 +958,16 @@ const getReservasByProveedorController = async (req, res) => {
       });
     }
 
-    // Buscar servicios adicionales del proveedor directamente
+    // Buscar servicios adicionales del proveedor
     const ServicioAdicional = require("../models/servicioAdicional.model");
     const mongoose = require('mongoose');
     
-    // Convertir proveedorId a ObjectId correctamente
     const proveedorObjectId = new mongoose.Types.ObjectId(proveedorId);
     const serviciosDelProveedor = await ServicioAdicional.find({ 
       proveedorId: proveedorObjectId 
     }).lean();
     
     console.log(`📋 Encontrados ${serviciosDelProveedor.length} servicios para proveedor ${proveedorId}`);
-    console.log('📋 Servicios encontrados:', serviciosDelProveedor.map(s => ({
-      id: s._id.toString(),
-      nombre: s.nombre,
-      activo: s.activo
-    })));
     
     if (!serviciosDelProveedor || serviciosDelProveedor.length === 0) {
       return res.status(200).json({
@@ -993,83 +987,48 @@ const getReservasByProveedorController = async (req, res) => {
       });
     }
 
-    // Obtener los IDs de los servicios del proveedor
-    const idsServiciosProveedor = serviciosDelProveedor.map(s => s._id.toString());
-    console.log('🎯 IDs servicios del proveedor:', idsServiciosProveedor);
+    // Obtener los ObjectIds de los servicios del proveedor
+    const idsServiciosProveedor = serviciosDelProveedor.map(s => s._id);
+    console.log('🎯 IDs servicios del proveedor:', idsServiciosProveedor.map(id => id.toString()));
 
-    // Buscar todas las reservas y filtrar las que contengan servicios del proveedor
-    const todasLasReservas = await getReservas({}, 0, 10000);
-    console.log(`📊 Total de reservas encontradas: ${todasLasReservas.length}`);
-    
-    const reservasConServiciosProveedor = [];
-    
-    for (let i = 0; i < todasLasReservas.length; i++) {
-      const reserva = todasLasReservas[i];
-      
-      if (reserva.serviciosAdicionales && reserva.serviciosAdicionales.length > 0) {
-        console.log(`\n🔎 Analizando reserva ${i + 1}/${todasLasReservas.length}: ${reserva._id}`);
-        console.log(`   Estado: ${reserva.estado}`);
-        console.log(`   Servicios en reserva (raw):`, reserva.serviciosAdicionales);
-        
-        // Convertir servicios de la reserva a strings para comparar
-        const serviciosReservaIds = reserva.serviciosAdicionales.map(s => {
-          if (typeof s === 'object' && s._id) {
-            return s._id.toString();
-          }
-          if (typeof s === 'object' && s.toString) {
-            return s.toString();
-          }
-          return s.toString();
-        });
-        
-        console.log(`   Servicios convertidos a IDs:`, serviciosReservaIds);
-        
-        // Verificar si algún servicio de la reserva pertenece al proveedor
-        const coincidencias = serviciosReservaIds.filter(servicioId => 
-          idsServiciosProveedor.includes(servicioId)
-        );
-        
-        if (coincidencias.length > 0) {
-          console.log(`   ✅ COINCIDENCIA! Servicios del proveedor en esta reserva:`, coincidencias);
-          
-          // Obtener los servicios del proveedor en esta reserva
-          const serviciosProveedorEnReserva = serviciosDelProveedor.filter(servicio =>
-            serviciosReservaIds.includes(servicio._id.toString())
-          );
-          
-          console.log(`   📝 Servicios completos encontrados:`, serviciosProveedorEnReserva.map(s => s.nombre));
-          
-          // Agregar información de servicios del proveedor a la reserva
-          const reservaConServicios = {
-            ...reserva,
-            serviciosDelProveedor: serviciosProveedorEnReserva
-          };
-          
-          reservasConServiciosProveedor.push(reservaConServicios);
-        } else {
-          console.log(`   ❌ No hay coincidencias para esta reserva`);
-        }
-      } else {
-        // Solo log cada 10 reservas sin servicios para no saturar
-        if (i % 10 === 0) {
-          console.log(`📄 Reserva ${i + 1}: ${reserva._id} - Sin servicios adicionales`);
-        }
-      }
-    }
+    // Buscar reservas que contengan servicios del proveedor usando consulta directa
+    const Reserva = require("../models/reserva.model");
+    const reservasConServiciosProveedor = await Reserva.find({
+      serviciosAdicionales: { $in: idsServiciosProveedor }
+    })
+    .populate('usuarioId', 'nombre email')
+    .populate('clienteId', 'nombre email')
+    .populate('pagoId')
+    .populate('serviciosAdicionales')
+    .populate('aprobador.usuarioId', 'nombre email')
+    .lean();
 
     console.log(`\n🎉 RESULTADO: Encontradas ${reservasConServiciosProveedor.length} reservas con servicios del proveedor`);
 
+    // Agregar información específica de los servicios del proveedor a cada reserva
+    const reservasConDetalles = reservasConServiciosProveedor.map(reserva => {
+      const serviciosProveedorEnReserva = reserva.serviciosAdicionales.filter(servicio => {
+        const servicioIdStr = servicio._id.toString();
+        return idsServiciosProveedor.some(proveedorId => proveedorId.toString() === servicioIdStr);
+      });
+
+      return {
+        ...reserva,
+        serviciosDelProveedor: serviciosProveedorEnReserva
+      };
+    });
+
     // Calcular estadísticas
     const estadisticas = {
-      totalReservas: reservasConServiciosProveedor.length,
-      reservasConfirmadas: reservasConServiciosProveedor.filter(r => r.estado === 'confirmada').length,
-      reservasCompletadas: reservasConServiciosProveedor.filter(r => r.estado === 'completada').length,
-      reservasPendientes: reservasConServiciosProveedor.filter(r => r.estado === 'pendiente').length,
+      totalReservas: reservasConDetalles.length,
+      reservasConfirmadas: reservasConDetalles.filter(r => r.estado === 'confirmada').length,
+      reservasCompletadas: reservasConDetalles.filter(r => r.estado === 'completada').length,
+      reservasPendientes: reservasConDetalles.filter(r => r.estado === 'pendiente').length,
       ingresosPotenciales: 0
     };
 
     // Calcular ingresos potenciales solo de servicios del proveedor
-    for (const reserva of reservasConServiciosProveedor) {
+    for (const reserva of reservasConDetalles) {
       if (['confirmada', 'completada'].includes(reserva.estado) && reserva.serviciosDelProveedor) {
         for (const servicio of reserva.serviciosDelProveedor) {
           estadisticas.ingresosPotenciales += servicio.precio || 0;
@@ -1084,7 +1043,7 @@ const getReservasByProveedorController = async (req, res) => {
         email: validacionProveedor.user.email
       },
       estadisticas,
-      reservas: reservasConServiciosProveedor
+      reservas: reservasConDetalles
     });
   } catch (error) {
     console.error('❌ Error en getReservasByProveedorController:', error);
@@ -1095,7 +1054,6 @@ const getReservasByProveedorController = async (req, res) => {
     });
   }
 };
-
 const getReservasByClienteController = async (req, res) => {
   const { clienteId } = req.params;
 

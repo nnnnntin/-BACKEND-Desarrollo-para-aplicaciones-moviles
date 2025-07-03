@@ -41,7 +41,7 @@ const createReservaSchema = Joi.object({
     then: Joi.required(),
     otherwise: Joi.optional()
   }),
-  serviciosAdicionales: Joi.array().items(Joi.string())
+  serviciosAdicionales: Joi.array().items(Joi.string()).optional()
 });
 
 const updateReservaSchema = Joi.object({

@@ -956,78 +956,77 @@ const getReservasByProveedorController = async (req, res) => {
       });
     }
 
-    // Buscar todas las reservas que incluyan servicios adicionales
-    // Usamos agregación para buscar directamente las reservas que contengan servicios del proveedor
-    const Reserva = require("../models/reserva.model");
+    // Buscar servicios adicionales del proveedor directamente
+    const ServicioAdicional = require("../models/servicioAdicional.model");
+    const serviciosDelProveedor = await ServicioAdicional.find({ proveedorId }).lean();
     
-    const reservasConServiciosProveedor = await Reserva.aggregate([
-      {
-        $lookup: {
-          from: 'servicios-adicionales', // Nombre de la colección de servicios adicionales
-          localField: 'serviciosAdicionales',
-          foreignField: '_id',
-          as: 'serviciosPopulados'
+    if (!serviciosDelProveedor || serviciosDelProveedor.length === 0) {
+      return res.status(200).json({
+        proveedor: {
+          id: validacionProveedor.user._id,
+          nombre: validacionProveedor.user.nombre,
+          email: validacionProveedor.user.email
+        },
+        estadisticas: {
+          totalReservas: 0,
+          reservasConfirmadas: 0,
+          reservasCompletadas: 0,
+          reservasPendientes: 0,
+          ingresosPotenciales: 0
+        },
+        reservas: []
+      });
+    }
+
+    console.log(`Encontrados ${serviciosDelProveedor.length} servicios para proveedor ${proveedorId}`);
+
+    // Obtener los IDs de los servicios del proveedor
+    const idsServiciosProveedor = serviciosDelProveedor.map(s => s._id.toString());
+    console.log('IDs servicios del proveedor:', idsServiciosProveedor);
+
+    // Buscar todas las reservas y filtrar las que contengan servicios del proveedor
+    const todasLasReservas = await getReservas({}, 0, 10000);
+    console.log(`Total de reservas encontradas: ${todasLasReservas.length}`);
+    
+    const reservasConServiciosProveedor = [];
+    
+    for (const reserva of todasLasReservas) {
+      if (reserva.serviciosAdicionales && reserva.serviciosAdicionales.length > 0) {
+        // Convertir servicios de la reserva a strings para comparar
+        const serviciosReservaIds = reserva.serviciosAdicionales.map(s => {
+          if (typeof s === 'object' && s._id) {
+            return s._id.toString();
+          }
+          return s.toString();
+        });
+        
+        console.log(`Reserva ${reserva._id} tiene servicios:`, serviciosReservaIds);
+        
+        // Verificar si algún servicio de la reserva pertenece al proveedor
+        const tieneServicioDelProveedor = serviciosReservaIds.some(servicioId => 
+          idsServiciosProveedor.includes(servicioId)
+        );
+        
+        if (tieneServicioDelProveedor) {
+          console.log(`Reserva ${reserva._id} contiene servicios del proveedor`);
+          
+          // Obtener los servicios del proveedor en esta reserva
+          const serviciosProveedorEnReserva = serviciosDelProveedor.filter(servicio =>
+            serviciosReservaIds.includes(servicio._id.toString())
+          );
+          
+          // Agregar información de servicios del proveedor a la reserva
+          const reservaConServicios = {
+            ...reserva,
+            serviciosDelProveedor: serviciosProveedorEnReserva
+          };
+          
+          reservasConServiciosProveedor.push(reservaConServicios);
         }
-      },
-      {
-        $match: {
-          'serviciosPopulados.proveedorId': require('mongoose').Types.ObjectId(proveedorId)
-        }
-      },
-      {
-        $lookup: {
-          from: 'usuarios',
-          localField: 'usuarioId',
-          foreignField: '_id',
-          as: 'usuario'
-        }
-      },
-      {
-        $lookup: {
-          from: 'usuarios',
-          localField: 'clienteId',
-          foreignField: '_id',
-          as: 'cliente'
-        }
-      },
-      {
-        $unwind: {
-          path: '$usuario',
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      {
-        $unwind: {
-          path: '$cliente',
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      {
-        $addFields: {
-          usuarioId: {
-            _id: '$usuario._id',
-            nombre: '$usuario.nombre',
-            email: '$usuario.email'
-          },
-          clienteId: {
-            _id: '$cliente._id',
-            nombre: '$cliente.nombre',
-            email: '$cliente.email'
-          },
-          serviciosAdicionales: '$serviciosPopulados'
-        }
-      },
-      {
-        $project: {
-          usuario: 0,
-          cliente: 0,
-          serviciosPopulados: 0
-        }
-      },
-      {
-        $sort: { createdAt: -1 }
       }
-    ]);
+    }
+
+    console.log(`Encontradas ${reservasConServiciosProveedor.length} reservas con servicios del proveedor`);
 
     // Calcular estadísticas
     const estadisticas = {
@@ -1040,11 +1039,9 @@ const getReservasByProveedorController = async (req, res) => {
 
     // Calcular ingresos potenciales solo de servicios del proveedor
     for (const reserva of reservasConServiciosProveedor) {
-      if (['confirmada', 'completada'].includes(reserva.estado) && reserva.serviciosAdicionales) {
-        for (const servicio of reserva.serviciosAdicionales) {
-          if (servicio.proveedorId && servicio.proveedorId.toString() === proveedorId) {
-            estadisticas.ingresosPotenciales += servicio.precio || 0;
-          }
+      if (['confirmada', 'completada'].includes(reserva.estado) && reserva.serviciosDelProveedor) {
+        for (const servicio of reserva.serviciosDelProveedor) {
+          estadisticas.ingresosPotenciales += servicio.precio || 0;
         }
       }
     }
@@ -1060,6 +1057,7 @@ const getReservasByProveedorController = async (req, res) => {
     });
   } catch (error) {
     console.error('Error en getReservasByProveedorController:', error);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({
       message: "Error al obtener reservas del proveedor",
       details: error.message

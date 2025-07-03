@@ -85,6 +85,21 @@ const findServicioAdicionalById = async (id) => {
   }
 };
 
+const findServiciosAdicionales = async (filtros = {}) => {
+  try {
+    const ServicioAdicional = require("../models/servicioAdicional.model");
+    
+    const servicios = await ServicioAdicional.find(filtros)
+      .populate('proveedorId', 'nombre email')
+      .lean();
+    
+    return servicios;
+  } catch (error) {
+    console.error('Error en findServiciosAdicionales:', error);
+    throw error;
+  }
+};
+
 const getServiciosByTipo = async (tipo) => {
   const redisClient = connectToRedis();
   const key = _getServiciosByTipoRedisKey(tipo);
@@ -513,5 +528,6 @@ module.exports = {
   activarServicioAdicional,
   asignarEspacio,
   eliminarEspacio,
-  getServiciosConAprobacion
+  getServiciosConAprobacion,
+  findServiciosAdicionales
 };

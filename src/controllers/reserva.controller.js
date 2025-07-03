@@ -947,9 +947,6 @@ const getReservasByProveedorController = async (req, res) => {
   const { proveedorId } = req.params;
 
   try {
-    console.log(`🔍 Iniciando búsqueda para proveedor: ${proveedorId}`);
-
-    // Validar que el proveedor existe
     const validacionProveedor = await validarUsuarioExiste(proveedorId);
     if (!validacionProveedor.valid) {
       return res.status(404).json({
@@ -958,7 +955,6 @@ const getReservasByProveedorController = async (req, res) => {
       });
     }
 
-    // Buscar servicios adicionales del proveedor
     const ServicioAdicional = require("../models/servicioAdicional.model");
     const mongoose = require('mongoose');
     
@@ -966,9 +962,7 @@ const getReservasByProveedorController = async (req, res) => {
     const serviciosDelProveedor = await ServicioAdicional.find({ 
       proveedorId: proveedorObjectId 
     }).lean();
-    
-    console.log(`📋 Encontrados ${serviciosDelProveedor.length} servicios para proveedor ${proveedorId}`);
-    
+        
     if (!serviciosDelProveedor || serviciosDelProveedor.length === 0) {
       return res.status(200).json({
         proveedor: {
@@ -987,11 +981,8 @@ const getReservasByProveedorController = async (req, res) => {
       });
     }
 
-    // Obtener los ObjectIds de los servicios del proveedor
     const idsServiciosProveedor = serviciosDelProveedor.map(s => s._id);
-    console.log('🎯 IDs servicios del proveedor:', idsServiciosProveedor.map(id => id.toString()));
 
-    // Buscar reservas que contengan servicios del proveedor usando consulta directa
     const Reserva = require("../models/reserva.model");
     const reservasConServiciosProveedor = await Reserva.find({
       serviciosAdicionales: { $in: idsServiciosProveedor }
@@ -1003,9 +994,6 @@ const getReservasByProveedorController = async (req, res) => {
     .populate('aprobador.usuarioId', 'nombre email')
     .lean();
 
-    console.log(`\n🎉 RESULTADO: Encontradas ${reservasConServiciosProveedor.length} reservas con servicios del proveedor`);
-
-    // Agregar información específica de los servicios del proveedor a cada reserva
     const reservasConDetalles = reservasConServiciosProveedor.map(reserva => {
       const serviciosProveedorEnReserva = reserva.serviciosAdicionales.filter(servicio => {
         const servicioIdStr = servicio._id.toString();
@@ -1018,7 +1006,6 @@ const getReservasByProveedorController = async (req, res) => {
       };
     });
 
-    // Calcular estadísticas
     const estadisticas = {
       totalReservas: reservasConDetalles.length,
       reservasConfirmadas: reservasConDetalles.filter(r => r.estado === 'confirmada').length,
@@ -1027,7 +1014,6 @@ const getReservasByProveedorController = async (req, res) => {
       ingresosPotenciales: 0
     };
 
-    // Calcular ingresos potenciales solo de servicios del proveedor
     for (const reserva of reservasConDetalles) {
       if (['confirmada', 'completada'].includes(reserva.estado) && reserva.serviciosDelProveedor) {
         for (const servicio of reserva.serviciosDelProveedor) {

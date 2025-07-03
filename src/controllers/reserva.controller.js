@@ -943,6 +943,94 @@ const cancelarReservaController = async (req, res) => {
   }
 };
 
+const getReservasByProveedorController = async (req, res) => {
+  const { proveedorId } = req.params;
+
+  try {
+    // Validar que el proveedor existe
+    const validacionProveedor = await validarUsuarioExiste(proveedorId);
+    if (!validacionProveedor.valid) {
+      return res.status(404).json({
+        message: "Proveedor no encontrado",
+        details: validacionProveedor.message
+      });
+    }
+
+    // Buscar todas las reservas que incluyan servicios adicionales del proveedor
+    const reservas = await getReservas({}, 0, 1000); // Obtener todas las reservas
+    
+    // Filtrar reservas que contengan servicios del proveedor
+    const reservasConServiciosProveedor = [];
+    
+    for (const reserva of reservas) {
+      if (reserva.serviciosAdicionales && reserva.serviciosAdicionales.length > 0) {
+        let tieneServicioDelProveedor = false;
+        
+        for (const servicio of reserva.serviciosAdicionales) {
+          // Si el servicio está poblado
+          if (servicio.proveedorId) {
+            const servicioProveedorId = typeof servicio.proveedorId === 'object' 
+              ? servicio.proveedorId._id || servicio.proveedorId.toString()
+              : servicio.proveedorId.toString();
+            
+            if (servicioProveedorId === proveedorId) {
+              tieneServicioDelProveedor = true;
+              break;
+            }
+          }
+        }
+        
+        if (tieneServicioDelProveedor) {
+          reservasConServiciosProveedor.push(reserva);
+        }
+      }
+    }
+
+    // Calcular estadísticas
+    const estadisticas = {
+      totalReservas: reservasConServiciosProveedor.length,
+      reservasConfirmadas: reservasConServiciosProveedor.filter(r => r.estado === 'confirmada').length,
+      reservasCompletadas: reservasConServiciosProveedor.filter(r => r.estado === 'completada').length,
+      reservasPendientes: reservasConServiciosProveedor.filter(r => r.estado === 'pendiente').length,
+      ingresosPotenciales: reservasConServiciosProveedor
+        .filter(r => ['confirmada', 'completada'].includes(r.estado))
+        .reduce((total, r) => {
+          // Calcular ingresos solo de los servicios del proveedor
+          let ingresosServiciosProveedor = 0;
+          if (r.serviciosAdicionales) {
+            r.serviciosAdicionales.forEach(servicio => {
+              const servicioProveedorId = typeof servicio.proveedorId === 'object' 
+                ? servicio.proveedorId._id || servicio.proveedorId.toString()
+                : servicio.proveedorId?.toString();
+              
+              if (servicioProveedorId === proveedorId && servicio.precio) {
+                ingresosServiciosProveedor += servicio.precio;
+              }
+            });
+          }
+          return total + ingresosServiciosProveedor;
+        }, 0)
+    };
+
+    res.status(200).json({
+      proveedor: {
+        id: validacionProveedor.user._id,
+        nombre: validacionProveedor.user.nombre,
+        email: validacionProveedor.user.email
+      },
+      estadisticas,
+      reservas: reservasConServiciosProveedor
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Error al obtener reservas del proveedor",
+      details: error.message
+    });
+  }
+};
+
+
 const getReservasByClienteController = async (req, res) => {
   const { clienteId } = req.params;
 
@@ -1243,5 +1331,6 @@ module.exports = {
   filtrarReservasController,
   getReservasByClienteController,
   getEstadisticasGananciasClienteController,
-  filtrarReservasController 
+  filtrarReservasController,
+  getReservasByProveedorController
 };

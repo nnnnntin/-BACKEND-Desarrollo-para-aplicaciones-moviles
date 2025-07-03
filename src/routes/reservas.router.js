@@ -19,7 +19,8 @@ const {
   vincularPagoReservaController,
   cancelarReservaController,
   filtrarReservasController,
-  getEstadisticasGananciasClienteController 
+  getEstadisticasGananciasClienteController,
+  getReservasByProveedorController
 } = require("../controllers/reserva.controller");
 
 const payloadMiddleware = require("../middlewares/payload.middleware");
@@ -41,6 +42,8 @@ router.get("/reservas/usuario/:usuarioId", getReservasByUsuarioController);
 router.get("/reservas/entidad/:tipoEntidad/:entidadId", getReservasByEntidadController);
 
 router.get("/reservas/:id", getReservaByIdController);
+
+router.get("/reservas/proveedor/:proveedorId", getReservasByProveedorController);
 
 router.get("/reservas", getReservasController);
 router.post("/reservas",

@@ -956,35 +956,78 @@ const getReservasByProveedorController = async (req, res) => {
       });
     }
 
-    // Buscar todas las reservas que incluyan servicios adicionales del proveedor
-    const reservas = await getReservas({}, 0, 1000); // Obtener todas las reservas
+    // Buscar todas las reservas que incluyan servicios adicionales
+    // Usamos agregación para buscar directamente las reservas que contengan servicios del proveedor
+    const Reserva = require("../models/reserva.model");
     
-    // Filtrar reservas que contengan servicios del proveedor
-    const reservasConServiciosProveedor = [];
-    
-    for (const reserva of reservas) {
-      if (reserva.serviciosAdicionales && reserva.serviciosAdicionales.length > 0) {
-        let tieneServicioDelProveedor = false;
-        
-        for (const servicio of reserva.serviciosAdicionales) {
-          // Si el servicio está poblado
-          if (servicio.proveedorId) {
-            const servicioProveedorId = typeof servicio.proveedorId === 'object' 
-              ? servicio.proveedorId._id || servicio.proveedorId.toString()
-              : servicio.proveedorId.toString();
-            
-            if (servicioProveedorId === proveedorId) {
-              tieneServicioDelProveedor = true;
-              break;
-            }
-          }
+    const reservasConServiciosProveedor = await Reserva.aggregate([
+      {
+        $lookup: {
+          from: 'servicios-adicionales', // Nombre de la colección de servicios adicionales
+          localField: 'serviciosAdicionales',
+          foreignField: '_id',
+          as: 'serviciosPopulados'
         }
-        
-        if (tieneServicioDelProveedor) {
-          reservasConServiciosProveedor.push(reserva);
+      },
+      {
+        $match: {
+          'serviciosPopulados.proveedorId': require('mongoose').Types.ObjectId(proveedorId)
         }
+      },
+      {
+        $lookup: {
+          from: 'usuarios',
+          localField: 'usuarioId',
+          foreignField: '_id',
+          as: 'usuario'
+        }
+      },
+      {
+        $lookup: {
+          from: 'usuarios',
+          localField: 'clienteId',
+          foreignField: '_id',
+          as: 'cliente'
+        }
+      },
+      {
+        $unwind: {
+          path: '$usuario',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $unwind: {
+          path: '$cliente',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          usuarioId: {
+            _id: '$usuario._id',
+            nombre: '$usuario.nombre',
+            email: '$usuario.email'
+          },
+          clienteId: {
+            _id: '$cliente._id',
+            nombre: '$cliente.nombre',
+            email: '$cliente.email'
+          },
+          serviciosAdicionales: '$serviciosPopulados'
+        }
+      },
+      {
+        $project: {
+          usuario: 0,
+          cliente: 0,
+          serviciosPopulados: 0
+        }
+      },
+      {
+        $sort: { createdAt: -1 }
       }
-    }
+    ]);
 
     // Calcular estadísticas
     const estadisticas = {
@@ -992,25 +1035,19 @@ const getReservasByProveedorController = async (req, res) => {
       reservasConfirmadas: reservasConServiciosProveedor.filter(r => r.estado === 'confirmada').length,
       reservasCompletadas: reservasConServiciosProveedor.filter(r => r.estado === 'completada').length,
       reservasPendientes: reservasConServiciosProveedor.filter(r => r.estado === 'pendiente').length,
-      ingresosPotenciales: reservasConServiciosProveedor
-        .filter(r => ['confirmada', 'completada'].includes(r.estado))
-        .reduce((total, r) => {
-          // Calcular ingresos solo de los servicios del proveedor
-          let ingresosServiciosProveedor = 0;
-          if (r.serviciosAdicionales) {
-            r.serviciosAdicionales.forEach(servicio => {
-              const servicioProveedorId = typeof servicio.proveedorId === 'object' 
-                ? servicio.proveedorId._id || servicio.proveedorId.toString()
-                : servicio.proveedorId?.toString();
-              
-              if (servicioProveedorId === proveedorId && servicio.precio) {
-                ingresosServiciosProveedor += servicio.precio;
-              }
-            });
-          }
-          return total + ingresosServiciosProveedor;
-        }, 0)
+      ingresosPotenciales: 0
     };
+
+    // Calcular ingresos potenciales solo de servicios del proveedor
+    for (const reserva of reservasConServiciosProveedor) {
+      if (['confirmada', 'completada'].includes(reserva.estado) && reserva.serviciosAdicionales) {
+        for (const servicio of reserva.serviciosAdicionales) {
+          if (servicio.proveedorId && servicio.proveedorId.toString() === proveedorId) {
+            estadisticas.ingresosPotenciales += servicio.precio || 0;
+          }
+        }
+      }
+    }
 
     res.status(200).json({
       proveedor: {
@@ -1022,14 +1059,13 @@ const getReservasByProveedorController = async (req, res) => {
       reservas: reservasConServiciosProveedor
     });
   } catch (error) {
-    console.error(error);
+    console.error('Error en getReservasByProveedorController:', error);
     res.status(500).json({
       message: "Error al obtener reservas del proveedor",
       details: error.message
     });
   }
 };
-
 
 const getReservasByClienteController = async (req, res) => {
   const { clienteId } = req.params;

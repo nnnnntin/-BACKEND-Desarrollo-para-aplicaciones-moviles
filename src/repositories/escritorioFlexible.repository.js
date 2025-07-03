@@ -600,25 +600,35 @@ const createEscritorioFlexible = async (escritorioData) => {
   const newEscritorio = new EscritorioFlexible(escritorioData);
   const saved = await newEscritorio.save();
 
-  await redisClient.del(_getEscritoriosFilterRedisKey({}));
-  if (saved.codigo) {
-    await redisClient.del(_getEscritorioByCodigoRedisKey(saved.codigo));
-  }
-  if (saved.nombre) {
-    await redisClient.del(_getEscritoriosByNombreRedisKey(saved.nombre));
-  }
-  if (saved.ubicacion && saved.ubicacion.edificioId) {
-    await redisClient.del(
-      _getEscritoriosByEdificioRedisKey(saved.ubicacion.edificioId.toString())
-    );
-  }
-  if (saved.tipo) {
-    await redisClient.del(_getEscritoriosByTipoRedisKey(saved.tipo));
-  }
-  if (saved.usuarioId) {
-    await redisClient.del(
-      _getEscritoriosByUsuarioRedisKey(saved.usuarioId.toString())
-    );
+  try {
+    const allEscritorioKeys = await redisClient.keys("escritorios:*");
+    if (allEscritorioKeys.length > 0) {
+      await redisClient.del(...allEscritorioKeys);
+    }
+
+    if (saved.codigo) {
+      await redisClient.del(_getEscritorioByCodigoRedisKey(saved.codigo));
+    }
+    if (saved.nombre) {
+      await redisClient.del(_getEscritoriosByNombreRedisKey(saved.nombre));
+    }
+    if (saved.ubicacion && saved.ubicacion.edificioId) {
+      await redisClient.del(
+        _getEscritoriosByEdificioRedisKey(saved.ubicacion.edificioId.toString())
+      );
+    }
+    if (saved.tipo) {
+      await redisClient.del(_getEscritoriosByTipoRedisKey(saved.tipo));
+    }
+    if (saved.usuarioId) {
+      await redisClient.del(
+        _getEscritoriosByUsuarioRedisKey(saved.usuarioId.toString())
+      );
+    }
+
+    console.log("✅ Cache invalidated successfully after creating escritorio");
+  } catch (cacheError) {
+    console.error("❌ Error invalidating cache:", cacheError);
   }
 
   return saved;

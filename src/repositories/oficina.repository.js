@@ -454,26 +454,36 @@ const createOficina = async (oficinaData) => {
   const newOficina = new Oficina(oficinaData);
   const saved = await newOficina.save();
   
-  await redisClient.del(_getOficinasFilterRedisKey({}));
-  if (saved.codigo) {
-    await redisClient.del(_getOficinaByCodigoRedisKey(saved.codigo));
-  }
-  if (saved.ubicacion && saved.ubicacion.edificioId) {
-    await redisClient.del(_getOficinasByEdificioRedisKey(saved.ubicacion.edificioId.toString()));
-  }
-  if (saved.tipo) {
-    await redisClient.del(_getOficinasByTipoRedisKey(saved.tipo));
-  }
-  if (saved.usuarioId) {
-    await redisClient.del(_getOficinasByUsuarioRedisKey(saved.usuarioId.toString()));
-  }
-  if (saved.empresaInmobiliariaId) {
-    await redisClient.del(_getOficinasByEmpresaRedisKey(saved.empresaInmobiliariaId.toString()));
-  }
-  if (saved.capacidad) {
-    for (let i = 1; i <= saved.capacidad; i++) {
-      await redisClient.del(_getOficinasByCapacidadRedisKey(i));
+  try {
+    const allOficinaKeys = await redisClient.keys("oficinas:*");
+    if (allOficinaKeys.length > 0) {
+      await redisClient.del(...allOficinaKeys);
     }
+
+    if (saved.codigo) {
+      await redisClient.del(_getOficinaByCodigoRedisKey(saved.codigo));
+    }
+    if (saved.ubicacion && saved.ubicacion.edificioId) {
+      await redisClient.del(_getOficinasByEdificioRedisKey(saved.ubicacion.edificioId.toString()));
+    }
+    if (saved.tipo) {
+      await redisClient.del(_getOficinasByTipoRedisKey(saved.tipo));
+    }
+    if (saved.usuarioId) {
+      await redisClient.del(_getOficinasByUsuarioRedisKey(saved.usuarioId.toString()));
+    }
+    if (saved.empresaInmobiliariaId) {
+      await redisClient.del(_getOficinasByEmpresaRedisKey(saved.empresaInmobiliariaId.toString()));
+    }
+    if (saved.capacidad) {
+      for (let i = 1; i <= saved.capacidad; i++) {
+        await redisClient.del(_getOficinasByCapacidadRedisKey(i));
+      }
+    }
+
+    console.log("✅ Cache invalidated successfully after creating oficina");
+  } catch (cacheError) {
+    console.error("❌ Error invalidating cache:", cacheError);
   }
   
   return saved;

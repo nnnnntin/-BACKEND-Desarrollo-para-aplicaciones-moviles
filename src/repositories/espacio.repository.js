@@ -532,35 +532,60 @@ const createEspacio = async (espacioData) => {
   const newEspacio = new Espacio(espacioData);
   const saved = await newEspacio.save();
 
-  await redisClient.del(_getEspaciosFilterRedisKey({}));
-  if (saved.ubicacion && saved.ubicacion.edificioId) {
-    await redisClient.del(
-      _getEspaciosByEdificioRedisKey(saved.ubicacion.edificioId.toString())
-    );
-  }
-  if (saved.tipo) {
-    await redisClient.del(_getEspaciosByTipoRedisKey(saved.tipo));
-  }
-  if (saved.usuarioId) {
-    await redisClient.del(
-      _getEspaciosByUsuarioRedisKey(saved.usuarioId.toString())
-    );
-  }
-  if (saved.empresaInmobiliariaId) {
-    await redisClient.del(
-      _getEspaciosByEmpresaRedisKey(saved.empresaInmobiliariaId.toString())
-    );
-  }
-  if (saved.capacidad) {
-    for (let i = 1; i <= saved.capacidad; i++) {
-      await redisClient.del(_getEspaciosByCapacidadRedisKey(i));
+  try {
+    const filterKeys = await redisClient.keys("espacios:*");
+    if (filterKeys.length > 0) {
+      await redisClient.del(...filterKeys);
     }
-  }
-  if (saved.ubicacion?.direccionCompleta?.ciudad) {
-    await redisClient.del(_getEspaciosByCiudadRedisKey(saved.ubicacion.direccionCompleta.ciudad));
-  }
-  if (saved.ubicacion?.direccionCompleta?.departamento) {
-    await redisClient.del(_getEspaciosByDepartamentoRedisKey(saved.ubicacion.direccionCompleta.departamento));
+
+    if (saved.ubicacion && saved.ubicacion.edificioId) {
+      await redisClient.del(
+        _getEspaciosByEdificioRedisKey(saved.ubicacion.edificioId.toString())
+      );
+    }
+    if (saved.tipo) {
+      await redisClient.del(_getEspaciosByTipoRedisKey(saved.tipo));
+    }
+    if (saved.usuarioId) {
+      await redisClient.del(
+        _getEspaciosByUsuarioRedisKey(saved.usuarioId.toString())
+      );
+    }
+    if (saved.empresaInmobiliariaId) {
+      await redisClient.del(
+        _getEspaciosByEmpresaRedisKey(saved.empresaInmobiliariaId.toString())
+      );
+    }
+    if (saved.capacidad) {
+      for (let i = 1; i <= saved.capacidad; i++) {
+        await redisClient.del(_getEspaciosByCapacidadRedisKey(i));
+      }
+    }
+    if (saved.ubicacion?.direccionCompleta?.ciudad) {
+      await redisClient.del(_getEspaciosByCiudadRedisKey(saved.ubicacion.direccionCompleta.ciudad));
+    }
+    if (saved.ubicacion?.direccionCompleta?.departamento) {
+      await redisClient.del(_getEspaciosByDepartamentoRedisKey(saved.ubicacion.direccionCompleta.departamento));
+    }
+
+    const proximityKeys = await redisClient.keys("espacios:proximidad:*");
+    if (proximityKeys.length > 0) {
+      await redisClient.del(...proximityKeys);
+    }
+
+    const availabilityKeys = await redisClient.keys("espacios:disponibles:*");
+    if (availabilityKeys.length > 0) {
+      await redisClient.del(...availabilityKeys);
+    }
+
+    const amenityKeys = await redisClient.keys("espacios:amenidades:*");
+    if (amenityKeys.length > 0) {
+      await redisClient.del(...amenityKeys);
+    }
+
+    console.log("✅ Cache invalidated successfully after creating espacio");
+  } catch (cacheError) {
+    console.error("❌ Error invalidating cache:", cacheError);
   }
 
   return saved;

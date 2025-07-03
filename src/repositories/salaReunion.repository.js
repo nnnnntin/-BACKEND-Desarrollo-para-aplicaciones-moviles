@@ -595,21 +595,31 @@ const createSalaReunion = async (salaData) => {
   const newSala = new SalaReunion(salaData);
   const saved = await newSala.save();
   
-  await redisClient.del(_getSalasReunionFilterRedisKey({}));
-  if (saved.codigo) {
-    await redisClient.del(_getSalaReunionByCodigoRedisKey(saved.codigo));
-  }
-  if (saved.ubicacion?.edificioId) {
-    await redisClient.del(_getSalasByEdificioRedisKey(saved.ubicacion.edificioId.toString()));
-  }
-  if (saved.usuarioId) {
-    await redisClient.del(_getSalasByUsuarioRedisKey(saved.usuarioId.toString()));
-  }
-  if (saved.ubicacion?.direccionCompleta?.ciudad) {
-    await redisClient.del(_getSalasByCiudadRedisKey(saved.ubicacion.direccionCompleta.ciudad));
-  }
-  if (saved.ubicacion?.direccionCompleta?.departamento) {
-    await redisClient.del(_getSalasByDepartamentoRedisKey(saved.ubicacion.direccionCompleta.departamento));
+  try {
+    const allSalaKeys = await redisClient.keys("salasReunion:*");
+    if (allSalaKeys.length > 0) {
+      await redisClient.del(...allSalaKeys);
+    }
+
+    if (saved.codigo) {
+      await redisClient.del(_getSalaReunionByCodigoRedisKey(saved.codigo));
+    }
+    if (saved.ubicacion?.edificioId) {
+      await redisClient.del(_getSalasByEdificioRedisKey(saved.ubicacion.edificioId.toString()));
+    }
+    if (saved.usuarioId) {
+      await redisClient.del(_getSalasByUsuarioRedisKey(saved.usuarioId.toString()));
+    }
+    if (saved.ubicacion?.direccionCompleta?.ciudad) {
+      await redisClient.del(_getSalasByCiudadRedisKey(saved.ubicacion.direccionCompleta.ciudad));
+    }
+    if (saved.ubicacion?.direccionCompleta?.departamento) {
+      await redisClient.del(_getSalasByDepartamentoRedisKey(saved.ubicacion.direccionCompleta.departamento));
+    }
+
+    console.log("✅ Cache invalidated successfully after creating sala de reunión");
+  } catch (cacheError) {
+    console.error("❌ Error invalidating cache:", cacheError);
   }
   
   return saved;
